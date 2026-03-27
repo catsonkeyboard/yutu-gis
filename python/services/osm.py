@@ -13,6 +13,7 @@ def _way_to_geometry(nodes: list[dict]) -> dict:
     Closed way (first == last) → Polygon; open way → LineString.
     """
     coords = [[n["lon"], n["lat"]] for n in nodes]
+    # Overpass duplicates the exact first node to close rings, so exact equality is safe
     is_closed = len(coords) >= 4 and coords[0] == coords[-1]
     if is_closed:
         return {"type": "Polygon", "coordinates": [coords]}
