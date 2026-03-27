@@ -77,3 +77,11 @@ export async function ogcGetFeatures(
 ): Promise<GeoJSON.FeatureCollection> {
   return postJson('/data/ogc/features', { url, collection_id: collectionId, max_features: maxFeatures })
 }
+
+// ---------------------------------------------------------------------------
+// OSM Feature Extraction
+// ---------------------------------------------------------------------------
+
+export async function osmExtract(lat: number, lon: number): Promise<GeoJSON.FeatureCollection> {
+  return postJson('/data/osm/extract', { lat, lon })
+}

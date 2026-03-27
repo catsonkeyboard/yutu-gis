@@ -28,5 +28,18 @@
   "settings": {
     "title": "Settings", "language": "Language", "apiKeys": "API Keys",
     "googleKey": "Google Maps API Key", "amapKey": "Amap API Key", "save": "Save"
+  },
+  "osm": {
+    "menuItem": "OSM Feature Extraction",
+    "modalTitle": "OSM Feature Extraction",
+    "loading": "Querying Overpass API...",
+    "noFeatures": "No features found. Try another location.",
+    "colName": "Name",
+    "colType": "Type",
+    "colGeom": "Geometry",
+    "importSelected": "Import Selected",
+    "layerNamePrefix": "OSM Extract @",
+    "importSuccess": "Imported OSM features: {name} ({count} features)",
+    "errorTitle": "Query Failed"
   }
 }

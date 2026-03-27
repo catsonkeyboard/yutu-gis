@@ -28,5 +28,18 @@
   "settings": {
     "title": "设置", "language": "界面语言", "apiKeys": "API 密钥",
     "googleKey": "Google Maps API Key", "amapKey": "高德地图 API Key", "save": "保存"
+  },
+  "osm": {
+    "menuItem": "OSM 要素提取",
+    "modalTitle": "OSM Feature Extraction",
+    "loading": "正在查询 Overpass API...",
+    "noFeatures": "未找到要素，请尝试其他位置",
+    "colName": "名称",
+    "colType": "类型",
+    "colGeom": "几何",
+    "importSelected": "导入选中项",
+    "layerNamePrefix": "OSM 提取 @",
+    "importSuccess": "已导入 OSM 要素：{name}（{count} 个要素）",
+    "errorTitle": "查询失败"
   }
 }
