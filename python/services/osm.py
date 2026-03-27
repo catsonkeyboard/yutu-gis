@@ -4,8 +4,13 @@ OSM Feature Extraction via Overpass API.
 from typing import Any
 import httpx
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-TIMEOUT = 20.0
+# Public Overpass API endpoints tried in order; first success wins
+OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+]
+TIMEOUT = 35.0
 
 
 def _way_to_geometry(nodes: list[dict]) -> dict:
@@ -45,7 +50,7 @@ def _feature_label(tags: dict) -> str:
 
 def _overpass_query(south: float, west: float, north: float, east: float) -> str:
     # [bbox:s,w,n,e] restricts all queries to the current map viewport
-    return f"""[out:json][timeout:15][bbox:{south},{west},{north},{east}];
+    return f"""[out:json][timeout:25][bbox:{south},{west},{north},{east}];
 (
   way[building];
   way[highway];
@@ -63,12 +68,23 @@ out geom qt;"""
 
 
 async def overpass_extract(south: float, west: float, north: float, east: float) -> dict:
-    """Query Overpass API for features within the given bbox and return a GeoJSON FeatureCollection."""
+    """Query Overpass API for features within the given bbox and return a GeoJSON FeatureCollection.
+
+    Tries each endpoint in OVERPASS_ENDPOINTS in order; returns the first successful response.
+    """
     query = _overpass_query(south, west, north, east)
+    last_error: Exception | None = None
     async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
-        resp = await client.post(OVERPASS_URL, data={"data": query})
-        resp.raise_for_status()
-    data = resp.json()
+        for url in OVERPASS_ENDPOINTS:
+            try:
+                resp = await client.post(url, data={"data": query})
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                last_error = e
+        else:
+            raise last_error  # type: ignore[misc]
 
     seen: set[tuple] = set()
     features: list[dict] = []
