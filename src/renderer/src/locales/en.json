@@ -1,0 +1,32 @@
+{
+  "menu": {
+    "file": "File", "edit": "Edit", "view": "View",
+    "layer": "Layer", "tools": "Tools", "help": "Help"
+  },
+  "toolbar": {
+    "open": "Open", "save": "Save", "import": "Import", "export": "Export",
+    "select": "Select", "drawPoint": "Point", "drawLine": "Line", "drawPolygon": "Polygon",
+    "measure": "Measure", "measureArea": "Area", "zoomFit": "Fit"
+  },
+  "layer": {
+    "panel": "Layers", "addLayer": "Add Layer", "noLayers": "No layers"
+  },
+  "map": {
+    "basemap": "Basemap",
+    "providers": {
+      "osm": "OSM Street",
+      "google-street": "Google Street",
+      "google-satellite": "Google Satellite",
+      "amap-street": "Amap Street",
+      "amap-satellite": "Amap Satellite",
+      "amap-terrain": "Amap Terrain"
+    }
+  },
+  "status": {
+    "lng": "Lng", "lat": "Lat", "zoom": "Zoom", "crs": "CRS"
+  },
+  "settings": {
+    "title": "Settings", "language": "Language", "apiKeys": "API Keys",
+    "googleKey": "Google Maps API Key", "amapKey": "Amap API Key", "save": "Save"
+  }
+}
