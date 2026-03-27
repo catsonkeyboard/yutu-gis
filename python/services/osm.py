@@ -43,6 +43,8 @@ def _feature_label(tags: dict) -> str:
         return f"休闲{suffix} ({tags['leisure']})"
     if "natural" in tags:
         return f"自然{suffix} ({tags['natural']})"
+    if "aeroway" in tags:
+        return f"航空{suffix} ({tags['aeroway']})"
     if name:
         return name
     return "未知要素"
@@ -58,6 +60,7 @@ def _overpass_query(south: float, west: float, north: float, east: float) -> str
   way[amenity];
   way[leisure];
   way[natural];
+  way[aeroway];
   relation[building];
   relation[landuse];
   node[amenity][name];
