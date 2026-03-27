@@ -224,7 +224,7 @@ export default function App() {
           setSelectedLayer(id)
           const bounds = getGeoJSONBounds(geojson)
           if (bounds) requestFitBounds(bounds)
-          message.success(`已导入：${name}（${geojson.features.length} 个要素）`)
+          message.success(i18n.t('osm.importSuccess', { name, count: geojson.features.length }))
         }}
       />
       <Modal
