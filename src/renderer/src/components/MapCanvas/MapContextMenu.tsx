@@ -5,12 +5,12 @@ import { useTranslation } from 'react-i18next'
 export interface ContextMenuPos {
   x: number
   y: number
-  lngLat: [number, number]
+  bounds: [number, number, number, number] // [south, west, north, east]
 }
 
 interface Props {
   pos: ContextMenuPos | null
-  onExtract: (lngLat: [number, number]) => void
+  onExtract: (bounds: [number, number, number, number]) => void
   onClose: () => void
 }
 
@@ -66,7 +66,7 @@ export default function MapContextMenu({ pos, onExtract, onClose }: Props) {
         onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
         onClick={() => {
           onClose()
-          onExtract(pos.lngLat)
+          onExtract(pos.bounds)
         }}
       >
         {t('osm.menuItem')}

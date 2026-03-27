@@ -22,7 +22,7 @@ MOCK_FC = {
 async def test_osm_extract_endpoint():
     with patch("routers.data.osm_service.overpass_extract", new=AsyncMock(return_value=MOCK_FC)):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post("/data/osm/extract", json={"lat": 20.0, "lon": 110.0})
+            resp = await client.post("/data/osm/extract", json={"south": 19.9, "west": 109.9, "north": 20.1, "east": 110.1})
     assert resp.status_code == 200
     body = resp.json()
     assert body["type"] == "FeatureCollection"
@@ -35,6 +35,6 @@ async def test_osm_extract_endpoint_error():
     with patch("routers.data.osm_service.overpass_extract",
                new=AsyncMock(side_effect=Exception("timeout"))):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post("/data/osm/extract", json={"lat": 20.0, "lon": 110.0})
+            resp = await client.post("/data/osm/extract", json={"south": 19.9, "west": 109.9, "north": 20.1, "east": 110.1})
     assert resp.status_code == 400
     assert "timeout" in resp.json()["detail"]

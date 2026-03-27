@@ -75,7 +75,7 @@ async def test_overpass_extract_returns_feature_collection():
     mock_client.post = AsyncMock(return_value=mock_resp)
 
     with patch("services.osm.httpx.AsyncClient", return_value=mock_client):
-        result = await overpass_extract(1.05, 1.05)
+        result = await overpass_extract(1.0, 1.0, 1.2, 1.2)
 
     assert result["type"] == "FeatureCollection"
     features = result["features"]
@@ -123,6 +123,6 @@ async def test_overpass_extract_deduplicates():
     mock_client.post = AsyncMock(return_value=mock_resp)
 
     with patch("services.osm.httpx.AsyncClient", return_value=mock_client):
-        result = await overpass_extract(0.0, 0.0)
+        result = await overpass_extract(0.0, 0.0, 1.0, 1.0)
 
     assert len(result["features"]) == 1

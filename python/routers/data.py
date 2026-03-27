@@ -99,14 +99,16 @@ async def get_ogc_features(req: OGCFeaturesRequest):
 # ---------------------------------------------------------------------------
 
 class OsmExtractRequest(BaseModel):
-    lat: float
-    lon: float
+    south: float
+    west: float
+    north: float
+    east: float
 
 
 @router.post("/osm/extract")
 async def osm_extract(req: OsmExtractRequest):
-    """Query Overpass API and return GeoJSON FeatureCollection near (lat, lon)."""
+    """Query Overpass API and return GeoJSON FeatureCollection within the given bbox."""
     try:
-        return await osm_service.overpass_extract(req.lat, req.lon)
+        return await osm_service.overpass_extract(req.south, req.west, req.north, req.east)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
