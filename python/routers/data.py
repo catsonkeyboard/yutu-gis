@@ -5,6 +5,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from services.gis import file_to_geojson
 from services import wfs as wfs_service
+from services import osm as osm_service
 
 router = APIRouter()
 
@@ -89,5 +90,23 @@ async def get_ogc_features(req: OGCFeaturesRequest):
     """Fetch GeoJSON FeatureCollection from OGC API Features."""
     try:
         return await wfs_service.ogc_get_features(req.url, req.collection_id, req.max_features)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# OSM Feature Extraction
+# ---------------------------------------------------------------------------
+
+class OsmExtractRequest(BaseModel):
+    lat: float
+    lon: float
+
+
+@router.post("/osm/extract")
+async def osm_extract(req: OsmExtractRequest):
+    """Query Overpass API and return GeoJSON FeatureCollection near (lat, lon)."""
+    try:
+        return await osm_service.overpass_extract(req.lat, req.lon)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
