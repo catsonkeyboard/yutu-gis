@@ -35,11 +35,13 @@
     "loading": "正在查询 Overpass API...",
     "noFeatures": "未找到要素，请尝试其他位置",
     "colName": "名称",
-    "colType": "类型",
     "colGeom": "几何",
     "importSelected": "导入选中项",
     "layerNamePrefix": "OSM 提取 @",
-    "importSuccess": "已导入 OSM 要素：{name}（{count} 个要素）",
+    "importSuccess": "已导入 OSM 要素：{{name}}（{{count}} 个要素）",
     "errorTitle": "查询失败"
+  },
+  "common": {
+    "cancel": "取消"
   }
 }

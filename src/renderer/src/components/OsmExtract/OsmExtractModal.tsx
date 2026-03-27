@@ -76,7 +76,7 @@ export default function OsmExtractModal({ open, lngLat, onClose, onImport }: Pro
 
   const footer = (
     <Space>
-      <Button onClick={onClose}>{t('settings.save') === '保存' ? '取消' : 'Cancel'}</Button>
+      <Button onClick={onClose}>{t('common.cancel')}</Button>
       <Button
         type="primary"
         disabled={selectedKeys.length === 0 || loading}

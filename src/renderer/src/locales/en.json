@@ -35,11 +35,13 @@
     "loading": "Querying Overpass API...",
     "noFeatures": "No features found. Try another location.",
     "colName": "Name",
-    "colType": "Type",
     "colGeom": "Geometry",
     "importSelected": "Import Selected",
     "layerNamePrefix": "OSM Extract @",
-    "importSuccess": "Imported OSM features: {name} ({count} features)",
+    "importSuccess": "Imported OSM features: {{name}} ({{count}} features)",
     "errorTitle": "Query Failed"
+  },
+  "common": {
+    "cancel": "Cancel"
   }
 }
