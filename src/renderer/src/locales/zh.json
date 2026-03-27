@@ -1,0 +1,32 @@
+{
+  "menu": {
+    "file": "文件", "edit": "编辑", "view": "视图",
+    "layer": "图层", "tools": "工具", "help": "帮助"
+  },
+  "toolbar": {
+    "open": "打开", "save": "保存", "import": "导入", "export": "导出",
+    "select": "选择", "drawPoint": "画点", "drawLine": "画线", "drawPolygon": "画面",
+    "measure": "测距", "measureArea": "测面", "zoomFit": "缩放适配"
+  },
+  "layer": {
+    "panel": "图层", "addLayer": "添加图层", "noLayers": "暂无图层"
+  },
+  "map": {
+    "basemap": "底图切换",
+    "providers": {
+      "osm": "OSM 街道图",
+      "google-street": "Google 街道图",
+      "google-satellite": "Google 影像图",
+      "amap-street": "高德街道图",
+      "amap-satellite": "高德影像图",
+      "amap-terrain": "高德山地图"
+    }
+  },
+  "status": {
+    "lng": "经度", "lat": "纬度", "zoom": "缩放", "crs": "坐标系"
+  },
+  "settings": {
+    "title": "设置", "language": "界面语言", "apiKeys": "API 密钥",
+    "googleKey": "Google Maps API Key", "amapKey": "高德地图 API Key", "save": "保存"
+  }
+}
