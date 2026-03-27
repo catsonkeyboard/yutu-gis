@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import { useMapStore } from '../../stores/mapStore'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -11,15 +11,17 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import { useDrawStore } from '../../stores/drawStore'
 import DrawHintBanner from './DrawHintBanner'
+import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
 
 const DEFAULT_COLOR = '#0080ff'
 const SELECTED_COLOR = '#ff7700'
 
 interface Props {
   onSave?: () => void
+  onOsmExtract?: (lngLat: [number, number]) => void
 }
 
-export default function MapCanvas({ onSave }: Props) {
+export default function MapCanvas({ onSave, onOsmExtract }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const drawRef = useRef<MapboxDraw | null>(null)
@@ -31,6 +33,7 @@ export default function MapCanvas({ onSave }: Props) {
   const layers = useLayerStore((s) => s.layers)
   const selectedLayerId = useLayerStore((s) => s.selectedLayerId)
   const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
+  const [contextMenuPos, setContextMenuPos] = useState<ContextMenuPos | null>(null)
 
   // Refs so event handlers always see current values without re-registering
   const selectedLayerIdRef = useRef(selectedLayerId)
@@ -103,6 +106,18 @@ export default function MapCanvas({ onSave }: Props) {
           },
         })
       })
+  }
+
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (drawModeRef.current !== 'off') return
+    const map = mapRef.current
+    if (!map) return
+    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+    const px = e.clientX - rect.left
+    const py = e.clientY - rect.top
+    const lngLat = map.unproject([px, py])
+    setContextMenuPos({ x: e.clientX, y: e.clientY, lngLat: [lngLat.lng, lngLat.lat] })
   }
 
   // Initialize map
@@ -237,8 +252,13 @@ export default function MapCanvas({ onSave }: Props) {
   }, [drawMode])
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }} onContextMenu={handleContextMenu}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <MapContextMenu
+        pos={contextMenuPos}
+        onExtract={(lngLat) => onOsmExtract?.(lngLat)}
+        onClose={() => setContextMenuPos(null)}
+      />
       <DrawHintBanner onSave={onSave} />
       <BasemapSwitcher />
     </div>

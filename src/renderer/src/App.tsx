@@ -12,6 +12,7 @@ import { useDrawStore, type DrawMode } from './stores/drawStore'
 import { getGeoJSONBounds } from './utils/geo'
 import SettingsModal from './components/Settings/SettingsModal'
 import WFSModal from './components/WFS/WFSModal'
+import OsmExtractModal from './components/OsmExtract/OsmExtractModal'
 import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
 
@@ -20,6 +21,8 @@ const { Header, Sider, Content, Footer } = Layout
 export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [wfsOpen, setWfsOpen] = useState(false)
+  const [osmExtractOpen, setOsmExtractOpen] = useState(false)
+  const [osmExtractLngLat, setOsmExtractLngLat] = useState<[number, number] | null>(null)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveTarget, setSaveTarget] = useState<'current' | 'new'>('new')
   const [pendingLayerName, setPendingLayerName] = useState('')
@@ -177,7 +180,13 @@ export default function App() {
           <LayerPanel onExportLayer={handleExportLayer} />
         </Sider>
         <Content style={{ position: 'relative', overflow: 'hidden' }}>
-          <MapCanvas onSave={() => handleDrawModeChange('off')} />
+          <MapCanvas
+            onSave={() => handleDrawModeChange('off')}
+            onOsmExtract={(lngLat) => {
+              setOsmExtractLngLat(lngLat)
+              setOsmExtractOpen(true)
+            }}
+          />
         </Content>
       </Layout>
       <Footer
@@ -196,6 +205,19 @@ export default function App() {
       <WFSModal
         open={wfsOpen}
         onClose={() => setWfsOpen(false)}
+        onImport={(geojson, name) => {
+          const id = nanoid()
+          addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
+          setSelectedLayer(id)
+          const bounds = getGeoJSONBounds(geojson)
+          if (bounds) requestFitBounds(bounds)
+          message.success(`已导入：${name}（${geojson.features.length} 个要素）`)
+        }}
+      />
+      <OsmExtractModal
+        open={osmExtractOpen}
+        lngLat={osmExtractLngLat}
+        onClose={() => setOsmExtractOpen(false)}
         onImport={(geojson, name) => {
           const id = nanoid()
           addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
