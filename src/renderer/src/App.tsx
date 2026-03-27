@@ -22,7 +22,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [wfsOpen, setWfsOpen] = useState(false)
   const [osmExtractOpen, setOsmExtractOpen] = useState(false)
-  const [osmExtractLngLat, setOsmExtractLngLat] = useState<[number, number] | null>(null)
+  const [osmExtractBounds, setOsmExtractBounds] = useState<[number, number, number, number] | null>(null)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveTarget, setSaveTarget] = useState<'current' | 'new'>('new')
   const [pendingLayerName, setPendingLayerName] = useState('')
@@ -182,8 +182,8 @@ export default function App() {
         <Content style={{ position: 'relative', overflow: 'hidden' }}>
           <MapCanvas
             onSave={() => handleDrawModeChange('off')}
-            onOsmExtract={(lngLat) => {
-              setOsmExtractLngLat(lngLat)
+            onOsmExtract={(bounds) => {
+              setOsmExtractBounds(bounds)
               setOsmExtractOpen(true)
             }}
           />
@@ -216,7 +216,7 @@ export default function App() {
       />
       <OsmExtractModal
         open={osmExtractOpen}
-        lngLat={osmExtractLngLat}
+        bounds={osmExtractBounds}
         onClose={() => setOsmExtractOpen(false)}
         onImport={(geojson, name) => {
           const id = nanoid()

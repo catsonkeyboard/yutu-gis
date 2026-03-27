@@ -37,7 +37,7 @@
     "colName": "Name",
     "colGeom": "Geometry",
     "importSelected": "Import Selected",
-    "layerNamePrefix": "OSM Extract @",
+    "layerNamePrefix": "OSM Extract",
     "importSuccess": "Imported OSM features: {{name}} ({{count}} features)",
     "errorTitle": "Query Failed"
   },

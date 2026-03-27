@@ -14,12 +14,12 @@ interface OsmFeature {
 
 interface Props {
   open: boolean
-  lngLat: [number, number] | null
+  bounds: [number, number, number, number] | null // [south, west, north, east]
   onClose: () => void
   onImport: (fc: GeoJSON.FeatureCollection, name: string) => void
 }
 
-export default function OsmExtractModal({ open, lngLat, onClose, onImport }: Props) {
+export default function OsmExtractModal({ open, bounds, onClose, onImport }: Props) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,13 +27,13 @@ export default function OsmExtractModal({ open, lngLat, onClose, onImport }: Pro
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
 
   useEffect(() => {
-    if (!open || !lngLat) return
+    if (!open || !bounds) return
     setLoading(true)
     setError(null)
     setRows([])
     setSelectedKeys([])
 
-    osmExtract(lngLat[1], lngLat[0])
+    osmExtract(bounds[0], bounds[1], bounds[2], bounds[3])
       .then((fc) => {
         const items: OsmFeature[] = fc.features.map((f, i) => ({
           key: `${f.properties?._osm_type}-${f.properties?._osm_id}-${i}`,
@@ -46,7 +46,7 @@ export default function OsmExtractModal({ open, lngLat, onClose, onImport }: Pro
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [open, lngLat]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, bounds]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const columns: TableProps<OsmFeature>['columns'] = [
     {
@@ -68,8 +68,7 @@ export default function OsmExtractModal({ open, lngLat, onClose, onImport }: Pro
   const handleImport = () => {
     const selected = rows.filter((r) => selectedKeys.includes(r.key)).map((r) => r.feature)
     const fc: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: selected }
-    const coords = lngLat ? `${lngLat[1].toFixed(4)},${lngLat[0].toFixed(4)}` : ''
-    const name = `${t('osm.layerNamePrefix')} ${coords}`
+    const name = t('osm.layerNamePrefix')
     onImport(fc, name)
     onClose()
   }

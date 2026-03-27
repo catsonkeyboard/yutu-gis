@@ -18,7 +18,7 @@ const SELECTED_COLOR = '#ff7700'
 
 interface Props {
   onSave?: () => void
-  onOsmExtract?: (lngLat: [number, number]) => void
+  onOsmExtract?: (bounds: [number, number, number, number]) => void
 }
 
 export default function MapCanvas({ onSave, onOsmExtract }: Props) {
@@ -113,11 +113,9 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
     if (drawModeRef.current !== 'off') return
     const map = mapRef.current
     if (!map) return
-    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
-    const px = e.clientX - rect.left
-    const py = e.clientY - rect.top
-    const lngLat = map.unproject([px, py])
-    setContextMenuPos({ x: e.clientX, y: e.clientY, lngLat: [lngLat.lng, lngLat.lat] })
+    const b = map.getBounds()
+    const bounds: [number, number, number, number] = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]
+    setContextMenuPos({ x: e.clientX, y: e.clientY, bounds })
   }
 
   // Initialize map
@@ -256,7 +254,7 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       <MapContextMenu
         pos={contextMenuPos}
-        onExtract={(lngLat) => onOsmExtract?.(lngLat)}
+        onExtract={(bounds) => onOsmExtract?.(bounds)}
         onClose={() => setContextMenuPos(null)}
       />
       <DrawHintBanner onSave={onSave} />

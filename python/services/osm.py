@@ -43,21 +43,28 @@ def _feature_label(tags: dict) -> str:
     return "未知要素"
 
 
-def _overpass_query(lat: float, lon: float) -> str:
-    return f"""[out:json][timeout:15];
+def _overpass_query(south: float, west: float, north: float, east: float) -> str:
+    # [bbox:s,w,n,e] restricts all queries to the current map viewport
+    return f"""[out:json][timeout:15][bbox:{south},{west},{north},{east}];
 (
-  is_in({lat},{lon})->.a;
-  way(pivot.a);
-  relation(pivot.a);
-  way(around:30,{lat},{lon})[~"building|highway|landuse|amenity|leisure|natural"~"."];
-  node(around:30,{lat},{lon})[~"amenity|shop|tourism"~"."][name];
+  way[building];
+  way[highway];
+  way[landuse];
+  way[amenity];
+  way[leisure];
+  way[natural];
+  relation[building];
+  relation[landuse];
+  node[amenity][name];
+  node[shop][name];
+  node[tourism][name];
 );
 out geom qt;"""
 
 
-async def overpass_extract(lat: float, lon: float) -> dict:
-    """Query Overpass API and return a GeoJSON FeatureCollection."""
-    query = _overpass_query(lat, lon)
+async def overpass_extract(south: float, west: float, north: float, east: float) -> dict:
+    """Query Overpass API for features within the given bbox and return a GeoJSON FeatureCollection."""
+    query = _overpass_query(south, west, north, east)
     async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
         resp = await client.post(OVERPASS_URL, data={"data": query})
         resp.raise_for_status()
