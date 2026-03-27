@@ -1,6 +1,6 @@
 // src/renderer/src/components/OsmExtract/OsmExtractModal.tsx
 import { useState, useEffect, useMemo } from 'react'
-import { Modal, Table, Spin, Alert, Button, Tag, Space } from 'antd'
+import { Modal, Table, Spin, Alert, Button, Tag, Space, Divider } from 'antd'
 import type { TableProps } from 'antd'
 import { useTranslation } from 'react-i18next'
 import { osmExtract } from '../../services/api'
@@ -9,6 +9,7 @@ interface OsmFeature {
   key: string
   label: string
   category: string
+  subCategory: string
   geomType: string
   feature: GeoJSON.Feature
 }
@@ -29,6 +30,12 @@ function getCategory(props: Record<string, unknown>): string {
   return 'other'
 }
 
+function getSubCategory(props: Record<string, unknown>, category: string): string {
+  if (category === 'other') return 'other'
+  const val = props[category]
+  return typeof val === 'string' && val !== 'yes' ? val : 'yes'
+}
+
 const CATEGORY_LABEL: Record<string, string> = {
   building: '建筑',
   highway: '道路',
@@ -40,6 +47,8 @@ const CATEGORY_LABEL: Record<string, string> = {
   other: '其他',
 }
 
+const TAG_STYLE: React.CSSProperties = { cursor: 'pointer', userSelect: 'none' }
+
 export default function OsmExtractModal({ open, bounds, onClose, onImport }: Props) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
@@ -47,6 +56,7 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
   const [rows, setRows] = useState<OsmFeature[]>([])
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [activeSubCategory, setActiveSubCategory] = useState<string>('all')
 
   useEffect(() => {
     if (!open || !bounds) return
@@ -55,15 +65,18 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
     setRows([])
     setSelectedKeys([])
     setActiveCategory('all')
+    setActiveSubCategory('all')
 
     osmExtract(bounds[0], bounds[1], bounds[2], bounds[3])
       .then((fc) => {
         const items: OsmFeature[] = fc.features.map((f, i) => {
           const props = f.properties ?? {}
+          const cat = getCategory(props)
           return {
             key: `${props._osm_type}-${props._osm_id}-${i}`,
             label: props._feature_label ?? t('osm.colName'),
-            category: getCategory(props),
+            category: cat,
+            subCategory: getSubCategory(props, cat),
             geomType: f.geometry.type,
             feature: f,
           }
@@ -75,32 +88,49 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
       .finally(() => setLoading(false))
   }, [open, bounds]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Categories present in current results (preserves TAG_KEYS order)
+  // Top-level categories present in results
   const categories = useMemo(() => {
     const present = new Set(rows.map((r) => r.category))
     return TAG_KEYS.filter((k) => present.has(k)).concat(present.has('other') ? ['other'] : [])
   }, [rows])
 
-  const visibleRows = useMemo(
-    () => (activeCategory === 'all' ? rows : rows.filter((r) => r.category === activeCategory)),
-    [rows, activeCategory],
-  )
+  // Sub-categories for the active category (sorted by count desc)
+  const subCategories = useMemo(() => {
+    if (activeCategory === 'all') return []
+    const catRows = rows.filter((r) => r.category === activeCategory)
+    const counts: Record<string, number> = {}
+    for (const r of catRows) counts[r.subCategory] = (counts[r.subCategory] ?? 0) + 1
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([sub]) => sub)
+  }, [rows, activeCategory])
+
+  // Rows shown in the table
+  const visibleRows = useMemo(() => {
+    if (activeCategory === 'all') return rows
+    const catRows = rows.filter((r) => r.category === activeCategory)
+    if (activeSubCategory === 'all') return catRows
+    return catRows.filter((r) => r.subCategory === activeSubCategory)
+  }, [rows, activeCategory, activeSubCategory])
+
+  const selectRows = (targetRows: OsmFeature[]) => {
+    setSelectedKeys(targetRows.map((r) => r.key))
+  }
 
   const handleCategoryClick = (cat: string) => {
     setActiveCategory(cat)
-    // Auto-select all rows in the chosen category
-    const targetKeys = (cat === 'all' ? rows : rows.filter((r) => r.category === cat)).map(
-      (r) => r.key,
-    )
-    setSelectedKeys(targetKeys)
+    setActiveSubCategory('all')
+    selectRows(cat === 'all' ? rows : rows.filter((r) => r.category === cat))
+  }
+
+  const handleSubCategoryClick = (sub: string) => {
+    setActiveSubCategory(sub)
+    const base = rows.filter((r) => r.category === activeCategory)
+    selectRows(sub === 'all' ? base : base.filter((r) => r.subCategory === sub))
   }
 
   const columns: TableProps<OsmFeature>['columns'] = [
-    {
-      title: t('osm.colName'),
-      dataIndex: 'label',
-      ellipsis: true,
-    },
+    { title: t('osm.colName'), dataIndex: 'label', ellipsis: true },
     {
       title: t('osm.colGeom'),
       dataIndex: 'geomType',
@@ -115,32 +145,21 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
   const handleImport = () => {
     const selected = rows.filter((r) => selectedKeys.includes(r.key)).map((r) => r.feature)
     const fc: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: selected }
-    const name = t('osm.layerNamePrefix')
-    onImport(fc, name)
+    onImport(fc, t('osm.layerNamePrefix'))
     onClose()
   }
 
   const footer = (
     <Space>
       <Button onClick={onClose}>{t('common.cancel')}</Button>
-      <Button
-        type="primary"
-        disabled={selectedKeys.length === 0 || loading}
-        onClick={handleImport}
-      >
+      <Button type="primary" disabled={selectedKeys.length === 0 || loading} onClick={handleImport}>
         {t('osm.importSelected')} ({selectedKeys.length})
       </Button>
     </Space>
   )
 
   return (
-    <Modal
-      title={t('osm.modalTitle')}
-      open={open}
-      onCancel={onClose}
-      footer={footer}
-      width={520}
-    >
+    <Modal title={t('osm.modalTitle')} open={open} onCancel={onClose} footer={footer} width={520}>
       {loading && (
         <div style={{ textAlign: 'center', padding: '32px 0' }}>
           <Spin size="large" />
@@ -157,28 +176,58 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
       )}
       {!loading && !error && rows.length > 0 && (
         <>
-          <div style={{ marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {/* Level 1: category filter */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
             <Tag
-              style={{ cursor: 'pointer', userSelect: 'none' }}
+              style={TAG_STYLE}
               color={activeCategory === 'all' ? 'blue' : undefined}
               onClick={() => handleCategoryClick('all')}
             >
               全部 ({rows.length})
             </Tag>
-            {categories.map((cat) => {
-              const count = rows.filter((r) => r.category === cat).length
-              return (
-                <Tag
-                  key={cat}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                  color={activeCategory === cat ? 'blue' : undefined}
-                  onClick={() => handleCategoryClick(cat)}
-                >
-                  {CATEGORY_LABEL[cat] ?? cat} ({count})
-                </Tag>
-              )
-            })}
+            {categories.map((cat) => (
+              <Tag
+                key={cat}
+                style={TAG_STYLE}
+                color={activeCategory === cat ? 'blue' : undefined}
+                onClick={() => handleCategoryClick(cat)}
+              >
+                {CATEGORY_LABEL[cat] ?? cat} ({rows.filter((r) => r.category === cat).length})
+              </Tag>
+            ))}
           </div>
+
+          {/* Level 2: sub-category filter (only when a category is selected) */}
+          {activeCategory !== 'all' && subCategories.length > 1 && (
+            <>
+              <Divider style={{ margin: '6px 0' }} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                <Tag
+                  style={TAG_STYLE}
+                  color={activeSubCategory === 'all' ? 'geekblue' : undefined}
+                  onClick={() => handleSubCategoryClick('all')}
+                >
+                  全部 ({rows.filter((r) => r.category === activeCategory).length})
+                </Tag>
+                {subCategories.map((sub) => {
+                  const count = rows.filter(
+                    (r) => r.category === activeCategory && r.subCategory === sub,
+                  ).length
+                  return (
+                    <Tag
+                      key={sub}
+                      style={TAG_STYLE}
+                      color={activeSubCategory === sub ? 'geekblue' : undefined}
+                      onClick={() => handleSubCategoryClick(sub)}
+                    >
+                      {sub} ({count})
+                    </Tag>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
           <Table
             rowSelection={{
               selectedRowKeys: selectedKeys,
@@ -188,7 +237,7 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
             dataSource={visibleRows}
             size="small"
             pagination={false}
-            scroll={{ y: 300 }}
+            scroll={{ y: 280 }}
           />
         </>
       )}
