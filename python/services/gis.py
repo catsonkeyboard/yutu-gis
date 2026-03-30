@@ -157,22 +157,6 @@ def _parse_kml_properties(pm: ET.Element, ns: str) -> dict:
     return props
 
 
-def _placemarks_to_features(container: ET.Element, ns: str) -> list[dict]:
-    def t(name: str) -> str:
-        return f'{ns}{name}'
-
-    features = []
-    for pm in container.findall(t('Placemark')):
-        geom = _parse_kml_placemark_geom(pm, ns)
-        if geom:
-            features.append({
-                'type': 'Feature',
-                'geometry': geom,
-                'properties': _parse_kml_properties(pm, ns),
-            })
-    return features
-
-
 def _parse_kml_tree(root: ET.Element, base_name: str) -> list[dict]:
     ns = _kml_ns(root)
 
@@ -182,20 +166,39 @@ def _parse_kml_tree(root: ET.Element, base_name: str) -> list[dict]:
     doc = root.find(t('Document')) or root
     layers: list[dict] = []
 
-    # Placemarks directly inside Document (not inside a Folder)
-    direct = _placemarks_to_features(doc, ns)
-    if direct:
-        name_el = doc.find(t('name'))
-        layer_name = (name_el.text.strip() if name_el is not None and name_el.text else None) or base_name
-        layers.append({'name': layer_name, 'geojson': {'type': 'FeatureCollection', 'features': direct}})
+    def direct_features(container: ET.Element) -> list[dict]:
+        """Features from Placemarks that are DIRECT children of container (not inside sub-Folders)."""
+        feats = []
+        for child in container:
+            local = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+            if local == 'Placemark':
+                geom = _parse_kml_placemark_geom(child, ns)
+                if geom:
+                    feats.append({
+                        'type': 'Feature',
+                        'geometry': geom,
+                        'properties': _parse_kml_properties(child, ns),
+                    })
+        return feats
 
-    # Each Folder as a separate layer
-    for folder in doc.findall(t('Folder')):
-        name_el = folder.find(t('name'))
-        folder_name = (name_el.text.strip() if name_el is not None and name_el.text else None) or 'Unnamed'
-        features = _placemarks_to_features(folder, ns)
-        if features:
-            layers.append({'name': folder_name, 'geojson': {'type': 'FeatureCollection', 'features': features}})
+    def process(container: ET.Element, container_name: str) -> None:
+        """Recursively build layers: direct Placemarks → one layer, sub-Folders → recurse."""
+        feats = direct_features(container)
+        if feats:
+            layers.append({
+                'name': container_name,
+                'geojson': {'type': 'FeatureCollection', 'features': feats},
+            })
+        for child in container:
+            local = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+            if local == 'Folder':
+                name_el = child.find(t('name'))
+                folder_name = (name_el.text.strip() if name_el is not None and name_el.text else None) or 'Unnamed'
+                process(child, folder_name)
+
+    doc_name_el = doc.find(t('name'))
+    doc_name = (doc_name_el.text.strip() if doc_name_el is not None and doc_name_el.text else None) or base_name
+    process(doc, doc_name)
 
     if not layers:
         layers.append({'name': base_name, 'geojson': {'type': 'FeatureCollection', 'features': []}})
