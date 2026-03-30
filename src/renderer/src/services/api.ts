@@ -22,7 +22,12 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 // File import
 // ---------------------------------------------------------------------------
 
-export async function importGisFile(filePath: string): Promise<GeoJSON.FeatureCollection> {
+export interface ImportedLayer {
+  name: string
+  geojson: GeoJSON.FeatureCollection
+}
+
+export async function importGisFile(filePath: string): Promise<ImportedLayer[]> {
   const buffer = await window.electronAPI.readFile(filePath)
   const filename = filePath.split('/').pop() ?? 'file.geojson'
   const blob = new Blob([new Uint8Array(buffer)])
@@ -31,7 +36,8 @@ export async function importGisFile(filePath: string): Promise<GeoJSON.FeatureCo
 
   const resp = await fetch(`${baseUrl}/data/import`, { method: 'POST', body: formData })
   if (!resp.ok) throw new Error(await resp.text())
-  return resp.json() as Promise<GeoJSON.FeatureCollection>
+  const data = await resp.json() as { layers: ImportedLayer[] }
+  return data.layers
 }
 
 // ---------------------------------------------------------------------------
