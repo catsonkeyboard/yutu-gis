@@ -85,3 +85,22 @@ export async function ogcGetFeatures(
 export async function osmExtract(south: number, west: number, north: number, east: number): Promise<GeoJSON.FeatureCollection> {
   return postJson('/data/osm/extract', { south, west, north, east })
 }
+
+// ---------------------------------------------------------------------------
+// Airport lookup by IATA code
+// ---------------------------------------------------------------------------
+
+export interface AirportInfo {
+  iata: string
+  name: string
+  bbox: [number, number, number, number] // [west, south, east, north]
+}
+
+export async function searchAirportByIata(code: string): Promise<AirportInfo> {
+  const resp = await fetch(`${baseUrl}/data/airport/iata/${encodeURIComponent(code.toUpperCase())}`)
+  if (!resp.ok) {
+    const detail = await resp.text()
+    throw new Error(detail)
+  }
+  return resp.json() as Promise<AirportInfo>
+}

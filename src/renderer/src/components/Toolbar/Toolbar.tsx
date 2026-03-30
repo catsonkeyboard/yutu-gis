@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button, Space, Divider, Tooltip } from 'antd'
 import {
   FolderOpenOutlined,
@@ -9,9 +10,11 @@ import {
   EnvironmentOutlined,
   LineOutlined,
   BorderOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
+import LocationSearchModal from './LocationSearchModal'
 
 interface Props {
   onImport?: () => void
@@ -24,6 +27,7 @@ interface Props {
 export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawModeChange }: Props) {
   const { t } = useTranslation()
   const drawMode = useDrawStore((s) => s.drawMode)
+  const [locationSearchOpen, setLocationSearchOpen] = useState(false)
 
   const handleDraw = (mode: DrawMode) => {
     onDrawModeChange?.(drawMode === mode ? 'off' : mode)
@@ -72,6 +76,16 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
           onClick={() => handleDraw('polygon')}
         />
       </Tooltip>
+      <Divider type="vertical" />
+      <Tooltip title="位置搜索">
+        <Button
+          icon={<SearchOutlined />}
+          type="text"
+          size="small"
+          onClick={() => setLocationSearchOpen(true)}
+        />
+      </Tooltip>
+      <LocationSearchModal open={locationSearchOpen} onClose={() => setLocationSearchOpen(false)} />
       <Divider type="vertical" />
       <Tooltip title={t('settings.title')}>
         <Button icon={<SettingOutlined />} type="text" size="small" onClick={onSettings} />
