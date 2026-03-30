@@ -85,7 +85,7 @@ export default function LayerPanel({ onExportLayer }: Props) {
                       size="small"
                       checked={layer.visible}
                       onChange={(_, e) => {
-                        e.stopPropagation()
+                        e?.stopPropagation()
                         toggleVisible(layer.id)
                       }}
                     />
@@ -115,13 +115,13 @@ export default function LayerPanel({ onExportLayer }: Props) {
                   </Tooltip>,
                 ]}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, overflow: 'hidden' }}>
                   <EyeOutlined style={{ color: isSelected ? '#1677ff' : '#0080ff', flexShrink: 0 }} />
                   <Tooltip title={layer.name}>
                     <Text
                       ellipsis
                       strong={isSelected}
-                      style={{ fontSize: 12, maxWidth: 100, color: isSelected ? '#1677ff' : undefined }}
+                      style={{ fontSize: 12, flex: 1, minWidth: 0, color: isSelected ? '#1677ff' : undefined }}
                     >
                       {layer.name}
                     </Text>
