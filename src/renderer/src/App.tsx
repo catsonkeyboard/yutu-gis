@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Layout, message, Modal, Input, Radio } from 'antd'
 import { nanoid } from 'nanoid'
 import Toolbar from './components/Toolbar/Toolbar'
@@ -13,6 +13,7 @@ import { getGeoJSONBounds } from './utils/geo'
 import SettingsModal from './components/Settings/SettingsModal'
 import WFSModal from './components/WFS/WFSModal'
 import OsmExtractModal from './components/OsmExtract/OsmExtractModal'
+import FeaturePanel from './components/FeaturePanel/FeaturePanel'
 import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
 
@@ -23,6 +24,14 @@ export default function App() {
   const [wfsOpen, setWfsOpen] = useState(false)
   const [osmExtractOpen, setOsmExtractOpen] = useState(false)
   const [osmExtractBounds, setOsmExtractBounds] = useState<[number, number, number, number] | null>(null)
+  const [siderWidth, setSiderWidth] = useState(260)
+  const resizingRef = useRef(false)
+  const resizeStartX = useRef(0)
+  const resizeStartWidth = useRef(0)
+  const [rightPanelWidth, setRightPanelWidth] = useState(280)
+  const rightResizingRef = useRef(false)
+  const rightResizeStartX = useRef(0)
+  const rightResizeStartWidth = useRef(0)
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveTarget, setSaveTarget] = useState<'current' | 'new'>('new')
   const [pendingLayerName, setPendingLayerName] = useState('')
@@ -56,6 +65,44 @@ export default function App() {
     })
     return cleanup
   }, [])
+
+  const handleSiderResizeStart = (e: React.MouseEvent) => {
+    resizingRef.current = true
+    resizeStartX.current = e.clientX
+    resizeStartWidth.current = siderWidth
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizingRef.current) return
+      const next = Math.max(180, Math.min(480, resizeStartWidth.current + ev.clientX - resizeStartX.current))
+      setSiderWidth(next)
+    }
+    const onMouseUp = () => {
+      resizingRef.current = false
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
+  const handleRightPanelResizeStart = (e: React.MouseEvent) => {
+    rightResizingRef.current = true
+    rightResizeStartX.current = e.clientX
+    rightResizeStartWidth.current = rightPanelWidth
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!rightResizingRef.current) return
+      const next = Math.max(200, Math.min(480, rightResizeStartWidth.current - (ev.clientX - rightResizeStartX.current)))
+      setRightPanelWidth(next)
+    }
+    const onMouseUp = () => {
+      rightResizingRef.current = false
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
 
   const handleImport = async () => {
     const filePath = await window.electronAPI.openFileDialog([
@@ -170,14 +217,28 @@ export default function App() {
       </Header>
       <Layout style={{ flex: 1, overflow: 'hidden' }}>
         <Sider
-          width={220}
+          width={siderWidth}
           style={{
             background: '#fafafa',
             borderRight: '1px solid #f0f0f0',
             overflow: 'auto',
+            position: 'relative',
+            flexShrink: 0,
           }}
         >
           <LayerPanel onExportLayer={handleExportLayer} />
+          <div
+            onMouseDown={handleSiderResizeStart}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: 4,
+              height: '100%',
+              cursor: 'col-resize',
+              zIndex: 10,
+            }}
+          />
         </Sider>
         <Content style={{ position: 'relative', overflow: 'hidden' }}>
           <MapCanvas
@@ -188,6 +249,30 @@ export default function App() {
             }}
           />
         </Content>
+        <Sider
+          width={rightPanelWidth}
+          style={{
+            background: '#fafafa',
+            borderLeft: '1px solid #f0f0f0',
+            overflow: 'hidden',
+            position: 'relative',
+            flexShrink: 0,
+          }}
+        >
+          <div
+            onMouseDown={handleRightPanelResizeStart}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: 4,
+              height: '100%',
+              cursor: 'col-resize',
+              zIndex: 10,
+            }}
+          />
+          <FeaturePanel />
+        </Sider>
       </Layout>
       <Footer
         style={{
@@ -218,13 +303,23 @@ export default function App() {
         open={osmExtractOpen}
         bounds={osmExtractBounds}
         onClose={() => setOsmExtractOpen(false)}
-        onImport={(geojson, name) => {
-          const id = nanoid()
-          addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
-          setSelectedLayer(id)
-          const bounds = getGeoJSONBounds(geojson)
+        onImport={(layers) => {
+          let lastId = ''
+          for (const { fc, name } of layers) {
+            const id = nanoid()
+            addLayer({ id, name, type: 'geojson', source: fc, visible: true, opacity: 1 })
+            lastId = id
+          }
+          if (lastId) setSelectedLayer(lastId)
+          const allFeatures = layers.flatMap((l) => l.fc.features)
+          const bounds = getGeoJSONBounds({ type: 'FeatureCollection', features: allFeatures })
           if (bounds) requestFitBounds(bounds)
-          message.success(i18n.t('osm.importSuccess', { name, count: geojson.features.length }))
+          const total = allFeatures.length
+          if (layers.length === 1) {
+            message.success(i18n.t('osm.importSuccess', { name: layers[0].name, count: total }))
+          } else {
+            message.success(`已导入 ${layers.length} 个图层，共 ${total} 个要素`)
+          }
         }}
       />
       <Modal

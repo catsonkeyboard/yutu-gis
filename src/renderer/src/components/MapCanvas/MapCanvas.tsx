@@ -33,6 +33,7 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
   const layers = useLayerStore((s) => s.layers)
   const selectedLayerId = useLayerStore((s) => s.selectedLayerId)
   const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
+  const setSelectedFeatureProps = useLayerStore((s) => s.setSelectedFeatureProps)
   const [contextMenuPos, setContextMenuPos] = useState<ContextMenuPos | null>(null)
 
   // Refs so event handlers always see current values without re-registering
@@ -162,7 +163,10 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
       const hits = map.queryRenderedFeatures(e.point, { layers: userLayerIds })
       if (!hits.length) return
       const match = hits[0].layer.id.match(/^user-(.+)-(fill|line|point)$/)
-      if (match) setSelectedLayer(match[1])
+      if (match) {
+        setSelectedLayer(match[1])
+        setSelectedFeatureProps((hits[0].properties ?? {}) as Record<string, unknown>)
+      }
     })
 
     // Pointer cursor when hovering over user features
