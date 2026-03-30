@@ -25,10 +25,38 @@ def _way_to_geometry(nodes: list[dict]) -> dict:
     return {"type": "LineString", "coordinates": coords}
 
 
+_AEROWAY_LABELS: dict[str, str] = {
+    "aerodrome": "机场",
+    "heliport": "直升机场",
+    "runway": "跑道",
+    "taxiway": "滑行道",
+    "apron": "停机坪",
+    "terminal": "航站楼",
+    "helipad": "停机坪(直升机)",
+    "spaceport": "航天港",
+    "airstrip": "简易机场",
+    "hangar": "机库",
+    "stopway": "停止道",
+    "holding_position": "等待位置",
+    "arresting_gear": "拦阻装置",
+    "parking_position": "停机位",
+    "gate": "登机口",
+    "windsock": "风向袋",
+    "navigationaid": "导航助航设施",
+    "aircraft_crossing": "飞机穿越点",
+    "highway_strip": "公路跑道",
+    "tower": "塔台",
+}
+
+
 def _feature_label(tags: dict) -> str:
-    name = tags.get("name", "")
+    name = tags.get("name") or tags.get("ref", "")
     suffix = f" - {name}" if name else ""
 
+    if "aeroway" in tags:
+        v = tags["aeroway"]
+        cn = _AEROWAY_LABELS.get(v, v)
+        return f"{cn}{suffix}"
     if "building" in tags:
         t = tags["building"]
         detail = f" ({t})" if t and t != "yes" else ""
@@ -43,8 +71,6 @@ def _feature_label(tags: dict) -> str:
         return f"休闲{suffix} ({tags['leisure']})"
     if "natural" in tags:
         return f"自然{suffix} ({tags['natural']})"
-    if "aeroway" in tags:
-        return f"航空{suffix} ({tags['aeroway']})"
     if name:
         return name
     return "未知要素"
@@ -63,11 +89,81 @@ def _overpass_query(south: float, west: float, north: float, east: float) -> str
   way[aeroway];
   relation[building];
   relation[landuse];
+  relation[aeroway];
+  node[aeroway];
   node[amenity][name];
   node[shop][name];
   node[tourism][name];
 );
 out geom qt;"""
+
+
+async def airport_by_iata(iata_code: str) -> dict:
+    """Return center coordinates and name for an airport given its IATA code.
+
+    Queries Overpass globally (no bbox). Raises ValueError if not found.
+    """
+    code = iata_code.upper().strip()
+    query = f"""[out:json][timeout:10];
+(
+  node[aeroway=aerodrome][iata="{code}"];
+  way[aeroway=aerodrome][iata="{code}"];
+  relation[aeroway=aerodrome][iata="{code}"];
+);
+out bb tags;"""
+
+    last_error: Exception | None = None
+    async with httpx.AsyncClient(timeout=15.0, verify=False) as client:
+        for url in OVERPASS_ENDPOINTS:
+            try:
+                resp = await client.post(url, data={"data": query})
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                last_error = e
+        else:
+            raise last_error  # type: ignore[misc]
+
+    elements = data.get("elements", [])
+    if not elements:
+        raise ValueError(f"未找到 IATA 代码为 {code} 的机场")
+
+    # Extract bbox from each element's bounding box (out bb) or node coordinates
+    min_lat, min_lon, max_lat, max_lon = 90.0, 180.0, -90.0, -180.0
+    tags: dict = {}
+    found = False
+    for el in elements:
+        if not tags:
+            tags = el.get("tags", {})
+        el_type = el.get("type")
+        if el_type == "node":
+            lat, lon = el.get("lat"), el.get("lon")
+            if lat is not None and lon is not None:
+                min_lat = min(min_lat, lat)
+                max_lat = max(max_lat, lat)
+                min_lon = min(min_lon, lon)
+                max_lon = max(max_lon, lon)
+                found = True
+        else:
+            bounds = el.get("bounds") or {}
+            if bounds.get("minlat") is not None:
+                min_lat = min(min_lat, bounds["minlat"])
+                max_lat = max(max_lat, bounds["maxlat"])
+                min_lon = min(min_lon, bounds["minlon"])
+                max_lon = max(max_lon, bounds["maxlon"])
+                found = True
+
+    if not found:
+        raise ValueError(f"机场 {code} 坐标数据不完整，请检查 OSM 数据")
+
+    name = tags.get("name") or tags.get("name:en") or tags.get("name:zh") or code
+    # bbox: [west, south, east, north]
+    return {
+        "iata": code,
+        "name": name,
+        "bbox": [min_lon, min_lat, max_lon, max_lat],
+    }
 
 
 async def overpass_extract(south: float, west: float, north: float, east: float) -> dict:
