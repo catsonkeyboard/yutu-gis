@@ -28,7 +28,11 @@ Renderer (React)
   ├── src/renderer/src/App.tsx          — root component; loads config on mount
   ├── components/
   │   ├── MapCanvas/          — MapLibre GL map, tile provider switching, layer rendering,
-  │   │                         MapboxDraw integration, map-click layer selection
+  │   │   │                     MapboxDraw integration, map-click layer selection,
+  │   │   │                     right-click context menu (OSM extraction)
+  │   │   └── MapContextMenu.tsx — floating right-click menu; captures map viewport bounds
+  │   ├── OsmExtract/
+  │   │   └── OsmExtractModal.tsx — Overpass query, two-level category filter, feature import
   │   ├── LayerPanel/         — layer list, visibility, selection, delete, auto-scroll
   │   ├── Toolbar/            — toolbar buttons (import, WFS, draw modes, settings)
   │   ├── WFS/WFSModal.tsx    — WFS/OGC API connection and multi-layer import
@@ -47,10 +51,11 @@ Renderer (React)
 
 Python Backend (FastAPI)
   ├── python/main.py          — FastAPI app, CORS, routers
-  ├── python/routers/data.py  — /data/import, /data/wfs/*, /data/ogc/*
+  ├── python/routers/data.py  — /data/import, /data/wfs/*, /data/ogc/*, /data/osm/extract
   └── python/services/
       ├── gis.py              — file_to_geojson() via fiona
-      └── wfs.py              — WFS 1.x/2.x + OGC API Features via httpx
+      ├── wfs.py              — WFS 1.x/2.x + OGC API Features via httpx
+      └── osm.py              — overpass_extract(south,west,north,east); multi-endpoint retry
 ```
 
 ---
@@ -187,6 +192,54 @@ GeoJSON, JSON, SHP (Shapefile), KML, GPX — handled by `fiona` in the Python ba
 - **OGC API Features**: `/collections` → `/collections/{id}/items`
 - Multi-select: each selected layer/collection generates an independent map layer
 - Import runs sequentially with progress bar; partial failures are shown without aborting remaining items
+
+---
+
+## OSM Feature Extraction
+
+Right-click on map → "OSM 要素提取" → query Overpass API → preview + filter → import as new layer.
+
+### Data flow
+```
+Right-click (drawMode must be 'off')
+  → MapCanvas.handleContextMenu → map.getBounds() → ContextMenuPos { x, y, bounds }
+  → MapContextMenu renders at cursor
+  → click "OSM 要素提取"
+  → App.tsx opens OsmExtractModal with bounds [south, west, north, east]
+  → POST /data/osm/extract { south, west, north, east }
+      → python/services/osm.py: overpass_extract() → Overpass QL [bbox:s,w,n,e]
+      → returns GeoJSON FeatureCollection
+  → OsmExtractModal: two-level filter → import selected → addLayer
+```
+
+### `ContextMenuPos` (MapContextMenu.tsx)
+```ts
+{ x: number; y: number; bounds: [number, number, number, number] } // [south,west,north,east]
+```
+`bounds` is captured at right-click time from `map.getBounds()`. The menu is disabled during draw mode.
+
+### Python service (`python/services/osm.py`)
+- `overpass_extract(south, west, north, east)` — builds Overpass QL with `[bbox:s,w,n,e]` global filter
+- Queries: `way[building|highway|landuse|amenity|leisure|natural|aeroway]`, `relation[building|landuse]`, named nodes
+- Deduplicates by `(type, id)`; converts ways (closed→Polygon, open→LineString), nodes→Point, relations→outer ring Polygon
+- `_feature_label(tags)` maps OSM tags → Chinese labels: 建筑/道路/土地利用/设施/休闲/自然/航空
+- Multi-endpoint retry: `overpass-api.de` → `overpass.kumi.systems` → `overpass.private.coffee`; timeout 35 s / query 25 s
+
+### `OsmExtractModal` (src/renderer/src/components/OsmExtract/OsmExtractModal.tsx)
+- Two-level filter bar:
+  - **Level 1** (blue tags): category — 全部 / 建筑 / 道路 / 航空 / …  (only categories present in results)
+  - **Level 2** (geekblue tags): sub-type — `taxiway` / `runway` / `primary` / … (tag value; hidden when only one sub-type)
+- Clicking any tag auto-selects all matching rows; checkboxes remain manually adjustable
+- `getCategory(props)` checks `TAG_KEYS` in order; `getSubCategory(props, category)` returns the tag value
+
+### `api.ts`
+```ts
+osmExtract(south, west, north, east): Promise<GeoJSON.FeatureCollection>
+// POST /data/osm/extract { south, west, north, east }
+```
+
+### Pitfall: Overpass 504
+The public `overpass-api.de` endpoint frequently returns 504 under load. The service automatically retries the next endpoint. If all three fail, the modal shows the last error. Zooming in before extracting reduces query size.
 
 ---
 
