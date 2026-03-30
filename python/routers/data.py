@@ -105,6 +105,17 @@ class OsmExtractRequest(BaseModel):
     east: float
 
 
+@router.get("/airport/iata/{code}")
+async def get_airport_by_iata(code: str):
+    """Return center lat/lon and name for an airport by its IATA code."""
+    try:
+        return await osm_service.airport_by_iata(code)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/osm/extract")
 async def osm_extract(req: OsmExtractRequest):
     """Query Overpass API and return GeoJSON FeatureCollection within the given bbox."""
