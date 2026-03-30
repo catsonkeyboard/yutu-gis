@@ -111,14 +111,23 @@ export default function App() {
     ])
     if (!filePath) return
     try {
-      const geojson = await importGisFile(filePath)
-      const name = filePath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'Layer'
-      const id = nanoid()
-      addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
-      setSelectedLayer(id)
-      const bounds = getGeoJSONBounds(geojson)
+      const layers = await importGisFile(filePath)
+      let lastId = ''
+      for (const { name, geojson } of layers) {
+        const id = nanoid()
+        addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
+        lastId = id
+      }
+      if (lastId) setSelectedLayer(lastId)
+      const allFeatures = layers.flatMap((l) => l.geojson.features)
+      const combined: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: allFeatures }
+      const bounds = getGeoJSONBounds(combined)
       if (bounds) requestFitBounds(bounds)
-      message.success(`已导入：${name}`)
+      if (layers.length === 1) {
+        message.success(`已导入：${layers[0].name}`)
+      } else {
+        message.success(`已导入 ${layers.length} 个图层`)
+      }
     } catch (e) {
       message.error(`导入失败：${(e as Error).message}`)
     }

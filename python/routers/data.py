@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
-from services.gis import file_to_geojson
+from services.gis import file_to_layers
 from services import wfs as wfs_service
 from services import osm as osm_service
 
@@ -16,12 +16,14 @@ router = APIRouter()
 
 @router.post("/import")
 async def import_file(file: UploadFile = File(...)):
-    suffix = Path(file.filename or 'file.geojson').suffix
+    filename = file.filename or 'file.geojson'
+    suffix = Path(filename).suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
     try:
-        return file_to_geojson(tmp_path)
+        layers = file_to_layers(tmp_path, filename)
+        return {'layers': layers}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:
