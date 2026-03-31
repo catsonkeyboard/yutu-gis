@@ -5,7 +5,7 @@ import Toolbar from './components/Toolbar/Toolbar'
 import LayerPanel from './components/LayerPanel/LayerPanel'
 import MapCanvas from './components/MapCanvas/MapCanvas'
 import StatusBar from './components/StatusBar/StatusBar'
-import { initApi, importGisFile } from './services/api'
+import { initApi, importGisFile, type ImportedLayer } from './services/api'
 import { useLayerStore } from './stores/layerStore'
 import { useMapStore } from './stores/mapStore'
 import { useDrawStore, type DrawMode } from './stores/drawStore'
@@ -35,6 +35,9 @@ export default function App() {
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveTarget, setSaveTarget] = useState<'current' | 'new'>('new')
   const [pendingLayerName, setPendingLayerName] = useState('')
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [pendingImportLayers, setPendingImportLayers] = useState<ImportedLayer[]>([])
+  const [importMode, setImportMode] = useState<'merge' | 'split'>('merge')
   const addLayer = useLayerStore((s) => s.addLayer)
   const appendFeatures = useLayerStore((s) => s.appendFeatures)
   const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
@@ -104,6 +107,30 @@ export default function App() {
     window.addEventListener('mouseup', onMouseUp)
   }
 
+  const applyImport = (layers: ImportedLayer[], mode: 'merge' | 'split') => {
+    const allFeatures = layers.flatMap((l) => l.geojson.features)
+    if (mode === 'merge') {
+      const name = layers[0].name
+      const id = nanoid()
+      addLayer({ id, name, type: 'geojson', source: { type: 'FeatureCollection', features: allFeatures }, visible: true, opacity: 1 })
+      setSelectedLayer(id)
+      message.success(`已导入：${name}（${allFeatures.length} 个要素）`)
+    } else {
+      let lastId = ''
+      allFeatures.forEach((feat, i) => {
+        const name = (feat.properties?.name as string | undefined)?.trim() || `要素 ${i + 1}`
+        const id = nanoid()
+        addLayer({ id, name, type: 'geojson', source: { type: 'FeatureCollection', features: [feat] }, visible: true, opacity: 1 })
+        lastId = id
+      })
+      if (lastId) setSelectedLayer(lastId)
+      message.success(`已导入 ${allFeatures.length} 个图层`)
+    }
+    const combined: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: allFeatures }
+    const bounds = getGeoJSONBounds(combined)
+    if (bounds) requestFitBounds(bounds)
+  }
+
   const handleImport = async () => {
     const filePath = await window.electronAPI.openFileDialog([
       { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx'] },
@@ -112,22 +139,14 @@ export default function App() {
     if (!filePath) return
     try {
       const layers = await importGisFile(filePath)
-      let lastId = ''
-      for (const { name, geojson } of layers) {
-        const id = nanoid()
-        addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
-        lastId = id
+      const totalFeatures = layers.reduce((sum, l) => sum + l.geojson.features.length, 0)
+      if (totalFeatures <= 1) {
+        applyImport(layers, 'merge')
+        return
       }
-      if (lastId) setSelectedLayer(lastId)
-      const allFeatures = layers.flatMap((l) => l.geojson.features)
-      const combined: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: allFeatures }
-      const bounds = getGeoJSONBounds(combined)
-      if (bounds) requestFitBounds(bounds)
-      if (layers.length === 1) {
-        message.success(`已导入：${layers[0].name}`)
-      } else {
-        message.success(`已导入 ${layers.length} 个图层`)
-      }
+      setImportMode('merge')
+      setPendingImportLayers(layers)
+      setImportDialogOpen(true)
     } catch (e) {
       message.error(`导入失败：${(e as Error).message}`)
     }
@@ -331,6 +350,35 @@ export default function App() {
           }
         }}
       />
+      <Modal
+        title="导入选项"
+        open={importDialogOpen}
+        onOk={() => {
+          setImportDialogOpen(false)
+          applyImport(pendingImportLayers, importMode)
+          setPendingImportLayers([])
+        }}
+        onCancel={() => {
+          setImportDialogOpen(false)
+          setPendingImportLayers([])
+        }}
+        okText="确定"
+        cancelText="取消"
+      >
+        {(() => {
+          const total = pendingImportLayers.reduce((s, l) => s + l.geojson.features.length, 0)
+          return (
+            <Radio.Group
+              value={importMode}
+              onChange={(e) => setImportMode(e.target.value)}
+              style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+            >
+              <Radio value="merge">合并为一个图层（{total} 个要素）</Radio>
+              <Radio value="split">每个要素单独一个图层（创建 {total} 个图层）</Radio>
+            </Radio.Group>
+          )
+        })()}
+      </Modal>
       <Modal
         title="保存绘制图层"
         open={saveModalOpen}
