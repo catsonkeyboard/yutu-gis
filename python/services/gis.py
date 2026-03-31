@@ -236,7 +236,9 @@ def file_to_layers(file_path: str, filename: str = '') -> list[dict]:
 
     if ext in ('.geojson', '.json'):
         with open(file_path, encoding='utf-8') as f:
-            return [{'name': base_name, 'geojson': json.load(f)}]
+            geojson = json.load(f)
+        name = (geojson.get('name') or '').strip() or base_name
+        return [{'name': name, 'geojson': geojson}]
 
     if ext in ('.kml', '.kmz'):
         return _kml_to_layers(file_path, base_name)
