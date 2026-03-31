@@ -107,10 +107,15 @@ export default function App() {
     window.addEventListener('mouseup', onMouseUp)
   }
 
+  const featName = (feat: GeoJSON.Feature, fallback: string): string =>
+    ((feat.properties?.name || feat.properties?.Name) as string | undefined)?.trim() || fallback
+
   const applyImport = (layers: ImportedLayer[], mode: 'merge' | 'split') => {
     const allFeatures = layers.flatMap((l) => l.geojson.features)
     if (mode === 'merge') {
-      const name = layers[0].name
+      const name = allFeatures.length === 1
+        ? featName(allFeatures[0], layers[0].name)
+        : layers[0].name
       const id = nanoid()
       addLayer({ id, name, type: 'geojson', source: { type: 'FeatureCollection', features: allFeatures }, visible: true, opacity: 1 })
       setSelectedLayer(id)
@@ -118,7 +123,7 @@ export default function App() {
     } else {
       let lastId = ''
       allFeatures.forEach((feat, i) => {
-        const name = (feat.properties?.name as string | undefined)?.trim() || `要素 ${i + 1}`
+        const name = featName(feat, `要素 ${i + 1}`)
         const id = nanoid()
         addLayer({ id, name, type: 'geojson', source: { type: 'FeatureCollection', features: [feat] }, visible: true, opacity: 1 })
         lastId = id
