@@ -40,6 +40,15 @@ export async function importGisFile(filePath: string): Promise<ImportedLayer[]> 
   return data.layers
 }
 
+export async function importGisFileFromFile(file: File): Promise<ImportedLayer[]> {
+  const formData = new FormData()
+  formData.append('file', file, file.name)
+  const resp = await fetch(`${baseUrl}/data/import`, { method: 'POST', body: formData })
+  if (!resp.ok) throw new Error(await resp.text())
+  const data = await resp.json() as { layers: ImportedLayer[] }
+  return data.layers
+}
+
 // ---------------------------------------------------------------------------
 // WFS 1.x / 2.x
 // ---------------------------------------------------------------------------
