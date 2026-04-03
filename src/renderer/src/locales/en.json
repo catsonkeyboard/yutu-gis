@@ -46,6 +46,7 @@
     "noLayers": "No exportable layers",
     "selectDir": "Choose Export Directory",
     "success": "Exported {{count}} layer(s)",
+    "selectAll": "Select All",
     "errorFile": "Export failed: {{name}} — {{error}}"
   },
   "common": {
