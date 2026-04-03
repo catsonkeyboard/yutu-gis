@@ -6,6 +6,7 @@ export interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<void>
   openFileDialog: (filters: { name: string; extensions: string[] }[]) => Promise<string | null>
   saveFileDialog: (filters: { name: string; extensions: string[] }[]) => Promise<string | null>
+  openDirectoryDialog: () => Promise<string | null>
   onMenuAction: (callback: (action: string) => void) => () => void
   loadConfig: () => Promise<AppConfig>
   saveConfig: (config: AppConfig) => Promise<void>
