@@ -20,6 +20,8 @@ import { useSettingsStore } from './stores/settingsStore'
 
 const { Header, Sider, Content, Footer } = Layout
 
+const ALLOWED_DROP_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'gpx'])
+
 export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [wfsOpen, setWfsOpen] = useState(false)
@@ -160,11 +162,14 @@ export default function App() {
     }
   }
 
-  const ALLOWED_DROP_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'gpx'])
-
   const handleFileDrop = async (file: File) => {
     if (drawMode !== 'off') return
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    // SHP requires companion files (.dbf, .prj, etc.) — drag-drop only gets the single file
+    if (ext === 'shp') {
+      message.error('SHP 格式需通过工具栏导入（需要 .dbf 等附属文件）')
+      return
+    }
     if (!ALLOWED_DROP_EXTENSIONS.has(ext)) {
       message.error('不支持的文件类型，请使用 GeoJSON / KML / GPX')
       return
@@ -286,15 +291,19 @@ export default function App() {
           onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
           onDragLeave={(e) => {
             // Only clear when leaving the Content element itself, not its children
-            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
               setIsDragOver(false)
             }
           }}
           onDrop={(e) => {
             e.preventDefault()
             setIsDragOver(false)
-            const file = e.dataTransfer.files[0]
-            if (file) handleFileDrop(file)
+            const files = e.dataTransfer.files
+            if (files.length === 0) return
+            if (files.length > 1) {
+              message.warning('每次只能拖入一个文件，已导入第一个')
+            }
+            handleFileDrop(files[0])
           }}
         >
           {isDragOver && (
