@@ -41,6 +41,13 @@
     "importSuccess": "已导入 OSM 要素：{{name}}（{{count}} 个要素）",
     "errorTitle": "查询失败"
   },
+  "export": {
+    "modalTitle": "批量导出图层",
+    "noLayers": "暂无可导出的图层",
+    "selectDir": "选择导出目录",
+    "success": "已导出 {{count}} 个图层",
+    "errorFile": "导出失败：{{name}} — {{error}}"
+  },
   "common": {
     "cancel": "取消"
   }
