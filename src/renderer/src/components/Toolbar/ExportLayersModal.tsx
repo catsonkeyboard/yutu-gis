@@ -36,7 +36,8 @@ export default function ExportLayersModal({ open, onClose }: Props) {
     if (open) {
       setCheckedIds(new Set(layers.map((l) => l.id)))
     }
-  }, [open, layers])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const toggleAll = (checked: boolean) => {
     setCheckedIds(checked ? new Set(layers.map((l) => l.id)) : new Set())
