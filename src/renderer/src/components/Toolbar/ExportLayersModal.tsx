@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Modal, Checkbox, Button, Space, Typography, message } from 'antd'
 import { useTranslation } from 'react-i18next'
+import { useShallow } from 'zustand/react/shallow'
 import { useLayerStore, type Layer } from '../../stores/layerStore'
 
 interface Props {
@@ -27,7 +28,7 @@ function uniqueFileNames(layers: Layer[]): Map<string, string> {
 
 export default function ExportLayersModal({ open, onClose }: Props) {
   const { t } = useTranslation()
-  const layers = useLayerStore((s) => s.layers.filter((l) => l.type === 'geojson'))
+  const layers = useLayerStore(useShallow((s) => s.layers.filter((l) => l.type === 'geojson')))
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState(false)
 
