@@ -24,6 +24,9 @@ const electronAPI = {
   saveFileDialog: (filters: { name: string; extensions: string[] }[]): Promise<string | null> =>
     ipcRenderer.invoke('dialog:saveFile', filters),
 
+  openDirectoryDialog: (): Promise<string | null> =>
+    ipcRenderer.invoke('dialog:openDirectory'),
+
   onMenuAction: (callback: (action: string) => void): (() => void) => {
     const actions = ['menu:import', 'menu:export', 'menu:open', 'menu:save']
     const listeners = actions.map((action) => {

@@ -28,6 +28,13 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     return result.canceled ? null : result.filePath
   })
 
+  ipcMain.handle('dialog:openDirectory', async (_event) => {
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory'],
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
+
   ipcMain.handle('config:load', () => loadConfig())
   ipcMain.handle('config:save', (_event, config: AppConfig) => saveConfig(config))
 }
