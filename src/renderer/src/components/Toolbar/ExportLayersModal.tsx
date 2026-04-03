@@ -86,9 +86,11 @@ export default function ExportLayersModal({ open, onClose }: Props) {
       title={t('export.modalTitle')}
       open={open}
       onCancel={onClose}
+      closable={!exporting}
+      maskClosable={false}
       footer={
         <Space>
-          <Button onClick={onClose}>{t('common.cancel')}</Button>
+          <Button onClick={onClose} disabled={exporting}>{t('common.cancel')}</Button>
           <Button
             type="primary"
             disabled={checkedIds.size === 0}
