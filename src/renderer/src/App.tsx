@@ -13,6 +13,7 @@ import { getGeoJSONBounds } from './utils/geo'
 import SettingsModal from './components/Settings/SettingsModal'
 import WFSModal from './components/WFS/WFSModal'
 import OsmExtractModal from './components/OsmExtract/OsmExtractModal'
+import ExportLayersModal from './components/Toolbar/ExportLayersModal'
 import FeaturePanel from './components/FeaturePanel/FeaturePanel'
 import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
@@ -38,6 +39,7 @@ export default function App() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [pendingImportLayers, setPendingImportLayers] = useState<ImportedLayer[]>([])
   const [importMode, setImportMode] = useState<'merge' | 'split'>('merge')
+  const [exportOpen, setExportOpen] = useState(false)
   const addLayer = useLayerStore((s) => s.addLayer)
   const appendFeatures = useLayerStore((s) => s.appendFeatures)
   const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
@@ -195,25 +197,6 @@ export default function App() {
     }
   }
 
-  const handleExport = async () => {
-    const { layers, selectedLayerId } = useLayerStore.getState()
-    const layer = layers.find((l) => l.id === selectedLayerId)
-    if (!layer) {
-      message.warning('请先选择一个图层')
-      return
-    }
-    const filePath = await window.electronAPI.saveFileDialog([
-      { name: 'GeoJSON', extensions: ['geojson'] },
-    ])
-    if (!filePath) return
-    try {
-      await window.electronAPI.writeFile(filePath, JSON.stringify(layer.source, null, 2))
-      message.success(`已导出：${layer.name}`)
-    } catch (e) {
-      message.error(`导出失败：${(e as Error).message}`)
-    }
-  }
-
   const handleExportLayer = async (layerId: string) => {
     const layer = useLayerStore.getState().layers.find((l) => l.id === layerId)
     if (!layer) return
@@ -243,7 +226,7 @@ export default function App() {
         <Toolbar
           onSettings={() => setSettingsOpen(true)}
           onImport={handleImport}
-          onExport={handleExport}
+          onExport={() => setExportOpen(true)}
           onWFS={() => setWfsOpen(true)}
           onDrawModeChange={handleDrawModeChange}
         />
@@ -320,6 +303,7 @@ export default function App() {
         <StatusBar />
       </Footer>
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ExportLayersModal open={exportOpen} onClose={() => setExportOpen(false)} />
       <WFSModal
         open={wfsOpen}
         onClose={() => setWfsOpen(false)}
