@@ -74,8 +74,8 @@ export default function ExportLayersModal({ open, onClose }: Props) {
     setExporting(false)
     if (successCount > 0) {
       message.success(t('export.success', { count: successCount }))
+      onClose()
     }
-    onClose()
   }
 
   const allChecked = layers.length > 0 && checkedIds.size === layers.length
@@ -110,7 +110,7 @@ export default function ExportLayersModal({ open, onClose }: Props) {
             checked={allChecked}
             onChange={(e) => toggleAll(e.target.checked)}
           >
-            全选
+            {t('export.selectAll')}
           </Checkbox>
           {layers.map((layer) => (
             <Checkbox

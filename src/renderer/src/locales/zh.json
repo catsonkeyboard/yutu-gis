@@ -46,6 +46,7 @@
     "noLayers": "暂无可导出的图层",
     "selectDir": "选择导出目录",
     "success": "已导出 {{count}} 个图层",
+    "selectAll": "全选",
     "errorFile": "导出失败：{{name}} — {{error}}"
   },
   "common": {
