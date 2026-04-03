@@ -5,7 +5,7 @@ import Toolbar from './components/Toolbar/Toolbar'
 import LayerPanel from './components/LayerPanel/LayerPanel'
 import MapCanvas from './components/MapCanvas/MapCanvas'
 import StatusBar from './components/StatusBar/StatusBar'
-import { initApi, importGisFile, type ImportedLayer } from './services/api'
+import { initApi, importGisFile, importGisFileFromFile, type ImportedLayer } from './services/api'
 import { useLayerStore } from './stores/layerStore'
 import { useMapStore } from './stores/mapStore'
 import { useDrawStore, type DrawMode } from './stores/drawStore'
@@ -40,11 +40,12 @@ export default function App() {
   const [pendingImportLayers, setPendingImportLayers] = useState<ImportedLayer[]>([])
   const [importMode, setImportMode] = useState<'merge' | 'split'>('merge')
   const [exportOpen, setExportOpen] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const addLayer = useLayerStore((s) => s.addLayer)
   const appendFeatures = useLayerStore((s) => s.appendFeatures)
   const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
-  const { features, setMode, clear } = useDrawStore()
+  const { features, setMode, clear, drawMode } = useDrawStore()
   const setLanguage = useSettingsStore((s) => s.setLanguage)
   const setApiKeys = useSettingsStore((s) => s.setApiKeys)
 
@@ -159,6 +160,30 @@ export default function App() {
     }
   }
 
+  const ALLOWED_DROP_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'gpx'])
+
+  const handleFileDrop = async (file: File) => {
+    if (drawMode !== 'off') return
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_DROP_EXTENSIONS.has(ext)) {
+      message.error('不支持的文件类型，请使用 GeoJSON / KML / GPX')
+      return
+    }
+    try {
+      const layers = await importGisFileFromFile(file)
+      const totalFeatures = layers.reduce((sum, l) => sum + l.geojson.features.length, 0)
+      if (totalFeatures <= 1) {
+        applyImport(layers, 'merge')
+        return
+      }
+      setImportMode('merge')
+      setPendingImportLayers(layers)
+      setImportDialogOpen(true)
+    } catch (e) {
+      message.error(`导入失败：${(e as Error).message}`)
+    }
+  }
+
   const handleDrawModeChange = (mode: DrawMode | 'off') => {
     if (mode === 'off' && features.length > 0) {
       const { layers, selectedLayerId } = useLayerStore.getState()
@@ -256,7 +281,48 @@ export default function App() {
             }}
           />
         </Sider>
-        <Content style={{ position: 'relative', overflow: 'hidden' }}>
+        <Content
+          style={{ position: 'relative', overflow: 'hidden' }}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+          onDragLeave={(e) => {
+            // Only clear when leaving the Content element itself, not its children
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setIsDragOver(false)
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault()
+            setIsDragOver(false)
+            const file = e.dataTransfer.files[0]
+            if (file) handleFileDrop(file)
+          }}
+        >
+          {isDragOver && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1000,
+                pointerEvents: 'none',
+                background: 'rgba(22, 119, 255, 0.08)',
+                border: '3px dashed #1677ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span style={{
+                background: 'rgba(255,255,255,0.9)',
+                padding: '8px 20px',
+                borderRadius: 8,
+                fontSize: 15,
+                color: '#1677ff',
+                fontWeight: 500,
+              }}>
+                松开以导入
+              </span>
+            </div>
+          )}
           <MapCanvas
             onSave={() => handleDrawModeChange('off')}
             onOsmExtract={(bounds) => {
