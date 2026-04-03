@@ -41,6 +41,13 @@
     "importSuccess": "Imported OSM features: {{name}} ({{count}} features)",
     "errorTitle": "Query Failed"
   },
+  "export": {
+    "modalTitle": "Export Layers",
+    "noLayers": "No exportable layers",
+    "selectDir": "Choose Export Directory",
+    "success": "Exported {{count}} layer(s)",
+    "errorFile": "Export failed: {{name}} — {{error}}"
+  },
   "common": {
     "cancel": "Cancel"
   }
