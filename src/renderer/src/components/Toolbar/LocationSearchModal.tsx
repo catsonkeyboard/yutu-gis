@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Modal, Tabs, Input, Button, message, Typography, Space } from 'antd'
+import { Modal, Tabs, Input, Button, message, Typography, Space, Form } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { searchAirportByIata } from '../../services/api'
 import { useMapStore } from '../../stores/mapStore'
@@ -16,6 +16,9 @@ export default function LocationSearchModal({ open, onClose }: Props) {
 
   const [iataValue, setIataValue] = useState('')
   const [iataLoading, setIataLoading] = useState(false)
+
+  const [latValue, setLatValue] = useState('')
+  const [lonValue, setLonValue] = useState('')
 
   const handleIataSearch = async () => {
     const code = iataValue.trim().toUpperCase()
@@ -37,6 +40,58 @@ export default function LocationSearchModal({ open, onClose }: Props) {
       setIataLoading(false)
     }
   }
+
+  const handleCoordJump = () => {
+    const lat = parseFloat(latValue.trim())
+    const lon = parseFloat(lonValue.trim())
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      message.warning('纬度范围为 -90 ~ 90')
+      return
+    }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+      message.warning('经度范围为 -180 ~ 180')
+      return
+    }
+    const delta = 0.01
+    requestFitBounds([[lon - delta, lat - delta], [lon + delta, lat + delta]])
+    message.success(`已跳转至 ${lat}, ${lon}`)
+    onClose()
+  }
+
+  const coordTab = (
+    <Space direction="vertical" style={{ width: '100%', paddingTop: 8 }}>
+      <Text type="secondary" style={{ fontSize: 12 }}>
+        输入十进制度数（如纬度 31.2304，经度 121.4737）
+      </Text>
+      <Form layout="vertical" style={{ marginBottom: 0 }}>
+        <Form.Item label="纬度" style={{ marginBottom: 8 }}>
+          <Input
+            placeholder="-90 ~ 90"
+            value={latValue}
+            onChange={(e) => setLatValue(e.target.value)}
+            onPressEnter={handleCoordJump}
+            autoFocus
+          />
+        </Form.Item>
+        <Form.Item label="经度" style={{ marginBottom: 8 }}>
+          <Input
+            placeholder="-180 ~ 180"
+            value={lonValue}
+            onChange={(e) => setLonValue(e.target.value)}
+            onPressEnter={handleCoordJump}
+          />
+        </Form.Item>
+      </Form>
+      <Button
+        type="primary"
+        icon={<SearchOutlined />}
+        onClick={handleCoordJump}
+        style={{ width: '100%' }}
+      >
+        跳转
+      </Button>
+    </Space>
+  )
 
   const iataTab = (
     <Space direction="vertical" style={{ width: '100%', paddingTop: 8 }}>
@@ -75,16 +130,17 @@ export default function LocationSearchModal({ open, onClose }: Props) {
       width={400}
       destroyOnClose
       afterOpenChange={(visible) => {
-        if (!visible) setIataValue('')
+        if (!visible) {
+          setIataValue('')
+          setLatValue('')
+          setLonValue('')
+        }
       }}
     >
       <Tabs
         items={[
-          {
-            key: 'iata',
-            label: '机场三字码',
-            children: iataTab,
-          },
+          { key: 'coords', label: '经纬度', children: coordTab },
+          { key: 'iata', label: '机场三字码', children: iataTab },
         ]}
       />
     </Modal>
