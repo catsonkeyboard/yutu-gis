@@ -2,7 +2,20 @@
 OSM Feature Extraction via Overpass API.
 """
 from typing import Any
+import urllib.request
 import httpx
+
+def _build_proxy_mounts() -> dict:
+    """Convert urllib system proxies to httpx mounts format."""
+    raw = urllib.request.getproxies()
+    mounts = {}
+    if "https" in raw:
+        mounts["https://"] = httpx.AsyncHTTPTransport(proxy=raw["https"], verify=False)
+    if "http" in raw:
+        mounts["http://"] = httpx.AsyncHTTPTransport(proxy=raw["http"])
+    return mounts
+
+_PROXY_MOUNTS = _build_proxy_mounts()
 
 # Public Overpass API endpoints tried in order; first success wins
 OVERPASS_ENDPOINTS = [
@@ -11,6 +24,55 @@ OVERPASS_ENDPOINTS = [
     "https://overpass.private.coffee/api/interpreter",
 ]
 TIMEOUT = 35.0
+
+
+def _stitch_outer_rings(members: list[dict]) -> list[list[float]] | None:
+    """Stitch outer way geometries from a relation into a single closed ring.
+
+    Each member's geometry is a list of {lat, lon} dicts. Ways may need to be
+    reversed to chain end-to-end. Returns a closed [lon, lat] coordinate list,
+    or None if stitching fails.
+    """
+    segments = [
+        [[n["lon"], n["lat"]] for n in m["geometry"]]
+        for m in members
+        if m.get("role") == "outer" and m.get("geometry")
+    ]
+    if not segments:
+        return None
+    if len(segments) == 1:
+        ring = segments[0]
+        if ring[0] != ring[-1]:
+            ring = ring + [ring[0]]
+        return ring
+
+    # Greedy stitching: repeatedly find the segment whose start/end matches
+    # the current tail of the assembled ring.
+    ring = list(segments[0])
+    remaining = segments[1:]
+
+    for _ in range(len(remaining)):
+        tail = ring[-1]
+        matched = False
+        for i, seg in enumerate(remaining):
+            if seg[0] == tail:
+                ring.extend(seg[1:])
+            elif seg[-1] == tail:
+                ring.extend(reversed(seg[:-1]))
+            else:
+                continue
+            remaining.pop(i)
+            matched = True
+            break
+        if not matched:
+            # Gap in ring — append remaining segments as-is
+            for seg in remaining:
+                ring.extend(seg)
+            break
+
+    if ring[0] != ring[-1]:
+        ring.append(ring[0])
+    return ring if len(ring) >= 4 else None
 
 
 def _way_to_geometry(nodes: list[dict]) -> dict:
@@ -104,7 +166,7 @@ async def airport_by_iata(iata_code: str) -> dict:
     Queries Overpass globally (no bbox). Raises ValueError if not found.
     """
     code = iata_code.upper().strip()
-    query = f"""[out:json][timeout:10];
+    query = f"""[out:json][timeout:25];
 (
   node[aeroway=aerodrome][iata="{code}"];
   way[aeroway=aerodrome][iata="{code}"];
@@ -113,7 +175,7 @@ async def airport_by_iata(iata_code: str) -> dict:
 out bb tags;"""
 
     last_error: Exception | None = None
-    async with httpx.AsyncClient(timeout=15.0, verify=False) as client:
+    async with httpx.AsyncClient(timeout=35.0, verify=False, mounts=_PROXY_MOUNTS or None) as client:
         for url in OVERPASS_ENDPOINTS:
             try:
                 resp = await client.post(url, data={"data": query})
@@ -173,7 +235,7 @@ async def overpass_extract(south: float, west: float, north: float, east: float)
     """
     query = _overpass_query(south, west, north, east)
     last_error: Exception | None = None
-    async with httpx.AsyncClient(timeout=TIMEOUT, verify=False) as client:
+    async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, mounts=_PROXY_MOUNTS or None) as client:
         for url in OVERPASS_ENDPOINTS:
             try:
                 resp = await client.post(url, data={"data": query})
@@ -216,15 +278,9 @@ async def overpass_extract(south: float, west: float, north: float, east: float)
             geometry = _way_to_geometry(nodes)
 
         elif el_type == "relation":
-            outer_coords: list | None = None
-            for member in el.get("members") or []:
-                if member.get("role") == "outer" and member.get("geometry"):
-                    outer_coords = [[n["lon"], n["lat"]] for n in member["geometry"]]
-                    break
-            if not outer_coords or len(outer_coords) < 3:
+            outer_coords = _stitch_outer_rings(el.get("members") or [])
+            if not outer_coords:
                 continue
-            if outer_coords[0] != outer_coords[-1]:
-                outer_coords.append(outer_coords[0])
             geometry = {"type": "Polygon", "coordinates": [outer_coords]}
 
         if geometry:
