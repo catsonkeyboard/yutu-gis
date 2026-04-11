@@ -1,5 +1,6 @@
 import tempfile
 import shutil
+import httpx
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
@@ -114,8 +115,10 @@ async def get_airport_by_iata(code: str):
         return await osm_service.airport_by_iata(code)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=503, detail="Overpass 服务超时，请稍后重试")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e))
 
 
 @router.post("/osm/extract")
