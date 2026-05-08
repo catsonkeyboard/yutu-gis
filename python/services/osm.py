@@ -23,7 +23,7 @@ OVERPASS_ENDPOINTS = [
     "https://overpass.kumi.systems/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
 ]
-TIMEOUT = 35.0
+TIMEOUT = 15.0
 
 
 def _stitch_outer_rings(members: list[dict]) -> list[list[float]] | None:
@@ -166,7 +166,7 @@ async def airport_by_iata(iata_code: str) -> dict:
     Queries Overpass globally (no bbox). Raises ValueError if not found.
     """
     code = iata_code.upper().strip()
-    query = f"""[out:json][timeout:25];
+    query = f"""[out:json][timeout:15];
 (
   node[aeroway=aerodrome][iata="{code}"];
   way[aeroway=aerodrome][iata="{code}"];
@@ -175,7 +175,7 @@ async def airport_by_iata(iata_code: str) -> dict:
 out bb tags;"""
 
     last_error: Exception | None = None
-    async with httpx.AsyncClient(timeout=35.0, verify=False, mounts=_PROXY_MOUNTS or None) as client:
+    async with httpx.AsyncClient(timeout=TIMEOUT, verify=False, mounts=_PROXY_MOUNTS or None) as client:
         for url in OVERPASS_ENDPOINTS:
             try:
                 resp = await client.post(url, data={"data": query})
@@ -218,6 +218,14 @@ out bb tags;"""
 
     if not found:
         raise ValueError(f"机场 {code} 坐标数据不完整，请检查 OSM 数据")
+
+    # Add a small padding if it's a single point so fitBounds works correctly
+    if min_lat == max_lat and min_lon == max_lon:
+        pad = 0.05
+        min_lat -= pad
+        max_lat += pad
+        min_lon -= pad
+        max_lon += pad
 
     name = tags.get("name") or tags.get("name:en") or tags.get("name:zh") or code
     # bbox: [west, south, east, north]

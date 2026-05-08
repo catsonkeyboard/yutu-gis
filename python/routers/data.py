@@ -115,8 +115,8 @@ async def get_airport_by_iata(code: str):
         return await osm_service.airport_by_iata(code)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=503, detail="Overpass 服务超时，请稍后重试")
+    except (httpx.TimeoutException, httpx.ConnectError):
+        raise HTTPException(status_code=503, detail="Overpass 服务网络连接异常，请检查网络或稍后重试")
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 

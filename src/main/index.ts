@@ -5,6 +5,10 @@ import { startPython, stopPython } from './python'
 import { buildMenu } from './menu'
 import { registerIpcHandlers } from './ipc'
 
+// 抑制地图瓦片请求（Google 等被墙域名）产生的 SSL 握手失败日志噪声
+app.commandLine.appendSwitch('ignore-certificate-errors')
+app.commandLine.appendSwitch('log-level', '3')
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
