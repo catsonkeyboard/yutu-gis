@@ -1,6 +1,7 @@
 {
   "name": "yutugis",
   "version": "0.0.1",
+  "private": true,
   "description": "YutuGIS 舆图 — A professional GIS desktop application",
   "main": "./out/main/index.js",
   "author": "YutuGIS",

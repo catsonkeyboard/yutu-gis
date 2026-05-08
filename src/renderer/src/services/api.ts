@@ -114,8 +114,16 @@ export interface AirportInfo {
 export async function searchAirportByIata(code: string): Promise<AirportInfo> {
   const resp = await fetch(`${baseUrl}/data/airport/iata/${encodeURIComponent(code.toUpperCase())}`)
   if (!resp.ok) {
-    const detail = await resp.text()
-    throw new Error(detail)
+    const text = await resp.text()
+    try {
+      const json = JSON.parse(text)
+      throw new Error(json.detail || text)
+    } catch (e) {
+      if (e instanceof Error && e.message !== 'Unexpected end of JSON input' && !e.message.startsWith('Unexpected token')) {
+        throw e
+      }
+      throw new Error(text)
+    }
   }
   return resp.json() as Promise<AirportInfo>
 }

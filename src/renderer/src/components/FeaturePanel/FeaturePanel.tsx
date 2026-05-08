@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useRef, useState } from 'react'
+import type { ReactElement } from 'react'
 import { Table, Tag, Typography, Empty, Divider } from 'antd'
 import type { TableProps } from 'antd'
 import { useLayerStore } from '../../stores/layerStore'
@@ -23,7 +24,7 @@ interface PropRow {
 
 function matchesSelected(
   props: Record<string, unknown>,
-  selected: Record<string, unknown> | null,
+  selected: Record<string, unknown> | null
 ): boolean {
   if (!selected) return false
   if (props._osm_id !== undefined && selected._osm_id !== undefined) {
@@ -32,21 +33,22 @@ function matchesSelected(
   return JSON.stringify(props) === JSON.stringify(selected)
 }
 
-function getFeatureBounds(
-  feature: GeoJSON.Feature,
-): [[number, number], [number, number]] | null {
+function getFeatureBounds(feature: GeoJSON.Feature): [[number, number], [number, number]] | null {
   const bounds = getGeoJSONBounds({ type: 'FeatureCollection', features: [feature] })
   if (!bounds) return null
   const [[minLon, minLat], [maxLon, maxLat]] = bounds
   // Point: add buffer so fitBounds has a meaningful area
   if (minLon === maxLon && minLat === maxLat) {
     const d = 0.005
-    return [[minLon - d, minLat - d], [maxLon + d, maxLat + d]]
+    return [
+      [minLon - d, minLat - d],
+      [maxLon + d, maxLat + d]
+    ]
   }
   return bounds
 }
 
-export default function FeaturePanel() {
+export default function FeaturePanel(): ReactElement {
   const layers = useLayerStore((s) => s.layers)
   const selectedLayerId = useLayerStore((s) => s.selectedLayerId)
   const selectedFeatureProps = useLayerStore((s) => s.selectedFeatureProps)
@@ -58,7 +60,7 @@ export default function FeaturePanel() {
 
   const selectedLayer = useMemo(
     () => layers.find((l) => l.id === selectedLayerId),
-    [layers, selectedLayerId],
+    [layers, selectedLayerId]
   )
 
   const featureRows = useMemo<FeatureRow[]>(() => {
@@ -69,7 +71,7 @@ export default function FeaturePanel() {
       label: (f.properties?._feature_label as string) ?? `要素 ${i + 1}`,
       geomType: f.geometry.type,
       props: (f.properties ?? {}) as Record<string, unknown>,
-      feature: f,
+      feature: f
     }))
   }, [selectedLayer])
 
@@ -110,7 +112,7 @@ export default function FeaturePanel() {
     if (!selectedFeatureProps) return []
     return Object.entries(selectedFeatureProps).map(([k, v]) => ({
       key: k,
-      value: v === null || v === undefined ? '' : String(v),
+      value: v === null || v === undefined ? '' : String(v)
     }))
   }, [selectedFeatureProps])
 
@@ -122,9 +124,13 @@ export default function FeaturePanel() {
       width: 80,
       render: (v: string) => {
         const color = v === 'Polygon' ? 'blue' : v === 'LineString' ? 'green' : 'orange'
-        return <Tag color={color} style={{ fontSize: 11 }}>{v}</Tag>
-      },
-    },
+        return (
+          <Tag color={color} style={{ fontSize: 11 }}>
+            {v}
+          </Tag>
+        )
+      }
+    }
   ]
 
   const propCols: TableProps<PropRow>['columns'] = [
@@ -135,14 +141,14 @@ export default function FeaturePanel() {
       ellipsis: true,
       render: (v: string) => (
         <Text style={{ fontSize: 12, color: v.startsWith('_') ? '#aaa' : undefined }}>{v}</Text>
-      ),
+      )
     },
     {
       title: '值',
       dataIndex: 'value',
       ellipsis: true,
-      render: (v: string) => <Text style={{ fontSize: 12 }}>{v}</Text>,
-    },
+      render: (v: string) => <Text style={{ fontSize: 12 }}>{v}</Text>
+    }
   ]
 
   return (
@@ -155,10 +161,12 @@ export default function FeaturePanel() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
-        <Text strong style={{ fontSize: 13 }}>要素属性</Text>
+        <Text strong style={{ fontSize: 13 }}>
+          要素属性
+        </Text>
         {selectedLayer && (
           <Text type="secondary" style={{ fontSize: 11 }}>
             {featureRows.length} 个要素
@@ -167,7 +175,11 @@ export default function FeaturePanel() {
       </div>
 
       {!selectedLayer ? (
-        <Empty description="请选择图层" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ marginTop: 32 }} />
+        <Empty
+          description="请选择图层"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          style={{ marginTop: 32 }}
+        />
       ) : (
         <>
           {/* Feature list */}
@@ -178,15 +190,20 @@ export default function FeaturePanel() {
               dataSource={featureRows}
               pagination={
                 featureRows.length > PAGE_SIZE
-                  ? { pageSize: PAGE_SIZE, size: 'small', current: tablePage, onChange: setTablePage }
+                  ? {
+                      pageSize: PAGE_SIZE,
+                      size: 'small',
+                      current: tablePage,
+                      onChange: setTablePage
+                    }
                   : false
               }
               onRow={(row) => ({
                 style: {
                   cursor: 'pointer',
-                  background: row.key === selectedRowKey ? '#e6f4ff' : undefined,
+                  background: row.key === selectedRowKey ? '#e6f4ff' : undefined
                 },
-                onClick: () => handleRowClick(row),
+                onClick: () => handleRowClick(row)
               })}
             />
           </div>
@@ -196,16 +213,13 @@ export default function FeaturePanel() {
           {/* Properties */}
           <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
             {!selectedFeatureProps ? (
-              <div style={{ padding: '24px 8px', textAlign: 'center', color: '#aaa', fontSize: 12 }}>
+              <div
+                style={{ padding: '24px 8px', textAlign: 'center', color: '#aaa', fontSize: 12 }}
+              >
                 点击地图或列表中的要素查看属性
               </div>
             ) : (
-              <Table
-                size="small"
-                columns={propCols}
-                dataSource={propRows}
-                pagination={false}
-              />
+              <Table size="small" columns={propCols} dataSource={propRows} pagination={false} />
             )}
           </div>
         </>
