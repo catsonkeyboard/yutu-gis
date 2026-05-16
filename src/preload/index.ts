@@ -6,6 +6,8 @@ type VehiclePacket = { time: number; devNo: string; direct: number; speed: numbe
 type OpenSkyBounds = { lamin: number; lomin: number; lamax: number; lomax: number }
 type OpenSkyTokenResult = { access_token: string; expires_in: number }
 type OpenSkyStatesResult = { time: number; states: unknown[][] | null }
+type AdsbfiAircraft = { hex: string; flight?: string; r?: string; t?: string; alt_baro?: number | 'ground'; alt_geom?: number; gs?: number; track?: number; baro_rate?: number; squawk?: string; lat?: number; lon?: number; seen_pos?: number; seen?: number; category?: string }
+type AdsbfiResponse = { ac: AdsbfiAircraft[] | null; msg: string; now: number; total: number; ctime: number; ptime: number }
 
 const electronAPI = {
   getPythonPort: (): Promise<number> =>
@@ -75,6 +77,10 @@ const electronAPI = {
 
   openSkyFetchStates: (bounds: OpenSkyBounds, token: string | null): Promise<OpenSkyStatesResult> =>
     ipcRenderer.invoke('opensky:states', bounds, token),
+
+  // ── adsb.fi Open Data ──────────────────────────────────────────────────
+  adsbfiFetchByLocation: (lat: number, lon: number, distNm: number): Promise<AdsbfiResponse> =>
+    ipcRenderer.invoke('adsbfi:byLocation', lat, lon, distNm),
 
   onVehicleStopped: (callback: () => void): (() => void) => {
     const listener = (): void => callback()

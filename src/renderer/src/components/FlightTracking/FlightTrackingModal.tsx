@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
-import {
-  Modal, Form, Input, InputNumber, Button, Space, Typography, Alert, Spin,
-} from 'antd'
+import { Modal, Form, Input, InputNumber, Button, Space, Typography, Alert, Spin, Tabs } from 'antd'
 import {
   RocketOutlined,
   DisconnectOutlined,
@@ -12,9 +10,11 @@ import {
   LockOutlined,
   FieldTimeOutlined,
   CloudOutlined,
+  GlobalOutlined
 } from '@ant-design/icons'
-import { useFlightStore } from '../../stores/flightStore'
-import { fetchAccessToken, testConnection } from '../../services/opensky'
+import { useFlightStore, type FlightDataSource } from '../../stores/flightStore'
+import { fetchAccessToken, testConnection as testOpenSky } from '../../services/opensky'
+import { testAdsbfiConnection } from '../../services/adsbfi'
 
 const { Text } = Typography
 
@@ -24,49 +24,81 @@ interface Props {
 }
 
 export default function FlightTrackingModal({ open, onClose }: Props) {
-  const [form] = Form.useForm()
+  const [openSkyForm] = Form.useForm()
+  const [adsbfiForm] = Form.useForm()
   const {
-    active, config, flights, lastUpdate, error, fetching,
-    setActive, setConfig, setToken, clearToken, setError, clear,
+    active,
+    dataSource,
+    pollInterval,
+    openSkyConfig,
+    flights,
+    lastUpdate,
+    error,
+    fetching,
+    setActive,
+    setDataSource,
+    setPollInterval,
+    setOpenSkyConfig,
+    setToken,
+    clearToken,
+    setError,
+    clear
   } = useFlightStore()
 
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<FlightDataSource>(dataSource)
 
   const flightCount = Object.keys(flights).length
 
-  // Initialise form with last-saved config
+  // Initialise forms with last-saved config
   useEffect(() => {
     if (open) {
-      form.setFieldsValue({
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        pollInterval: config.pollInterval,
+      openSkyForm.setFieldsValue({
+        clientId: openSkyConfig.clientId,
+        clientSecret: openSkyConfig.clientSecret,
+        pollInterval: pollInterval
       })
+      adsbfiForm.setFieldsValue({
+        pollInterval: pollInterval
+      })
+      setActiveTab(dataSource)
       setTestResult(null)
     }
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleTabChange = (key: string) => {
+    if (active) return // Don't allow switching while active
+    setActiveTab(key as FlightDataSource)
+    setTestResult(null)
+  }
 
   const handleTestConnection = async () => {
     setTesting(true)
     setTestResult(null)
     try {
-      const values = await form.validateFields(['clientId', 'clientSecret'])
-      const clientId = (values.clientId as string)?.trim()
-      const clientSecret = (values.clientSecret as string)?.trim()
+      if (activeTab === 'opensky') {
+        const values = await openSkyForm.validateFields(['clientId', 'clientSecret'])
+        const clientId = (values.clientId as string)?.trim()
+        const clientSecret = (values.clientSecret as string)?.trim()
 
-      let token: string | null = null
-      if (clientId && clientSecret) {
-        const tokenResp = await fetchAccessToken(clientId, clientSecret)
-        token = tokenResp.access_token
-        setTestResult(`✅ OAuth2 认证成功！Token 有效期 ${tokenResp.expires_in} 秒`)
-        setToken(token, tokenResp.expires_in)
+        let token: string | null = null
+        if (clientId && clientSecret) {
+          const tokenResp = await fetchAccessToken(clientId, clientSecret)
+          token = tokenResp.access_token
+          setTestResult(`✅ OAuth2 认证成功！Token 有效期 ${tokenResp.expires_in} 秒`)
+          setToken(token, tokenResp.expires_in)
+        }
+
+        const count = await testOpenSky(token)
+        setTestResult(
+          (prev) =>
+            (prev ? prev + '\n' : '') + `✅ OpenSky API 连接正常，测试区域发现 ${count} 架航空器`
+        )
+      } else {
+        const count = await testAdsbfiConnection()
+        setTestResult(`✅ adsb.fi API 连接正常，测试区域发现 ${count} 架航空器`)
       }
-
-      const count = await testConnection(token)
-      setTestResult((prev) =>
-        (prev ? prev + '\n' : '') + `✅ API 连接正常，测试区域发现 ${count} 架航空器`
-      )
     } catch (err) {
       setTestResult(`❌ 连接失败：${(err as Error).message}`)
     } finally {
@@ -76,25 +108,37 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
 
   const handleStart = async () => {
     try {
-      const values = await form.validateFields()
-      const cfg = {
-        clientId: ((values.clientId as string) ?? '').trim(),
-        clientSecret: ((values.clientSecret as string) ?? '').trim(),
-        pollInterval: values.pollInterval as number,
+      // Stop any existing tracking first
+      if (active) {
+        clear()
+        clearToken()
       }
-      setConfig(cfg)
 
-      // If credentials provided, pre-fetch token
-      if (cfg.clientId && cfg.clientSecret) {
-        try {
-          const tokenResp = await fetchAccessToken(cfg.clientId, cfg.clientSecret)
-          setToken(tokenResp.access_token, tokenResp.expires_in)
-        } catch (err) {
-          setError(`Token 获取失败：${(err as Error).message}`)
-          return
+      if (activeTab === 'opensky') {
+        const values = await openSkyForm.validateFields()
+        const cfg = {
+          clientId: ((values.clientId as string) ?? '').trim(),
+          clientSecret: ((values.clientSecret as string) ?? '').trim()
         }
+        setOpenSkyConfig(cfg)
+        setPollInterval(values.pollInterval as number)
+
+        // If credentials provided, pre-fetch token
+        if (cfg.clientId && cfg.clientSecret) {
+          try {
+            const tokenResp = await fetchAccessToken(cfg.clientId, cfg.clientSecret)
+            setToken(tokenResp.access_token, tokenResp.expires_in)
+          } catch (err) {
+            setError(`Token 获取失败：${(err as Error).message}`)
+            return
+          }
+        }
+      } else {
+        const values = await adsbfiForm.validateFields()
+        setPollInterval(values.pollInterval as number)
       }
 
+      setDataSource(activeTab)
       setActive(true)
     } catch {
       // form validation error
@@ -111,16 +155,195 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
     return new Date(ts).toLocaleTimeString('zh-CN', { hour12: false })
   }
 
-  // Group flights by onGround status
   const airborne = Object.values(flights).filter((f) => !f.onGround).length
   const grounded = Object.values(flights).filter((f) => f.onGround).length
+
+  const sourceLabel = dataSource === 'opensky' ? 'OpenSky Network' : 'adsb.fi'
+
+  // ── OpenSky tab content ──────────────────────────────────────────────────
+  const openSkyContent = (
+    <Form
+      form={openSkyForm}
+      layout="vertical"
+      initialValues={{
+        clientId: openSkyConfig.clientId,
+        clientSecret: openSkyConfig.clientSecret,
+        pollInterval: pollInterval
+      }}
+    >
+      {/* Auth section */}
+      <div
+        style={{
+          background: '#f5f6f8',
+          border: '1px solid #e5e7eb',
+          borderRadius: 2,
+          padding: '12px 14px',
+          marginBottom: 16
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+          <SafetyCertificateOutlined style={{ color: '#1a6fb5', fontSize: 13 }} />
+          <Text strong style={{ fontSize: 12, color: '#1f2329' }}>
+            OAuth2 认证配置
+          </Text>
+          <Text type="secondary" style={{ fontSize: 11, marginLeft: 'auto' }}>
+            可选 — 匿名模式有请求限制
+          </Text>
+        </div>
+
+        <Form.Item
+          label={
+            <Text strong style={{ color: '#1f2329', fontSize: 12 }}>
+              Client ID
+            </Text>
+          }
+          name="clientId"
+          style={{ marginBottom: 10 }}
+        >
+          <Input
+            placeholder="从 OpenSky Network 账户页获取"
+            disabled={active}
+            prefix={<KeyOutlined style={{ color: '#8f959e' }} />}
+            style={{ borderRadius: 2 }}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label={
+            <Text strong style={{ color: '#1f2329', fontSize: 12 }}>
+              Client Secret
+            </Text>
+          }
+          name="clientSecret"
+          style={{ marginBottom: 0 }}
+        >
+          <Input.Password
+            placeholder="从 OpenSky Network 账户页获取"
+            disabled={active}
+            prefix={<LockOutlined style={{ color: '#8f959e' }} />}
+            style={{ borderRadius: 2 }}
+          />
+        </Form.Item>
+      </div>
+
+      <Form.Item
+        label={
+          <Space size={4}>
+            <FieldTimeOutlined style={{ color: '#8f959e' }} />
+            <Text strong style={{ color: '#1f2329', fontSize: 12 }}>
+              刷新间隔（秒）
+            </Text>
+          </Space>
+        }
+        name="pollInterval"
+        rules={[{ required: true, message: '请设置刷新间隔' }]}
+        style={{ marginBottom: 0 }}
+      >
+        <InputNumber
+          min={10}
+          max={300}
+          style={{ width: '100%', borderRadius: 2 }}
+          placeholder="15"
+          disabled={active}
+          addonAfter="秒"
+        />
+      </Form.Item>
+    </Form>
+  )
+
+  // ── adsb.fi tab content ──────────────────────────────────────────────────
+  const adsbfiContent = (
+    <Form form={adsbfiForm} layout="vertical" initialValues={{ pollInterval: pollInterval }}>
+      <div
+        style={{
+          background: '#f0f7ff',
+          border: '1px solid #d0e4f5',
+          borderRadius: 2,
+          padding: '12px 14px',
+          marginBottom: 16
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <GlobalOutlined style={{ color: '#1a6fb5', fontSize: 13 }} />
+          <Text strong style={{ fontSize: 12, color: '#1f2329' }}>
+            adsb.fi 开放数据
+          </Text>
+        </div>
+        <Text type="secondary" style={{ fontSize: 12, lineHeight: '18px' }}>
+          adsb.fi 提供免费、无需认证的航空器实时定位数据。 基于当前地图视野中心点 +
+          视野半径自动获取数据。
+        </Text>
+        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #d0e4f5',
+              borderRadius: 2,
+              padding: '2px 8px',
+              fontSize: 11,
+              color: '#646a73'
+            }}
+          >
+            无需认证
+          </div>
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #d0e4f5',
+              borderRadius: 2,
+              padding: '2px 8px',
+              fontSize: 11,
+              color: '#646a73'
+            }}
+          >
+            限速 1次/秒
+          </div>
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #d0e4f5',
+              borderRadius: 2,
+              padding: '2px 8px',
+              fontSize: 11,
+              color: '#646a73'
+            }}
+          >
+            最大半径 250 NM
+          </div>
+        </div>
+      </div>
+
+      <Form.Item
+        label={
+          <Space size={4}>
+            <FieldTimeOutlined style={{ color: '#8f959e' }} />
+            <Text strong style={{ color: '#1f2329', fontSize: 12 }}>
+              刷新间隔（秒）
+            </Text>
+          </Space>
+        }
+        name="pollInterval"
+        rules={[{ required: true, message: '请设置刷新间隔' }]}
+        style={{ marginBottom: 0 }}
+      >
+        <InputNumber
+          min={5}
+          max={300}
+          style={{ width: '100%', borderRadius: 2 }}
+          placeholder="10"
+          disabled={active}
+          addonAfter="秒"
+        />
+      </Form.Item>
+    </Form>
+  )
 
   return (
     <Modal
       title={
         <Space size="middle">
           <CloudOutlined style={{ color: '#1a6fb5' }} />
-          <span>飞机定位数据 — OpenSky Network</span>
+          <span>航空器定位数据接入</span>
           <div
             style={{
               display: 'inline-flex',
@@ -132,7 +355,7 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
               borderRadius: 2,
               fontSize: 12,
               fontWeight: 500,
-              color: active ? '#2e8b57' : '#8f959e',
+              color: active ? '#2e8b57' : '#8f959e'
             }}
           >
             <div
@@ -140,10 +363,10 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                backgroundColor: active ? '#2e8b57' : '#bbbfc4',
+                backgroundColor: active ? '#2e8b57' : '#bbbfc4'
               }}
             />
-            {active ? '跟踪中' : '未启动'}
+            {active ? `${sourceLabel} 跟踪中` : '未启动'}
           </div>
         </Space>
       }
@@ -153,136 +376,86 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
       width={560}
       destroyOnClose={false}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          clientId: config.clientId,
-          clientSecret: config.clientSecret,
-          pollInterval: config.pollInterval,
-        }}
-        style={{ marginTop: 8 }}
-      >
-        {/* Auth section */}
-        <div
-          style={{
-            background: '#f5f6f8',
-            border: '1px solid #e5e7eb',
-            borderRadius: 2,
-            padding: '12px 14px',
-            marginBottom: 16,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <SafetyCertificateOutlined style={{ color: '#1a6fb5', fontSize: 13 }} />
-            <Text strong style={{ fontSize: 12, color: '#1f2329' }}>
-              OAuth2 认证配置
-            </Text>
-            <Text type="secondary" style={{ fontSize: 11, marginLeft: 'auto' }}>
-              可选 — 匿名模式有请求限制
-            </Text>
-          </div>
-
-          <Form.Item
-            label={<Text strong style={{ color: '#1f2329', fontSize: 12 }}>Client ID</Text>}
-            name="clientId"
-            style={{ marginBottom: 10 }}
-          >
-            <Input
-              placeholder="从 OpenSky Network 账户页获取"
-              disabled={active}
-              prefix={<KeyOutlined style={{ color: '#8f959e' }} />}
-              style={{ borderRadius: 2 }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label={<Text strong style={{ color: '#1f2329', fontSize: 12 }}>Client Secret</Text>}
-            name="clientSecret"
-            style={{ marginBottom: 0 }}
-          >
-            <Input.Password
-              placeholder="从 OpenSky Network 账户页获取"
-              disabled={active}
-              prefix={<LockOutlined style={{ color: '#8f959e' }} />}
-              style={{ borderRadius: 2 }}
-            />
-          </Form.Item>
-        </div>
-
-        {/* Polling interval */}
-        <Form.Item
-          label={
-            <Space size={4}>
-              <FieldTimeOutlined style={{ color: '#8f959e' }} />
-              <Text strong style={{ color: '#1f2329', fontSize: 12 }}>刷新间隔（秒）</Text>
-            </Space>
+      <Tabs
+        activeKey={activeTab}
+        onChange={handleTabChange}
+        style={{ marginTop: -4 }}
+        items={[
+          {
+            key: 'adsbfi',
+            label: (
+              <Space size={4}>
+                <GlobalOutlined />
+                <span>adsb.fi</span>
+              </Space>
+            ),
+            disabled: active && dataSource !== 'adsbfi',
+            children: adsbfiContent
+          },
+          {
+            key: 'opensky',
+            label: (
+              <Space size={4}>
+                <CloudOutlined />
+                <span>OpenSky Network</span>
+              </Space>
+            ),
+            disabled: active && dataSource !== 'opensky',
+            children: openSkyContent
           }
-          name="pollInterval"
-          rules={[{ required: true, message: '请设置刷新间隔' }]}
-          style={{ marginBottom: 16 }}
-        >
-          <InputNumber
-            min={10}
-            max={300}
-            style={{ width: '100%', borderRadius: 2 }}
-            placeholder="15"
-            disabled={active}
-            addonAfter="秒"
-          />
-        </Form.Item>
+        ]}
+      />
 
-        {/* Test + Action buttons */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 0 }}>
-          {!active ? (
-            <>
-              <Button
-                block
-                icon={<ThunderboltOutlined />}
-                onClick={handleTestConnection}
-                loading={testing}
-                style={{
-                  height: 34,
-                  borderRadius: 2,
-                  fontSize: 13,
-                  fontWeight: 500,
-                }}
-              >
-                测试连接
-              </Button>
-              <Button
-                type="primary"
-                block
-                icon={<RocketOutlined />}
-                onClick={handleStart}
-                style={{
-                  height: 34,
-                  borderRadius: 2,
-                  fontSize: 13,
-                  fontWeight: 500,
-                }}
-              >
-                开始跟踪
-              </Button>
-            </>
-          ) : (
+      {/* Test + Action buttons */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        {!active ? (
+          <>
             <Button
-              danger
               block
-              icon={<DisconnectOutlined />}
-              onClick={handleStop}
+              icon={<ThunderboltOutlined />}
+              onClick={handleTestConnection}
+              loading={testing}
               style={{
                 height: 34,
                 borderRadius: 2,
                 fontSize: 13,
-                fontWeight: 500,
+                fontWeight: 500
               }}
             >
-              停止跟踪
+              测试连接
             </Button>
-          )}
-        </div>
-      </Form>
+            <Button
+              type="primary"
+              block
+              icon={<RocketOutlined />}
+              onClick={handleStart}
+              style={{
+                height: 34,
+                borderRadius: 2,
+                fontSize: 13,
+                fontWeight: 500
+              }}
+            >
+              开始跟踪
+            </Button>
+          </>
+        ) : (
+          <Button
+            danger
+            block
+            icon={<DisconnectOutlined />}
+            onClick={handleStop}
+            style={{
+              height: 34,
+              borderRadius: 2,
+              fontSize: 13,
+              fontWeight: 500
+            }}
+          >
+            停止跟踪
+          </Button>
+        )}
+      </div>
 
       {/* Test result */}
       {testResult && (
@@ -318,18 +491,19 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
               alignItems: 'center',
               marginBottom: 8,
               padding: '6px 0',
-              borderBottom: '1px solid #ebebeb',
+              borderBottom: '1px solid #ebebeb'
             }}
           >
             <Text strong style={{ fontSize: 13, color: '#1f2329' }}>
               <DashboardOutlined style={{ marginRight: 6, color: '#1a6fb5' }} />
               实时监控面板
+              <span style={{ fontSize: 11, color: '#8f959e', fontWeight: 400, marginLeft: 8 }}>
+                数据源：{sourceLabel}
+              </span>
             </Text>
             <Space size={12}>
               {fetching && <Spin size="small" />}
-              <Text style={{ fontSize: 12, color: '#646a73' }}>
-                更新：{formatTime(lastUpdate)}
-              </Text>
+              <Text style={{ fontSize: 12, color: '#646a73' }}>更新：{formatTime(lastUpdate)}</Text>
             </Space>
           </div>
 
@@ -341,13 +515,11 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                 background: '#f0f7ff',
                 padding: '10px 12px',
                 borderRadius: 2,
-                border: '1px solid #d0e4f5',
+                border: '1px solid #d0e4f5'
               }}
             >
               <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 2 }}>航空器总数</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#1a6fb5' }}>
-                {flightCount}
-              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#1a6fb5' }}>{flightCount}</div>
             </div>
             <div
               style={{
@@ -355,13 +527,11 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                 background: '#eaf5ef',
                 padding: '10px 12px',
                 borderRadius: 2,
-                border: '1px solid #c8e6d5',
+                border: '1px solid #c8e6d5'
               }}
             >
               <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 2 }}>空中飞行</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#2e8b57' }}>
-                {airborne}
-              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#2e8b57' }}>{airborne}</div>
             </div>
             <div
               style={{
@@ -369,13 +539,11 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                 background: '#fff7ed',
                 padding: '10px 12px',
                 borderRadius: 2,
-                border: '1px solid #f0d9b5',
+                border: '1px solid #f0d9b5'
               }}
             >
               <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 2 }}>地面停靠</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#c57600' }}>
-                {grounded}
-              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#c57600' }}>{grounded}</div>
             </div>
           </div>
 
@@ -387,7 +555,7 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                 textAlign: 'center',
                 background: '#f5f6f8',
                 border: '1px dashed #d9dce0',
-                borderRadius: 2,
+                borderRadius: 2
               }}
             >
               <CloudOutlined
@@ -404,11 +572,11 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                 overflowY: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 6,
+                gap: 6
               }}
             >
               {Object.values(flights)
-                .slice(0, 50) // Show max 50 in list for performance
+                .slice(0, 50)
                 .map((f) => (
                   <div
                     key={f.icao24}
@@ -419,7 +587,7 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                       borderRadius: 2,
                       border: '1px solid #e5e7eb',
                       background: '#ffffff',
-                      gap: 8,
+                      gap: 8
                     }}
                   >
                     <div style={{ flex: '0 0 auto', fontSize: 14, color: '#1a6fb5' }}>✈</div>
@@ -431,13 +599,14 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                           color: '#1f2329',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                          textOverflow: 'ellipsis'
                         }}
                       >
                         {f.callsign || f.icao24}
                       </div>
                       <div style={{ fontSize: 10, color: '#8f959e' }}>
-                        {f.originCountry} · {f.icao24}
+                        {f.originCountry ? `${f.originCountry} · ` : ''}
+                        {f.icao24}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -448,7 +617,7 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                           borderRadius: 2,
                           fontSize: 10,
                           color: '#1f2329',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid #e5e7eb'
                         }}
                       >
                         {f.baroAltitude != null ? `${Math.round(f.baroAltitude)}m` : '--'}
@@ -460,7 +629,7 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                           borderRadius: 2,
                           fontSize: 10,
                           color: '#1f2329',
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid #e5e7eb'
                         }}
                       >
                         {f.velocity != null ? `${Math.round(f.velocity)}m/s` : '--'}
@@ -473,7 +642,7 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                           fontSize: 10,
                           fontWeight: 500,
                           color: f.onGround ? '#c57600' : '#2e8b57',
-                          border: `1px solid ${f.onGround ? '#f0d9b5' : '#c8e6d5'}`,
+                          border: `1px solid ${f.onGround ? '#f0d9b5' : '#c8e6d5'}`
                         }}
                       >
                         {f.onGround ? '地面' : '飞行'}
@@ -482,10 +651,7 @@ export default function FlightTrackingModal({ open, onClose }: Props) {
                   </div>
                 ))}
               {flightCount > 50 && (
-                <Text
-                  type="secondary"
-                  style={{ fontSize: 11, textAlign: 'center', padding: 4 }}
-                >
+                <Text type="secondary" style={{ fontSize: 11, textAlign: 'center', padding: 4 }}>
                   仅显示前 50 条，共 {flightCount} 架航空器
                 </Text>
               )}

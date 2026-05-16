@@ -5,6 +5,7 @@ import { loadConfig, saveConfig, type AppConfig } from './config'
 import { startVehicleServer, stopVehicleServer, type VehicleServerConfig } from './vehicleServer'
 import {
   fetchOpenSkyToken, fetchOpenSkyStates,
+  fetchAdsbfiByLocation,
   type OpenSkyBounds,
 } from './opensky'
 
@@ -66,5 +67,12 @@ export function registerIpcHandlers(win: BrowserWindow): void {
       return fetchOpenSkyStates(bounds, token)
     }
   )
-}
 
+  // ── adsb.fi Open Data ───────────────────────────────────────────────────
+  ipcMain.handle(
+    'adsbfi:byLocation',
+    async (_event, lat: number, lon: number, distNm: number) => {
+      return fetchAdsbfiByLocation(lat, lon, distNm)
+    }
+  )
+}

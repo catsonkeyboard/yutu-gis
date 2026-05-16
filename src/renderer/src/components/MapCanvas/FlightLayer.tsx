@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import type maplibregl from 'maplibre-gl'
 import { useFlightStore, type FlightState } from '../../stores/flightStore'
 import { fetchStateVectors, fetchAccessToken } from '../../services/opensky'
+import { fetchAdsbfiFlights } from '../../services/adsbfi'
 
 interface Props {
   map: maplibregl.Map | null
@@ -148,47 +149,78 @@ function ensureFlightIcon(map: maplibregl.Map): Promise<void> {
   })
 }
 
+/**
+ * Calculate the approximate radius in nautical miles that covers the current map viewport.
+ * Uses the distance from center to corner.
+ */
+function getBoundsRadiusNm(map: maplibregl.Map): { lat: number; lon: number; distNm: number } {
+  const center = map.getCenter()
+  const bounds = map.getBounds()
+  const lat = center.lat
+  const lon = center.lng
+
+  // Haversine approximation for center-to-corner distance
+  const dLat = ((bounds.getNorth() - bounds.getSouth()) / 2) * (Math.PI / 180)
+  const dLon = ((bounds.getEast() - bounds.getWest()) / 2) * (Math.PI / 180)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat * (Math.PI / 180)) * Math.cos(bounds.getNorth() * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  const distKm = 6371 * c
+  const distNm = Math.min(250, Math.max(5, Math.round(distKm / 1.852)))
+
+  return { lat, lon, distNm }
+}
+
 export default function FlightLayer({ map }: Props) {
   const flights = useFlightStore((s) => s.flights)
   const active = useFlightStore((s) => s.active)
-  const config = useFlightStore((s) => s.config)
+  const pollInterval = useFlightStore((s) => s.pollInterval)
+  const dataSource = useFlightStore((s) => s.dataSource)
   const layersAddedRef = useRef(false)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const { setFlights, setLastUpdate, setError, setFetching, setToken, clearToken } =
     useFlightStore.getState()
 
-  // Fetch flights based on current map bounds
+  // Fetch flights based on current map bounds and active data source
   const fetchFlights = useCallback(async () => {
     if (!map) return
 
     const store = useFlightStore.getState()
     if (!store.active) return
 
-    const b = map.getBounds()
-    const bounds = {
-      lamin: b.getSouth(),
-      lomin: b.getWest(),
-      lamax: b.getNorth(),
-      lomax: b.getEast()
-    }
-
     setFetching(true)
     setError(null)
 
     try {
-      let token = store.accessToken
+      let result: Record<string, FlightState>
 
-      // If we have credentials, ensure a valid token
-      if (store.config.clientId && store.config.clientSecret) {
-        if (!token || (store.tokenExpiresAt && Date.now() >= store.tokenExpiresAt)) {
-          const tokenResp = await fetchAccessToken(store.config.clientId, store.config.clientSecret)
-          token = tokenResp.access_token
-          setToken(token, tokenResp.expires_in)
+      if (store.dataSource === 'opensky') {
+        const b = map.getBounds()
+        const bounds = {
+          lamin: b.getSouth(),
+          lomin: b.getWest(),
+          lamax: b.getNorth(),
+          lomax: b.getEast()
         }
+
+        let token = store.accessToken
+        if (store.openSkyConfig.clientId && store.openSkyConfig.clientSecret) {
+          if (!token || (store.tokenExpiresAt && Date.now() >= store.tokenExpiresAt)) {
+            const tokenResp = await fetchAccessToken(store.openSkyConfig.clientId, store.openSkyConfig.clientSecret)
+            token = tokenResp.access_token
+            setToken(token, tokenResp.expires_in)
+          }
+        }
+
+        result = await fetchStateVectors(bounds, token)
+      } else {
+        // adsb.fi: use center + radius
+        const { lat, lon, distNm } = getBoundsRadiusNm(map)
+        result = await fetchAdsbfiFlights(lat, lon, distNm)
       }
 
-      const result = await fetchStateVectors(bounds, token)
       setFlights(result)
       setLastUpdate(Date.now())
     } catch (err) {
@@ -250,7 +282,7 @@ export default function FlightLayer({ map }: Props) {
     }
   }, [map]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Set up polling timer
+  // Set up polling timer — react to dataSource/pollInterval changes
   useEffect(() => {
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current)
@@ -258,7 +290,8 @@ export default function FlightLayer({ map }: Props) {
     }
 
     if (active && map) {
-      const interval = Math.max(10, config.pollInterval) * 1000
+      const minInterval = dataSource === 'adsbfi' ? 5 : 10
+      const interval = Math.max(minInterval, pollInterval) * 1000
       pollTimerRef.current = setInterval(fetchFlights, interval)
     }
 
@@ -268,7 +301,7 @@ export default function FlightLayer({ map }: Props) {
         pollTimerRef.current = null
       }
     }
-  }, [active, config.pollInterval, map, fetchFlights])
+  }, [active, pollInterval, dataSource, map, fetchFlights])
 
   // Update source data on every flight change
   useEffect(() => {
