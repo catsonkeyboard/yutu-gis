@@ -8,6 +8,7 @@ type OpenSkyTokenResult = { access_token: string; expires_in: number }
 type OpenSkyStatesResult = { time: number; states: unknown[][] | null }
 type AdsbfiAircraft = { hex: string; flight?: string; r?: string; t?: string; alt_baro?: number | 'ground'; alt_geom?: number; gs?: number; track?: number; baro_rate?: number; squawk?: string; lat?: number; lon?: number; seen_pos?: number; seen?: number; category?: string }
 type AdsbfiResponse = { ac: AdsbfiAircraft[] | null; msg: string; now: number; total: number; ctime: number; ptime: number }
+type GeocodingResult = { name: string; displayName: string; lat: number; lon: number; bbox: [number, number, number, number]; type: string; importance: number }
 
 const electronAPI = {
   getPythonPort: (): Promise<number> =>
@@ -81,6 +82,10 @@ const electronAPI = {
   // ── adsb.fi Open Data ──────────────────────────────────────────────────
   adsbfiFetchByLocation: (lat: number, lon: number, distNm: number): Promise<AdsbfiResponse> =>
     ipcRenderer.invoke('adsbfi:byLocation', lat, lon, distNm),
+
+  // ── Geocoding (Nominatim) ──────────────────────────────────────────────
+  geocodeSearch: (query: string, limit?: number): Promise<GeocodingResult[]> =>
+    ipcRenderer.invoke('geocode:search', query, limit ?? 5),
 
   onVehicleStopped: (callback: () => void): (() => void) => {
     const listener = (): void => callback()

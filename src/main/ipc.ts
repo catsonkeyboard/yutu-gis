@@ -8,6 +8,7 @@ import {
   fetchAdsbfiByLocation,
   type OpenSkyBounds,
 } from './opensky'
+import { geocodeSearch } from './geocoding'
 
 export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('app:getPythonPort', () => getPythonPort())
@@ -73,6 +74,14 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     'adsbfi:byLocation',
     async (_event, lat: number, lon: number, distNm: number) => {
       return fetchAdsbfiByLocation(lat, lon, distNm)
+    }
+  )
+
+  // ── Geocoding (Nominatim) ──────────────────────────────────────────────
+  ipcMain.handle(
+    'geocode:search',
+    async (_event, query: string, limit: number) => {
+      return geocodeSearch(query, limit)
     }
   )
 }

@@ -36,6 +36,15 @@ type AdsbfiResponse = {
   ctime: number
   ptime: number
 }
+type GeocodingResult = {
+  name: string
+  displayName: string
+  lat: number
+  lon: number
+  bbox: [number, number, number, number]
+  type: string
+  importance: number
+}
 
 export interface ElectronAPI {
   getPythonPort: () => Promise<number>
@@ -59,6 +68,8 @@ export interface ElectronAPI {
   openSkyFetchStates: (bounds: OpenSkyBounds, token: string | null) => Promise<OpenSkyStatesResult>
   // adsb.fi Open Data
   adsbfiFetchByLocation: (lat: number, lon: number, distNm: number) => Promise<AdsbfiResponse>
+  // Geocoding
+  geocodeSearch: (query: string, limit?: number) => Promise<GeocodingResult[]>
 }
 
 declare global {
