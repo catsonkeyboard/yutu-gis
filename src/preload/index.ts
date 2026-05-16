@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string } }
+type VehicleServerConfig = { host: string; port: number; protocol: 'udp' | 'tcp' }
+type VehiclePacket = { time: number; devNo: string; direct: number; speed: number; lat: number; lon: number }
+type OpenSkyBounds = { lamin: number; lomin: number; lamax: number; lomax: number }
+type OpenSkyTokenResult = { access_token: string; expires_in: number }
+type OpenSkyStatesResult = { time: number; states: unknown[][] | null }
 
 const electronAPI = {
   getPythonPort: (): Promise<number> =>
@@ -38,6 +43,43 @@ const electronAPI = {
     return () => {
       listeners.forEach(({ action, listener }) => ipcRenderer.removeListener(action, listener))
     }
+  },
+
+  startVehicleServer: (config: VehicleServerConfig): Promise<void> =>
+    ipcRenderer.invoke('vehicle:start', config),
+
+  stopVehicleServer: (): Promise<void> =>
+    ipcRenderer.invoke('vehicle:stop'),
+
+  onVehicleData: (callback: (packet: VehiclePacket) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, packet: VehiclePacket): void => callback(packet)
+    ipcRenderer.on('vehicle:data', listener)
+    return () => ipcRenderer.removeListener('vehicle:data', listener)
+  },
+
+  onVehicleError: (callback: (msg: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, msg: string): void => callback(msg)
+    ipcRenderer.on('vehicle:error', listener)
+    return () => ipcRenderer.removeListener('vehicle:error', listener)
+  },
+
+  onVehicleStarted: (callback: () => void): (() => void) => {
+    const listener = (): void => callback()
+    ipcRenderer.on('vehicle:started', listener)
+    return () => ipcRenderer.removeListener('vehicle:started', listener)
+  },
+
+  // ── OpenSky Network ────────────────────────────────────────────────────
+  openSkyFetchToken: (clientId: string, clientSecret: string): Promise<OpenSkyTokenResult> =>
+    ipcRenderer.invoke('opensky:token', clientId, clientSecret),
+
+  openSkyFetchStates: (bounds: OpenSkyBounds, token: string | null): Promise<OpenSkyStatesResult> =>
+    ipcRenderer.invoke('opensky:states', bounds, token),
+
+  onVehicleStopped: (callback: () => void): (() => void) => {
+    const listener = (): void => callback()
+    ipcRenderer.on('vehicle:stopped', listener)
+    return () => ipcRenderer.removeListener('vehicle:stopped', listener)
   },
 }
 

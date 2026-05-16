@@ -12,6 +12,8 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import { useDrawStore } from '../../stores/drawStore'
 import DrawHintBanner from './DrawHintBanner'
 import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
+import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
+import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
 
 const DEFAULT_COLOR = '#0080ff'
 const SELECTED_COLOR = '#ff7700'
@@ -24,6 +26,7 @@ interface Props {
 export default function MapCanvas({ onSave, onOsmExtract }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null)
   const drawRef = useRef<MapboxDraw | null>(null)
   const drawMode = useDrawStore((s) => s.drawMode)
   const drawModeRef = useRef(drawMode)
@@ -107,6 +110,10 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
           },
         })
       })
+
+    // Ensure vehicle layers stay on top of user data layers
+    bringVehicleLayersToTop(map)
+    bringFlightLayersToTop(map)
   }
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -187,10 +194,12 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
     })
 
     mapRef.current = map
+    setMapInstance(map)
 
     return () => {
       map.remove()
       mapRef.current = null
+      setMapInstance(null)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -256,6 +265,8 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }} onContextMenu={handleContextMenu}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <VehicleLayer map={mapInstance} />
+      <FlightLayer map={mapInstance} />
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => onOsmExtract?.(bounds)}
