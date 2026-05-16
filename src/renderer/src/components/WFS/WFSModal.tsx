@@ -165,7 +165,7 @@ export default function WFSModal({ open, onClose, onImport }: Props) {
         </Form.Item>
         <div style={{ marginBottom: 12 }} />
 
-        <div style={{ borderBottom: '1px solid #f0f0f0', margin: '4px 0 12px' }} />
+        <div style={{ borderBottom: '1px solid #d9dce0', margin: '4px 0 12px' }} />
 
         {/* WFS: TypeNames — multi-select */}
         {serviceType === 'wfs' && (

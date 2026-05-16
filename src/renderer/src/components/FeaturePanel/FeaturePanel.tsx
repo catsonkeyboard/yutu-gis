@@ -157,7 +157,7 @@ export default function FeaturePanel(): ReactElement {
       <div
         style={{
           padding: '8px 8px 4px',
-          borderBottom: '1px solid #f0f0f0',
+          borderBottom: '1px solid #d9dce0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -201,7 +201,7 @@ export default function FeaturePanel(): ReactElement {
               onRow={(row) => ({
                 style: {
                   cursor: 'pointer',
-                  background: row.key === selectedRowKey ? '#e6f4ff' : undefined
+                  background: row.key === selectedRowKey ? '#e4edf6' : undefined
                 },
                 onClick: () => handleRowClick(row)
               })}
@@ -214,7 +214,7 @@ export default function FeaturePanel(): ReactElement {
           <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
             {!selectedFeatureProps ? (
               <div
-                style={{ padding: '24px 8px', textAlign: 'center', color: '#aaa', fontSize: 12 }}
+                style={{ padding: '24px 8px', textAlign: 'center', color: '#8f959e', fontSize: 12 }}
               >
                 点击地图或列表中的要素查看属性
               </div>

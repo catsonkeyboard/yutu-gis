@@ -39,7 +39,7 @@ export default function LayerPanel({ onExportLayer }: Props) {
       <div
         style={{
           padding: '8px 8px 4px',
-          borderBottom: '1px solid #f0f0f0',
+          borderBottom: '1px solid #d9dce0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -73,10 +73,10 @@ export default function LayerPanel({ onExportLayer }: Props) {
                 onClick={() => handleSelectLayer(layer.id)}
                 style={{
                   padding: '4px 8px',
-                  opacity: layer.visible ? 1 : 0.5,
-                  transition: 'opacity 0.2s, background 0.15s',
-                  background: isSelected ? '#e6f4ff' : 'transparent',
-                  borderLeft: isSelected ? '2px solid #1677ff' : '2px solid transparent',
+                  opacity: layer.visible ? 1 : 0.45,
+                  transition: 'opacity 0.15s, background 0.1s',
+                  background: isSelected ? '#e4edf6' : 'transparent',
+                  borderLeft: isSelected ? '2px solid #1a6fb5' : '2px solid transparent',
                   cursor: 'pointer',
                 }}
                 actions={[
@@ -116,12 +116,12 @@ export default function LayerPanel({ onExportLayer }: Props) {
                 ]}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                  <EyeOutlined style={{ color: isSelected ? '#1677ff' : '#0080ff', flexShrink: 0 }} />
+                  <EyeOutlined style={{ color: isSelected ? '#1a6fb5' : '#646a73', flexShrink: 0 }} />
                   <Tooltip title={layer.name}>
                     <Text
                       ellipsis
                       strong={isSelected}
-                      style={{ fontSize: 12, flex: 1, minWidth: 0, color: isSelected ? '#1677ff' : undefined }}
+                      style={{ fontSize: 12, flex: 1, minWidth: 0, color: isSelected ? '#1a6fb5' : undefined }}
                     >
                       {layer.name}
                     </Text>

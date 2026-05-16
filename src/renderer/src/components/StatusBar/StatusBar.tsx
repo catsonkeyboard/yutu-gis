@@ -6,7 +6,7 @@ export default function StatusBar() {
   const { center, zoom } = useMapStore()
 
   return (
-    <span style={{ fontSize: 12, color: '#666', fontFamily: 'monospace' }}>
+    <span style={{ fontSize: 11, color: '#646a73', fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.2px' }}>
       {t('status.lng')}: {center[0].toFixed(4)}&nbsp;&nbsp;
       {t('status.lat')}: {center[1].toFixed(4)}&nbsp;&nbsp;
       {t('status.zoom')}: {zoom.toFixed(1)}&nbsp;&nbsp;
