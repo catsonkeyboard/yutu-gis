@@ -1,34 +1,59 @@
-:root {
-  --ev-c-white: #ffffff;
-  --ev-c-white-soft: #f8f8f8;
-  --ev-c-white-mute: #f2f2f2;
-
-  --ev-c-black: #1b1b1f;
-  --ev-c-black-soft: #222222;
-  --ev-c-black-mute: #282828;
-
-  --ev-c-gray-1: #515c67;
-  --ev-c-gray-2: #414853;
-  --ev-c-gray-3: #32363f;
-
-  --ev-c-text-1: rgba(255, 255, 245, 0.86);
-  --ev-c-text-2: rgba(235, 235, 245, 0.6);
-  --ev-c-text-3: rgba(235, 235, 245, 0.38);
-
-  --ev-button-alt-border: transparent;
-  --ev-button-alt-text: var(--ev-c-text-1);
-  --ev-button-alt-bg: var(--ev-c-gray-3);
-  --ev-button-alt-hover-border: transparent;
-  --ev-button-alt-hover-text: var(--ev-c-text-1);
-  --ev-button-alt-hover-bg: var(--ev-c-gray-2);
-}
+/* ============================================================================
+   YutuGIS Enterprise Design System
+   基于 Craft Agents 6 色系统理念，适配企业工作软件风格
+   ============================================================================ */
 
 :root {
-  --color-background: var(--ev-c-black);
-  --color-background-soft: var(--ev-c-black-soft);
-  --color-background-mute: var(--ev-c-black-mute);
+  /* === 6 色系统 (Enterprise Light) === */
+  --color-primary: #1a6fb5;
+  --color-primary-hover: #155d99;
+  --color-primary-active: #114c7e;
+  --color-primary-bg: #e8f2fb;
 
-  --color-text: var(--ev-c-text-1);
+  --color-success: #2e8b57;
+  --color-success-bg: #eaf5ef;
+  --color-warning: #d4880f;
+  --color-warning-bg: #fdf4e3;
+  --color-error: #c5382c;
+  --color-error-bg: #fbe9e7;
+
+  /* === 表面与文字 === */
+  --color-bg: #ffffff;
+  --color-bg-panel: #f5f6f8;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: #eef0f3;
+  --color-bg-selected: #e4edf6;
+
+  --color-text: #1f2329;
+  --color-text-secondary: #646a73;
+  --color-text-tertiary: #8f959e;
+  --color-text-disabled: #bbbfc4;
+
+  /* === 边框 === */
+  --color-border: #d9dce0;
+  --color-border-light: #e5e7eb;
+  --color-divider: #ebebeb;
+
+  /* === 阴影（极简） === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  /* === 圆角 (企业级 — 最小化) === */
+  --radius: 2px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+
+  /* === 间距 === */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+
+  /* === 字体 === */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
 }
 
 *,
@@ -46,21 +71,10 @@ ul {
 body {
   min-height: 100vh;
   color: var(--color-text);
-  background: var(--color-background);
-  line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
+  background: var(--color-bg);
+  line-height: 1.5;
+  font-family: var(--font-sans);
+  font-size: 13px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

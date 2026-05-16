@@ -1,0 +1,217 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =============================================================================
+   ANIMATABLE CSS CUSTOM PROPERTIES
+
+   Register theme color variables as animatable using @property.
+   This enables smooth transitions when themes change.
+============================================================================= */
+
+@property --background {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0.98 0.003 265);
+}
+
+@property --foreground {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0.185 0.01 270);
+}
+
+@property --accent {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0.62 0.13 293);
+}
+
+@property --info {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0.65 0.16 70);
+}
+
+@property --success {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0.55 0.17 145);
+}
+
+@property --destructive {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0.55 0.22 27);
+}
+
+/* =============================================================================
+   CRAFT AGENT THEME - 6 Color System
+
+   Base colors:
+   - background: Light/dark surface
+   - foreground: Text and icons
+   - accent: Brand purple (highlights, primary actions)
+   - info: Amber (warnings, notice)
+   - success: Green (connected, success)
+   - destructive: Red (errors, danger)
+============================================================================= */
+
+:root {
+    /* === 6 BASE COLORS (Light Mode) === */
+    --background: oklch(0.98 0.003 265);
+    --foreground: oklch(0.185 0.01 270);
+    --foreground-rgb: 38, 36, 42;
+    --accent: oklch(0.62 0.13 293);
+    --accent-rgb: 104, 78, 133;
+    --info: oklch(0.75 0.16 70);
+    --info-rgb: 180, 120, 40;
+    --success: oklch(0.55 0.17 145);
+    --success-rgb: 34, 120, 60;
+    --destructive: oklch(0.58 0.24 28);
+    --destructive-rgb: 180, 60, 50;
+
+    /* === SHADOW OPACITY === */
+    --shadow-border-opacity: 0.08;
+    --shadow-blur-opacity: 0.06;
+
+    /* === SHADOW VALUES === */
+    --shadow-minimal:
+        rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+        rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+        rgba(var(--foreground-rgb), 0.06) 0px 0px 0px 1px,
+        rgba(0, 0, 0, var(--shadow-blur-opacity)) 0px 1px 1px -0.5px,
+        rgba(0, 0, 0, var(--shadow-blur-opacity)) 0px 3px 3px -1.5px;
+
+    --shadow-modal-small:
+        rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+        rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+        rgba(var(--foreground-rgb), 0.06) 0px 0px 0px 1px,
+        rgba(0, 0, 0, calc(var(--shadow-blur-opacity) * 0.67)) 0px 1px 1px -0.5px,
+        rgba(0, 0, 0, calc(var(--shadow-blur-opacity) * 0.67)) 0px 3px 3px 0px,
+        rgba(0, 0, 0, calc(var(--shadow-blur-opacity) * 0.33)) 0px 6px 6px 0px,
+        rgba(0, 0, 0, calc(var(--shadow-blur-opacity) * 0.33)) 0px 12px 12px 0px,
+        rgba(0, 0, 0, calc(var(--shadow-blur-opacity) * 0.33)) 0px 24px 24px 0px;
+
+    /* === MIX VARIANTS === */
+    --foreground-5: color-mix(in srgb, var(--foreground) 5%, var(--background));
+    --foreground-10: color-mix(in srgb, var(--foreground) 10%, var(--background));
+    --foreground-50: color-mix(in srgb, var(--foreground) 50%, var(--background));
+
+    /* === SHADCN VARS === */
+    --card: var(--background);
+    --card-foreground: var(--foreground);
+    --popover: var(--background);
+    --popover-foreground: var(--foreground);
+    --primary: var(--foreground);
+    --primary-foreground: var(--background);
+    --secondary: var(--foreground-5);
+    --secondary-foreground: var(--foreground);
+    --muted: var(--foreground-5);
+    --muted-foreground: var(--foreground-50);
+    --accent-foreground: var(--background);
+    --destructive-foreground: var(--background);
+    --border: color-mix(in srgb, var(--foreground) 5%, transparent);
+    --input: color-mix(in srgb, var(--foreground) 10%, transparent);
+    --ring: oklch(from var(--foreground) l c h / 0.25);
+    --radius: 0.5rem;
+
+    /* Font settings */
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.dark {
+    /* === 6 BASE COLORS (Dark Mode) === */
+    --background: oklch(0.2 0.005 270);
+    --foreground: oklch(0.92 0.005 270);
+    --foreground-rgb: 227, 226, 229;
+    --accent: oklch(0.68 0.13 293);
+    --accent-rgb: 118, 92, 147;
+    --info: oklch(0.70 0.16 70);
+    --info-rgb: 200, 140, 60;
+    --success: oklch(0.60 0.17 145);
+    --success-rgb: 50, 140, 80;
+    --destructive: oklch(0.70 0.19 22);
+    --destructive-rgb: 200, 80, 70;
+
+    /* === MIX VARIANTS === */
+    --foreground-5: color-mix(in srgb, var(--foreground) 5%, var(--background));
+    --foreground-10: color-mix(in srgb, var(--foreground) 10%, var(--background));
+    --foreground-50: color-mix(in srgb, var(--foreground) 50%, var(--background));
+
+    --border: color-mix(in srgb, var(--foreground) 5%, transparent);
+    --input: color-mix(in srgb, var(--foreground) 10%, transparent);
+    --ring: oklch(from var(--foreground) l c h / 0.25);
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+
+    --shadow-minimal: var(--shadow-minimal);
+    --shadow-modal: var(--shadow-modal-small);
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+}
+
+/* =============================================================================
+   SCENIC THEME MODE (Glassmorphism)
+============================================================================= */
+
+html[data-scenic] {
+    --background: oklch(0.2 0.005 270 / 0.55);
+}
+
+html[data-scenic]::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: var(--background-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -2;
+    pointer-events: none;
+}
+
+html[data-scenic] .glass-panel {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}

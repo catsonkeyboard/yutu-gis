@@ -11,7 +11,7 @@ export interface AppConfig {
 const DEFAULT_CONFIG: AppConfig = {
   language: 'zh',
   googleMap: { apiKey: '' },
-  amap: { apiKey: '' },
+  amap: { apiKey: '' }
 }
 
 function getConfigDir(): string {

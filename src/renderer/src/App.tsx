@@ -26,7 +26,9 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [wfsOpen, setWfsOpen] = useState(false)
   const [osmExtractOpen, setOsmExtractOpen] = useState(false)
-  const [osmExtractBounds, setOsmExtractBounds] = useState<[number, number, number, number] | null>(null)
+  const [osmExtractBounds, setOsmExtractBounds] = useState<[number, number, number, number] | null>(
+    null
+  )
   const [siderWidth, setSiderWidth] = useState(260)
   const resizingRef = useRef(false)
   const resizeStartX = useRef(0)
@@ -57,11 +59,14 @@ export default function App() {
 
   // Load persistent config from ~/.yutugis/config.json on startup
   useEffect(() => {
-    window.electronAPI.loadConfig().then((cfg) => {
-      setLanguage(cfg.language)
-      setApiKeys({ google: cfg.googleMap.apiKey, amap: cfg.amap.apiKey })
-      i18n.changeLanguage(cfg.language)
-    }).catch(console.error)
+    window.electronAPI
+      .loadConfig()
+      .then((cfg) => {
+        setLanguage(cfg.language)
+        setApiKeys({ google: cfg.googleMap.apiKey, amap: cfg.amap.apiKey })
+        i18n.changeLanguage(cfg.language)
+      })
+      .catch(console.error)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -81,7 +86,10 @@ export default function App() {
 
     const onMouseMove = (ev: MouseEvent) => {
       if (!resizingRef.current) return
-      const next = Math.max(180, Math.min(480, resizeStartWidth.current + ev.clientX - resizeStartX.current))
+      const next = Math.max(
+        180,
+        Math.min(480, resizeStartWidth.current + ev.clientX - resizeStartX.current)
+      )
       setSiderWidth(next)
     }
     const onMouseUp = () => {
@@ -100,7 +108,10 @@ export default function App() {
 
     const onMouseMove = (ev: MouseEvent) => {
       if (!rightResizingRef.current) return
-      const next = Math.max(200, Math.min(480, rightResizeStartWidth.current - (ev.clientX - rightResizeStartX.current)))
+      const next = Math.max(
+        200,
+        Math.min(480, rightResizeStartWidth.current - (ev.clientX - rightResizeStartX.current))
+      )
       setRightPanelWidth(next)
     }
     const onMouseUp = () => {
@@ -118,11 +129,17 @@ export default function App() {
   const applyImport = (layers: ImportedLayer[], mode: 'merge' | 'split') => {
     const allFeatures = layers.flatMap((l) => l.geojson.features)
     if (mode === 'merge') {
-      const name = allFeatures.length === 1
-        ? featName(allFeatures[0], layers[0].name)
-        : layers[0].name
+      const name =
+        allFeatures.length === 1 ? featName(allFeatures[0], layers[0].name) : layers[0].name
       const id = nanoid()
-      addLayer({ id, name, type: 'geojson', source: { type: 'FeatureCollection', features: allFeatures }, visible: true, opacity: 1 })
+      addLayer({
+        id,
+        name,
+        type: 'geojson',
+        source: { type: 'FeatureCollection', features: allFeatures },
+        visible: true,
+        opacity: 1
+      })
       setSelectedLayer(id)
       message.success(`已导入：${name}（${allFeatures.length} 个要素）`)
     } else {
@@ -130,7 +147,14 @@ export default function App() {
       allFeatures.forEach((feat, i) => {
         const name = featName(feat, `要素 ${i + 1}`)
         const id = nanoid()
-        addLayer({ id, name, type: 'geojson', source: { type: 'FeatureCollection', features: [feat] }, visible: true, opacity: 1 })
+        addLayer({
+          id,
+          name,
+          type: 'geojson',
+          source: { type: 'FeatureCollection', features: [feat] },
+          visible: true,
+          opacity: 1
+        })
         lastId = id
       })
       if (lastId) setSelectedLayer(lastId)
@@ -144,7 +168,7 @@ export default function App() {
   const handleImport = async () => {
     const filePath = await window.electronAPI.openFileDialog([
       { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx'] },
-      { name: 'All Files', extensions: ['*'] },
+      { name: 'All Files', extensions: ['*'] }
     ])
     if (!filePath) return
     try {
@@ -217,7 +241,14 @@ export default function App() {
       message.success(`已追加到图层：${layer.name}`)
     } else {
       const id = nanoid()
-      addLayer({ id, name: pendingLayerName, type: 'geojson', source: geojson, visible: true, opacity: 1 })
+      addLayer({
+        id,
+        name: pendingLayerName,
+        type: 'geojson',
+        source: geojson,
+        visible: true,
+        opacity: 1
+      })
       setSelectedLayer(id)
       const bounds = getGeoJSONBounds(geojson)
       if (bounds) requestFitBounds(bounds)
@@ -231,7 +262,7 @@ export default function App() {
     const layer = useLayerStore.getState().layers.find((l) => l.id === layerId)
     if (!layer) return
     const filePath = await window.electronAPI.saveFileDialog([
-      { name: 'GeoJSON', extensions: ['geojson'] },
+      { name: 'GeoJSON', extensions: ['geojson'] }
     ])
     if (!filePath) return
     try {
@@ -246,11 +277,11 @@ export default function App() {
     <Layout style={{ height: '100vh' }}>
       <Header
         style={{
-          height: 40,
-          lineHeight: '40px',
+          height: 36,
+          lineHeight: '36px',
           padding: 0,
-          background: '#fff',
-          borderBottom: '1px solid #f0f0f0',
+          background: '#ffffff',
+          borderBottom: '1px solid #d9dce0'
         }}
       >
         <Toolbar
@@ -265,11 +296,11 @@ export default function App() {
         <Sider
           width={siderWidth}
           style={{
-            background: '#fafafa',
-            borderRight: '1px solid #f0f0f0',
+            background: '#f5f6f8',
+            borderRight: '1px solid #d9dce0',
             overflow: 'auto',
             position: 'relative',
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <LayerPanel onExportLayer={handleExportLayer} />
@@ -282,13 +313,16 @@ export default function App() {
               width: 4,
               height: '100%',
               cursor: 'col-resize',
-              zIndex: 10,
+              zIndex: 10
             }}
           />
         </Sider>
         <Content
           style={{ position: 'relative', overflow: 'hidden' }}
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setIsDragOver(true)
+          }}
           onDragLeave={(e) => {
             // Only clear when leaving the Content element itself, not its children
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
@@ -313,21 +347,24 @@ export default function App() {
                 inset: 0,
                 zIndex: 1000,
                 pointerEvents: 'none',
-                background: 'rgba(22, 119, 255, 0.08)',
-                border: '3px dashed #1677ff',
+                background: 'rgba(26, 111, 181, 0.06)',
+                border: '2px dashed #1a6fb5',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'center'
               }}
             >
-              <span style={{
-                background: 'rgba(255,255,255,0.9)',
-                padding: '8px 20px',
-                borderRadius: 8,
-                fontSize: 15,
-                color: '#1677ff',
-                fontWeight: 500,
-              }}>
+              <span
+                style={{
+                  background: 'rgba(255,255,255,0.95)',
+                  padding: '6px 16px',
+                  borderRadius: 2,
+                  fontSize: 13,
+                  color: '#1a6fb5',
+                  fontWeight: 500,
+                  border: '1px solid #d9dce0'
+                }}
+              >
                 松开以导入
               </span>
             </div>
@@ -343,11 +380,11 @@ export default function App() {
         <Sider
           width={rightPanelWidth}
           style={{
-            background: '#fafafa',
-            borderLeft: '1px solid #f0f0f0',
+            background: '#f5f6f8',
+            borderLeft: '1px solid #d9dce0',
             overflow: 'hidden',
             position: 'relative',
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <div
@@ -359,7 +396,7 @@ export default function App() {
               width: 4,
               height: '100%',
               cursor: 'col-resize',
-              zIndex: 10,
+              zIndex: 10
             }}
           />
           <FeaturePanel />
@@ -367,12 +404,12 @@ export default function App() {
       </Layout>
       <Footer
         style={{
-          height: 26,
+          height: 24,
           padding: '0 12px',
-          background: '#f5f5f5',
-          borderTop: '1px solid #f0f0f0',
+          background: '#f5f6f8',
+          borderTop: '1px solid #d9dce0',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'center'
         }}
       >
         <StatusBar />
@@ -451,7 +488,7 @@ export default function App() {
         okText="保存"
         cancelText="继续绘制"
         okButtonProps={{
-          disabled: saveTarget === 'new' && !pendingLayerName.trim(),
+          disabled: saveTarget === 'new' && !pendingLayerName.trim()
         }}
       >
         <Radio.Group
@@ -461,9 +498,13 @@ export default function App() {
         >
           <Radio
             value="current"
-            disabled={!useLayerStore.getState().layers.some(
-              (l) => l.id === useLayerStore.getState().selectedLayerId && l.type === 'geojson'
-            )}
+            disabled={
+              !useLayerStore
+                .getState()
+                .layers.some(
+                  (l) => l.id === useLayerStore.getState().selectedLayerId && l.type === 'geojson'
+                )
+            }
           >
             保存到当前图层
           </Radio>

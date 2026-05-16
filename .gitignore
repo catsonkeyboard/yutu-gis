@@ -19,3 +19,4 @@ resources/python-backend
 # Editor
 .vscode/
 .idea/
+*.tsbuildinfo

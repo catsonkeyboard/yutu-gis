@@ -15,3 +15,131 @@ body,
   width: 100%;
   overflow: hidden;
 }
+
+/* ============================================================================
+   Enterprise Ant Design Overrides
+   消除互联网风格：大圆角、渐变色、过度阴影
+   ============================================================================ */
+
+/* --- 全局圆角控制 --- */
+.ant-btn {
+  border-radius: var(--radius) !important;
+  font-weight: 500;
+}
+
+.ant-modal .ant-modal-content {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.ant-modal .ant-modal-header {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-input-affix-wrapper,
+.ant-input-password {
+  border-radius: var(--radius) !important;
+}
+
+.ant-tag {
+  border-radius: var(--radius) !important;
+}
+
+.ant-switch {
+  border-radius: 10px !important;
+}
+
+.ant-segmented {
+  border-radius: var(--radius) !important;
+}
+
+.ant-segmented .ant-segmented-item {
+  border-radius: var(--radius) !important;
+}
+
+.ant-tabs .ant-tabs-tab {
+  border-radius: var(--radius) var(--radius) 0 0 !important;
+}
+
+/* --- 消除按钮渐变 --- */
+.ant-btn-primary {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: none !important;
+}
+
+.ant-btn-primary:hover {
+  background: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.ant-btn-primary:active {
+  background: var(--color-primary-active) !important;
+  border-color: var(--color-primary-active) !important;
+}
+
+/* --- 表格紧凑化 --- */
+.ant-table {
+  font-size: 12px;
+}
+
+.ant-table .ant-table-thead > tr > th {
+  background: var(--color-bg-panel) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  padding: 6px 8px !important;
+}
+
+.ant-table .ant-table-tbody > tr > td {
+  padding: 5px 8px !important;
+  border-bottom: 1px solid var(--color-divider) !important;
+}
+
+.ant-table .ant-table-tbody > tr:hover > td {
+  background: var(--color-bg-hover) !important;
+}
+
+/* --- Badge (状态指示器) --- */
+.ant-badge .ant-badge-dot {
+  box-shadow: 0 0 0 1px #fff;
+}
+
+/* --- Modal 遮罩层（消除玻璃拟态） --- */
+.ant-modal-mask {
+  backdrop-filter: none !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+}
+
+/* --- 通用滚动条（企业风格） --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4c8cc;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8adb3;
+}
+
+/* --- List 组件 --- */
+.ant-list-item {
+  border-radius: 0 !important;
+}
+
+/* --- Tooltip --- */
+.ant-tooltip .ant-tooltip-inner {
+  border-radius: var(--radius) !important;
+  font-size: 12px;
+}
