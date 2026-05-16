@@ -1,5 +1,5 @@
 /**
- * OpenSky Network API — main process HTTP client
+ * OpenSky Network + adsb.fi — main process HTTP client
  *
  * Runs in Node.js (no CORS restrictions).
  * The renderer communicates via IPC.
@@ -7,10 +7,6 @@
 
 import https from 'https'
 import querystring from 'querystring'
-
-const TOKEN_URL =
-  'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token'
-const API_BASE = 'https://opensky-network.org/api'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,7 +44,13 @@ function httpsRequest(
   })
 }
 
-// ── Public API ───────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// OpenSky Network
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const OPENSKY_TOKEN_URL =
+  'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token'
+const OPENSKY_API_BASE = 'https://opensky-network.org/api'
 
 export interface OpenSkyTokenResult {
   access_token: string
@@ -65,7 +67,7 @@ export async function fetchOpenSkyToken(
     client_secret: clientSecret,
   })
 
-  const resp = await httpsRequest(TOKEN_URL, {
+  const resp = await httpsRequest(OPENSKY_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -102,7 +104,7 @@ export async function fetchOpenSkyStates(
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const resp = await httpsRequest(`${API_BASE}/states/all?${params}`, { headers })
+  const resp = await httpsRequest(`${OPENSKY_API_BASE}/states/all?${params}`, { headers })
 
   if (resp.status === 401) {
     throw new Error('TOKEN_EXPIRED')
@@ -115,4 +117,61 @@ export async function fetchOpenSkyStates(
   }
 
   return JSON.parse(resp.body) as { time: number; states: unknown[][] | null }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// adsb.fi Open Data API
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ADSBFI_API_BASE = 'https://opendata.adsb.fi/api'
+
+/**
+ * adsb.fi v3 response format (ADSBexchange v2 compatible)
+ * GET /v3/lat/{lat}/lon/{lon}/dist/{dist}
+ */
+export interface AdsbfiResponse {
+  ac: AdsbfiAircraft[] | null
+  msg: string
+  now: number
+  total: number
+  ctime: number
+  ptime: number
+}
+
+export interface AdsbfiAircraft {
+  hex: string            // ICAO24 hex
+  flight?: string        // callsign
+  r?: string             // registration
+  t?: string             // aircraft type
+  alt_baro?: number | 'ground'
+  alt_geom?: number
+  gs?: number            // ground speed (knots)
+  track?: number         // true track
+  baro_rate?: number     // vertical rate (ft/min)
+  squawk?: string
+  lat?: number
+  lon?: number
+  seen_pos?: number
+  seen?: number
+  category?: string
+  nav_altitude_mcp?: number
+}
+
+export async function fetchAdsbfiByLocation(
+  lat: number,
+  lon: number,
+  distNm: number
+): Promise<AdsbfiResponse> {
+  const url = `${ADSBFI_API_BASE}/v3/lat/${lat.toFixed(4)}/lon/${lon.toFixed(4)}/dist/${Math.min(250, Math.round(distNm))}`
+
+  const resp = await httpsRequest(url)
+
+  if (resp.status === 429) {
+    throw new Error('adsb.fi 请求频率超限（限制 1 次/秒），请稍后再试')
+  }
+  if (resp.status !== 200) {
+    throw new Error(`adsb.fi API 错误 (${resp.status}): ${resp.body}`)
+  }
+
+  return JSON.parse(resp.body) as AdsbfiResponse
 }

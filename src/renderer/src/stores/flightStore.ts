@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+export type FlightDataSource = 'opensky' | 'adsbfi'
+
 export interface FlightState {
   icao24: string
   callsign: string | null
@@ -19,16 +21,24 @@ export interface FlightState {
 export interface OpenSkyConfig {
   clientId: string
   clientSecret: string
-  /** Polling interval in seconds (min 10) */
-  pollInterval: number
+}
+
+export interface AdsbfiConfig {
+  /** no config needed — open API */
 }
 
 interface FlightStoreState {
   /** Whether flight tracking is actively polling */
   active: boolean
-  /** OAuth2 config */
-  config: OpenSkyConfig
-  /** Access token (managed internally) */
+  /** Which data source is active */
+  dataSource: FlightDataSource
+  /** Polling interval in seconds (min 5 for adsbfi, min 10 for opensky) */
+  pollInterval: number
+  /** OpenSky OAuth2 config */
+  openSkyConfig: OpenSkyConfig
+  /** adsb.fi config (currently empty, reserved) */
+  adsbfiConfig: AdsbfiConfig
+  /** Access token (OpenSky only, managed internally) */
   accessToken: string | null
   tokenExpiresAt: number | null
   /** Current aircraft in view */
@@ -41,7 +51,10 @@ interface FlightStoreState {
   fetching: boolean
 
   setActive: (v: boolean) => void
-  setConfig: (config: OpenSkyConfig) => void
+  setDataSource: (ds: FlightDataSource) => void
+  setPollInterval: (interval: number) => void
+  setOpenSkyConfig: (config: OpenSkyConfig) => void
+  setAdsbfiConfig: (config: AdsbfiConfig) => void
   setToken: (token: string, expiresIn: number) => void
   clearToken: () => void
   setFlights: (flights: Record<string, FlightState>) => void
@@ -53,7 +66,10 @@ interface FlightStoreState {
 
 export const useFlightStore = create<FlightStoreState>((set) => ({
   active: false,
-  config: { clientId: '', clientSecret: '', pollInterval: 15 },
+  dataSource: 'adsbfi',
+  pollInterval: 10,
+  openSkyConfig: { clientId: '', clientSecret: '' },
+  adsbfiConfig: {},
   accessToken: null,
   tokenExpiresAt: null,
   flights: {},
@@ -62,11 +78,14 @@ export const useFlightStore = create<FlightStoreState>((set) => ({
   fetching: false,
 
   setActive: (active) => set({ active }),
-  setConfig: (config) => set({ config }),
+  setDataSource: (dataSource) => set({ dataSource }),
+  setPollInterval: (pollInterval) => set({ pollInterval }),
+  setOpenSkyConfig: (openSkyConfig) => set({ openSkyConfig }),
+  setAdsbfiConfig: (adsbfiConfig) => set({ adsbfiConfig }),
   setToken: (token, expiresIn) =>
     set({
       accessToken: token,
-      tokenExpiresAt: Date.now() + (expiresIn - 30) * 1000, // 30s margin
+      tokenExpiresAt: Date.now() + (expiresIn - 30) * 1000,
     }),
   clearToken: () => set({ accessToken: null, tokenExpiresAt: null }),
   setFlights: (flights) => set({ flights }),
