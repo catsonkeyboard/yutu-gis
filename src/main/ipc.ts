@@ -2,6 +2,11 @@ import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { getPythonPort } from './python'
 import { loadConfig, saveConfig, type AppConfig } from './config'
+import { startVehicleServer, stopVehicleServer, type VehicleServerConfig } from './vehicleServer'
+import {
+  fetchOpenSkyToken, fetchOpenSkyStates,
+  type OpenSkyBounds,
+} from './opensky'
 
 export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('app:getPythonPort', () => getPythonPort())
@@ -37,4 +42,29 @@ export function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle('config:load', () => loadConfig())
   ipcMain.handle('config:save', (_event, config: AppConfig) => saveConfig(config))
+
+  ipcMain.handle('vehicle:start', (_event, config: VehicleServerConfig) => {
+    startVehicleServer(win, config)
+  })
+
+  ipcMain.handle('vehicle:stop', () => {
+    stopVehicleServer()
+    win.webContents.send('vehicle:stopped')
+  })
+
+  // ── OpenSky Network ─────────────────────────────────────────────────────
+  ipcMain.handle(
+    'opensky:token',
+    async (_event, clientId: string, clientSecret: string) => {
+      return fetchOpenSkyToken(clientId, clientSecret)
+    }
+  )
+
+  ipcMain.handle(
+    'opensky:states',
+    async (_event, bounds: OpenSkyBounds, token: string | null) => {
+      return fetchOpenSkyStates(bounds, token)
+    }
+  )
 }
+

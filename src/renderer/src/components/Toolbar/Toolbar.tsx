@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Space, Divider, Tooltip } from 'antd'
+import { Button, Space, Divider, Tooltip, Badge } from 'antd'
 import {
   FolderOpenOutlined,
   SaveOutlined,
@@ -11,10 +11,16 @@ import {
   LineOutlined,
   BorderOutlined,
   SearchOutlined,
+  CarOutlined,
+  CloudOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
 import LocationSearchModal from './LocationSearchModal'
+import VehicleTrackingModal from '../VehicleTracking/VehicleTrackingModal'
+import FlightTrackingModal from '../FlightTracking/FlightTrackingModal'
+import { useVehicleStore } from '../../stores/vehicleStore'
+import { useFlightStore } from '../../stores/flightStore'
 
 interface Props {
   onImport?: () => void
@@ -28,6 +34,10 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
   const { t } = useTranslation()
   const drawMode = useDrawStore((s) => s.drawMode)
   const [locationSearchOpen, setLocationSearchOpen] = useState(false)
+  const [vehicleTrackingOpen, setVehicleTrackingOpen] = useState(false)
+  const [flightTrackingOpen, setFlightTrackingOpen] = useState(false)
+  const vehicleConnected = useVehicleStore((s) => s.connected)
+  const flightActive = useFlightStore((s) => s.active)
 
   const handleDraw = (mode: DrawMode) => {
     onDrawModeChange?.(drawMode === mode ? 'off' : mode)
@@ -86,6 +96,29 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
         />
       </Tooltip>
       <LocationSearchModal open={locationSearchOpen} onClose={() => setLocationSearchOpen(false)} />
+      <Divider type="vertical" />
+      <Tooltip title="车辆定位数据接入">
+        <Badge dot={vehicleConnected} offset={[-2, 2]} status="success">
+          <Button
+            icon={<CarOutlined />}
+            type={vehicleConnected ? 'primary' : 'text'}
+            size="small"
+            onClick={() => setVehicleTrackingOpen(true)}
+          />
+        </Badge>
+      </Tooltip>
+      <VehicleTrackingModal open={vehicleTrackingOpen} onClose={() => setVehicleTrackingOpen(false)} />
+      <Tooltip title="飞机定位 — OpenSky Network">
+        <Badge dot={flightActive} offset={[-2, 2]} status="success">
+          <Button
+            icon={<CloudOutlined />}
+            type={flightActive ? 'primary' : 'text'}
+            size="small"
+            onClick={() => setFlightTrackingOpen(true)}
+          />
+        </Badge>
+      </Tooltip>
+      <FlightTrackingModal open={flightTrackingOpen} onClose={() => setFlightTrackingOpen(false)} />
       <Divider type="vertical" />
       <Tooltip title={t('settings.title')}>
         <Button icon={<SettingOutlined />} type="text" size="small" onClick={onSettings} />
