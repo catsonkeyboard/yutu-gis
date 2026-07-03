@@ -41,6 +41,9 @@
     "importSuccess": "Imported OSM features: {{name}} ({{count}} features)",
     "errorTitle": "Query Failed"
   },
+  "tiles": {
+    "menuItem": "Download Map Tiles"
+  },
   "export": {
     "modalTitle": "Export Layers",
     "noLayers": "No exportable layers",
