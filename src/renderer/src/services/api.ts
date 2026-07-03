@@ -100,30 +100,3 @@ export async function ogcGetFeatures(
 export async function osmExtract(south: number, west: number, north: number, east: number): Promise<GeoJSON.FeatureCollection> {
   return postJson('/data/osm/extract', { south, west, north, east })
 }
-
-// ---------------------------------------------------------------------------
-// Airport lookup by IATA code
-// ---------------------------------------------------------------------------
-
-export interface AirportInfo {
-  iata: string
-  name: string
-  bbox: [number, number, number, number] // [west, south, east, north]
-}
-
-export async function searchAirportByIata(code: string): Promise<AirportInfo> {
-  const resp = await fetch(`${baseUrl}/data/airport/iata/${encodeURIComponent(code.toUpperCase())}`)
-  if (!resp.ok) {
-    const text = await resp.text()
-    try {
-      const json = JSON.parse(text)
-      throw new Error(json.detail || text)
-    } catch (e) {
-      if (e instanceof Error && e.message !== 'Unexpected end of JSON input' && !e.message.startsWith('Unexpected token')) {
-        throw e
-      }
-      throw new Error(text)
-    }
-  }
-  return resp.json() as Promise<AirportInfo>
-}
