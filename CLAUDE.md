@@ -243,6 +243,38 @@ The public `overpass-api.de` endpoint frequently returns 504 under load. The ser
 
 ---
 
+## Map Tiles Download
+
+Right-click on map → "下载地图瓦片" → pick zoom range / source / output → download XYZ raster tiles.
+
+### Data flow
+```
+Right-click (drawMode must be 'off') → ContextMenuPos { x, y, bounds }
+  → TilesDownloadModal (bbox editable, zoom range slider, source select, output format)
+  → POST /tiles/download { south, west, north, east, min_zoom, max_zoom,
+                           url_template, output: 'mbtiles'|'directory', path, name }
+      → python/services/tile_tasks.py: asyncio engine, 6 concurrent workers,
+        2 retries per tile, browser-like UA headers
+      → python/services/tiles.py: MBTilesWriter (sqlite3, TMS y-inversion)
+        or DirectoryWriter ({z}/{x}/{y}.<ext> + metadata.json)
+  → renderer polls GET /tiles/tasks/{id} every 500 ms → Progress bar
+  → POST /tiles/tasks/{id}/cancel to cancel (already-written tiles are kept)
+```
+
+### Key behaviors
+- Tile count hard limit: 200,000 per request (MAX_TILES in routers/tiles.py,
+  mirrored in TilesDownloadModal.tsx); UI warns above 10,000.
+- Resume: re-running against the same .mbtiles file / directory skips existing
+  tiles (`has_tile` dedup) — cancel + restart is safe.
+- URL templates come from tileProviders.ts `getTileUrlTemplate()` or a custom
+  `{z}/{x}/{y}` template typed by the user. Only XYZ placeholders supported
+  (no quadkey).
+- Amap tiles are GCJ-02 grid tiles downloaded as-is — no coordinate conversion
+  is involved in tile download.
+- Tile image format (png/jpg/webp) is sniffed from magic bytes, not headers.
+
+---
+
 ## IPC API (`window.electronAPI`)
 
 ```ts
