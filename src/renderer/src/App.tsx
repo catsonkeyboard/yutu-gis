@@ -13,6 +13,7 @@ import { getGeoJSONBounds } from './utils/geo'
 import SettingsModal from './components/Settings/SettingsModal'
 import WFSModal from './components/WFS/WFSModal'
 import OsmExtractModal from './components/OsmExtract/OsmExtractModal'
+import TilesDownloadModal from './components/TilesDownload/TilesDownloadModal'
 import ExportLayersModal from './components/Toolbar/ExportLayersModal'
 import FeaturePanel from './components/FeaturePanel/FeaturePanel'
 import i18n from './i18n'
@@ -29,6 +30,10 @@ export default function App() {
   const [osmExtractBounds, setOsmExtractBounds] = useState<[number, number, number, number] | null>(
     null
   )
+  const [tilesDownloadOpen, setTilesDownloadOpen] = useState(false)
+  const [tilesDownloadBounds, setTilesDownloadBounds] = useState<
+    [number, number, number, number] | null
+  >(null)
   const [siderWidth, setSiderWidth] = useState(260)
   const resizingRef = useRef(false)
   const resizeStartX = useRef(0)
@@ -375,6 +380,10 @@ export default function App() {
               setOsmExtractBounds(bounds)
               setOsmExtractOpen(true)
             }}
+            onTilesDownload={(bounds) => {
+              setTilesDownloadBounds(bounds)
+              setTilesDownloadOpen(true)
+            }}
           />
         </Content>
         <Sider
@@ -450,6 +459,11 @@ export default function App() {
             message.success(`已导入 ${layers.length} 个图层，共 ${total} 个要素`)
           }
         }}
+      />
+      <TilesDownloadModal
+        open={tilesDownloadOpen}
+        bounds={tilesDownloadBounds}
+        onClose={() => setTilesDownloadOpen(false)}
       />
       <Modal
         title="导入选项"

@@ -41,6 +41,9 @@
     "importSuccess": "已导入 OSM 要素：{{name}}（{{count}} 个要素）",
     "errorTitle": "查询失败"
   },
+  "tiles": {
+    "menuItem": "下载地图瓦片"
+  },
   "export": {
     "modalTitle": "批量导出图层",
     "noLayers": "暂无可导出的图层",

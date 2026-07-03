@@ -21,9 +21,10 @@ const SELECTED_COLOR = '#ff7700'
 interface Props {
   onSave?: () => void
   onOsmExtract?: (bounds: [number, number, number, number]) => void
+  onTilesDownload?: (bounds: [number, number, number, number]) => void
 }
 
-export default function MapCanvas({ onSave, onOsmExtract }: Props) {
+export default function MapCanvas({ onSave, onOsmExtract, onTilesDownload }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null)
@@ -270,6 +271,7 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => onOsmExtract?.(bounds)}
+        onTilesDownload={(bounds) => onTilesDownload?.(bounds)}
         onClose={() => setContextMenuPos(null)}
       />
       <DrawHintBanner onSave={onSave} />

@@ -11,10 +11,11 @@ export interface ContextMenuPos {
 interface Props {
   pos: ContextMenuPos | null
   onExtract: (bounds: [number, number, number, number]) => void
+  onTilesDownload: (bounds: [number, number, number, number]) => void
   onClose: () => void
 }
 
-export default function MapContextMenu({ pos, onExtract, onClose }: Props) {
+export default function MapContextMenu({ pos, onExtract, onTilesDownload, onClose }: Props) {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -31,9 +32,13 @@ export default function MapContextMenu({ pos, onExtract, onClose }: Props) {
 
   if (!pos) return null
 
-  // Keep menu within viewport
+  const items = [
+    { label: t('osm.menuItem'), action: onExtract },
+    { label: t('tiles.menuItem'), action: onTilesDownload }
+  ]
+
   const menuWidth = 180
-  const menuHeight = 40
+  const menuHeight = 8 + items.length * 32
   const left = pos.x + menuWidth > window.innerWidth ? pos.x - menuWidth : pos.x
   const top = pos.y + menuHeight > window.innerHeight ? pos.y - menuHeight : pos.y
 
@@ -54,23 +59,26 @@ export default function MapContextMenu({ pos, onExtract, onClose }: Props) {
         userSelect: 'none',
       }}
     >
-      <div
-        style={{
-          padding: '6px 14px',
-          cursor: 'pointer',
-          fontSize: 13,
-          color: '#333',
-          whiteSpace: 'nowrap',
-        }}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = '#f5f5f5')}
-        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
-        onClick={() => {
-          onClose()
-          onExtract(pos.bounds)
-        }}
-      >
-        {t('osm.menuItem')}
-      </div>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          style={{
+            padding: '6px 14px',
+            cursor: 'pointer',
+            fontSize: 13,
+            color: '#333',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = '#f5f5f5')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
+          onClick={() => {
+            onClose()
+            item.action(pos.bounds)
+          }}
+        >
+          {item.label}
+        </div>
+      ))}
     </div>
   )
 }
