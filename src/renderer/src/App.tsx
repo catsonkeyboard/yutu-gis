@@ -57,6 +57,7 @@ export default function App() {
   const { features, setMode, clear, drawMode } = useDrawStore()
   const setLanguage = useSettingsStore((s) => s.setLanguage)
   const setApiKeys = useSettingsStore((s) => s.setApiKeys)
+  const setDownloadDir = useSettingsStore((s) => s.setDownloadDir)
 
   useEffect(() => {
     initApi().catch(console.error)
@@ -69,6 +70,7 @@ export default function App() {
       .then((cfg) => {
         setLanguage(cfg.language)
         setApiKeys({ google: cfg.googleMap.apiKey, amap: cfg.amap.apiKey })
+        setDownloadDir(cfg.download.dir)
         i18n.changeLanguage(cfg.language)
       })
       .catch(console.error)

@@ -30,14 +30,18 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     return result.canceled ? null : result.filePaths[0]
   })
 
-  ipcMain.handle('dialog:saveFile', async (_event, filters: Electron.FileFilter[]) => {
-    const result = await dialog.showSaveDialog(win, { filters })
-    return result.canceled ? null : result.filePath
-  })
+  ipcMain.handle(
+    'dialog:saveFile',
+    async (_event, filters: Electron.FileFilter[], defaultPath?: string) => {
+      const result = await dialog.showSaveDialog(win, { filters, defaultPath })
+      return result.canceled ? null : result.filePath
+    }
+  )
 
-  ipcMain.handle('dialog:openDirectory', async (_event) => {
+  ipcMain.handle('dialog:openDirectory', async (_event, defaultPath?: string) => {
     const result = await dialog.showOpenDialog(win, {
       properties: ['openDirectory'],
+      defaultPath,
     })
     return result.canceled ? null : result.filePaths[0]
   })

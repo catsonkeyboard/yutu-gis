@@ -6,12 +6,14 @@ export interface AppConfig {
   language: 'zh' | 'en'
   googleMap: { apiKey: string }
   amap: { apiKey: string }
+  download: { dir: string }
 }
 
 const DEFAULT_CONFIG: AppConfig = {
   language: 'zh',
   googleMap: { apiKey: '' },
-  amap: { apiKey: '' }
+  amap: { apiKey: '' },
+  download: { dir: join(homedir(), 'Downloads') }
 }
 
 function getConfigDir(): string {

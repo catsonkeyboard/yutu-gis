@@ -115,11 +115,13 @@ Python venv path: `<project_root>/python/.venv/bin/python3.12`
 `src/main/config.ts` manages `~/.yutugis/config.json` (created on first launch).
 Structure:
 ```json
-{ "language": "zh", "googleMap": { "apiKey": "" }, "amap": { "apiKey": "" } }
+{ "language": "zh", "googleMap": { "apiKey": "" }, "amap": { "apiKey": "" },
+  "download": { "dir": "<home>/Downloads" } }
 ```
 - `loadConfig()` merges file contents with `DEFAULT_CONFIG` — missing keys fall back to defaults.
 - `saveConfig()` is called from `SettingsModal` when the user saves settings.
-- On renderer startup (`App.tsx`), `window.electronAPI.loadConfig()` is called and the result is pushed into `settingsStore` via `setLanguage` / `setApiKeys`.
+- On renderer startup (`App.tsx`), `window.electronAPI.loadConfig()` is called and the result is pushed into `settingsStore` via `setLanguage` / `setApiKeys` / `setDownloadDir`.
+- `download.dir` is the default save location for map tile downloads (defaults to `~/Downloads`); `TilesDownloadModal` pre-fills `<dir>/tiles-<timestamp>[.mbtiles]` from it.
 - **`settingsStore` has no `persist` middleware** — it is purely runtime state, initialized from the config file.
 
 ### File reading in renderer

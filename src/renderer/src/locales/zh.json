@@ -27,7 +27,8 @@
   },
   "settings": {
     "title": "设置", "language": "界面语言", "apiKeys": "API 密钥",
-    "googleKey": "Google Maps API Key", "amapKey": "高德地图 API Key", "save": "保存"
+    "googleKey": "Google Maps API Key", "amapKey": "高德地图 API Key", "save": "保存",
+    "downloadDir": "默认下载目录", "downloadDirHint": "地图瓦片等下载内容的默认保存位置", "browse": "浏览"
   },
   "osm": {
     "menuItem": "OSM 要素提取",
