@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { nanoid } from 'nanoid'
 import { Modal, Tabs, Input, Button, message, Typography, Space, Form, List } from 'antd'
 import { SearchOutlined, EnvironmentOutlined } from '@ant-design/icons'
-import { searchAirportByIata } from '../../services/api'
+import { searchAirportByIata } from '../../services/airports'
 import { useMapStore } from '../../stores/mapStore'
+import { useLayerStore } from '../../stores/layerStore'
 
 const { Text } = Typography
 
@@ -23,9 +25,10 @@ interface Props {
 
 export default function LocationSearchModal({ open, onClose }: Props) {
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
+  const addLayer = useLayerStore((s) => s.addLayer)
+  const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
 
   const [iataValue, setIataValue] = useState('')
-  const [iataLoading, setIataLoading] = useState(false)
 
   const [latValue, setLatValue] = useState('')
   const [lonValue, setLonValue] = useState('')
@@ -35,24 +38,23 @@ export default function LocationSearchModal({ open, onClose }: Props) {
   const [cityResults, setCityResults] = useState<GeocodingResult[]>([])
   const [citySearched, setCitySearched] = useState(false)
 
-  const handleIataSearch = async () => {
+  const handleIataSearch = () => {
     const code = iataValue.trim().toUpperCase()
     if (code.length !== 3) {
       message.warning('请输入 3 位 IATA 机场代码')
       return
     }
-    setIataLoading(true)
     try {
-      const airport = await searchAirportByIata(code)
+      const airport = searchAirportByIata(code)
       const [west, south, east, north] = airport.bbox
-      requestFitBounds([[west, south], [east, north]])
+      requestFitBounds([
+        [west, south],
+        [east, north]
+      ])
       message.success(`已跳转至 ${airport.name}（${airport.iata}）`)
       onClose()
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      message.error(`未找到机场 ${code}：${msg}`)
-    } finally {
-      setIataLoading(false)
+      message.error(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -67,8 +69,31 @@ export default function LocationSearchModal({ open, onClose }: Props) {
       message.warning('经度范围为 -180 ~ 180')
       return
     }
+    const id = nanoid()
+    const label = `坐标点 ${lat}, ${lon}`
+    addLayer({
+      id,
+      name: label,
+      type: 'geojson',
+      source: {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lon, lat] },
+            properties: { name: label, lat, lon }
+          }
+        ]
+      },
+      visible: true,
+      opacity: 1
+    })
+    setSelectedLayer(id)
     const delta = 0.01
-    requestFitBounds([[lon - delta, lat - delta], [lon + delta, lat + delta]])
+    requestFitBounds([
+      [lon - delta, lat - delta],
+      [lon + delta, lat + delta]
+    ])
     message.success(`已跳转至 ${lat}, ${lon}`)
     onClose()
   }
@@ -99,7 +124,10 @@ export default function LocationSearchModal({ open, onClose }: Props) {
   const handleCitySelect = (result: GeocodingResult) => {
     // Nominatim bbox: [south, north, west, east]
     const [south, north, west, east] = result.bbox
-    requestFitBounds([[west, south], [east, north]])
+    requestFitBounds([
+      [west, south],
+      [east, north]
+    ])
     message.success(`已跳转至 ${result.name}`)
     onClose()
   }
@@ -151,16 +179,10 @@ export default function LocationSearchModal({ open, onClose }: Props) {
           value={iataValue}
           onChange={(e) => setIataValue(e.target.value.toUpperCase())}
           onPressEnter={handleIataSearch}
-          disabled={iataLoading}
           style={{ textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}
           autoFocus
         />
-        <Button
-          type="primary"
-          icon={<SearchOutlined />}
-          loading={iataLoading}
-          onClick={handleIataSearch}
-        >
+        <Button type="primary" icon={<SearchOutlined />} onClick={handleIataSearch}>
           跳转
         </Button>
       </Space.Compact>
@@ -199,7 +221,7 @@ export default function LocationSearchModal({ open, onClose }: Props) {
                 padding: '16px 0',
                 textAlign: 'center',
                 color: '#8f959e',
-                fontSize: 12,
+                fontSize: 12
               }}
             >
               无匹配结果
@@ -216,7 +238,7 @@ export default function LocationSearchModal({ open, onClose }: Props) {
                     cursor: 'pointer',
                     padding: '6px 8px',
                     borderRadius: 2,
-                    transition: 'background 0.15s',
+                    transition: 'background 0.15s'
                   }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLElement).style.background = '#f0f7ff'
@@ -235,7 +257,7 @@ export default function LocationSearchModal({ open, onClose }: Props) {
                           fontSize: 13,
                           fontWeight: 600,
                           color: '#1f2329',
-                          marginBottom: 1,
+                          marginBottom: 1
                         }}
                       >
                         {item.name}
@@ -246,7 +268,7 @@ export default function LocationSearchModal({ open, onClose }: Props) {
                           color: '#8f959e',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                          textOverflow: 'ellipsis'
                         }}
                       >
                         {item.displayName}
@@ -261,7 +283,7 @@ export default function LocationSearchModal({ open, onClose }: Props) {
                         borderRadius: 2,
                         padding: '1px 6px',
                         flexShrink: 0,
-                        marginTop: 2,
+                        marginTop: 2
                       }}
                     >
                       {item.type}
@@ -299,7 +321,7 @@ export default function LocationSearchModal({ open, onClose }: Props) {
         items={[
           { key: 'city', label: '城市/地名', children: cityTab },
           { key: 'coords', label: '经纬度', children: coordTab },
-          { key: 'iata', label: '机场三字码', children: iataTab },
+          { key: 'iata', label: '机场三字码', children: iataTab }
         ]}
       />
     </Modal>

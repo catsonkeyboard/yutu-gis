@@ -1,6 +1,5 @@
 import tempfile
 import shutil
-import httpx
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
@@ -106,19 +105,6 @@ class OsmExtractRequest(BaseModel):
     west: float
     north: float
     east: float
-
-
-@router.get("/airport/iata/{code}")
-async def get_airport_by_iata(code: str):
-    """Return center lat/lon and name for an airport by its IATA code."""
-    try:
-        return await osm_service.airport_by_iata(code)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except (httpx.TimeoutException, httpx.ConnectError):
-        raise HTTPException(status_code=503, detail="Overpass 服务网络连接异常，请检查网络或稍后重试")
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
 
 
 @router.post("/osm/extract")
