@@ -2,7 +2,7 @@ import sys
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import health, data
+from routers import health, data, tiles
 
 app = FastAPI(title="YutuGIS API", version="0.1.0")
 
@@ -15,6 +15,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(data.router, prefix="/data")
+app.include_router(tiles.router, prefix="/tiles")
 
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
