@@ -100,3 +100,47 @@ export async function ogcGetFeatures(
 export async function osmExtract(south: number, west: number, north: number, east: number): Promise<GeoJSON.FeatureCollection> {
   return postJson('/data/osm/extract', { south, west, north, east })
 }
+
+// ---------------------------------------------------------------------------
+// Map tile download
+// ---------------------------------------------------------------------------
+
+export interface TileDownloadRequest {
+  south: number
+  west: number
+  north: number
+  east: number
+  min_zoom: number
+  max_zoom: number
+  url_template: string
+  output: 'mbtiles' | 'directory'
+  path: string
+  name: string
+}
+
+export interface TileTaskState {
+  task_id: string
+  total: number
+  done: number
+  failed: number
+  skipped: number
+  status: 'running' | 'completed' | 'cancelled' | 'error'
+  message: string
+}
+
+export async function startTileDownload(
+  req: TileDownloadRequest
+): Promise<{ task_id: string; total: number }> {
+  return postJson('/tiles/download', req)
+}
+
+export async function getTileTask(taskId: string): Promise<TileTaskState> {
+  const resp = await fetch(`${baseUrl}/tiles/tasks/${taskId}`)
+  if (!resp.ok) throw new Error(await resp.text())
+  return resp.json() as Promise<TileTaskState>
+}
+
+export async function cancelTileTask(taskId: string): Promise<void> {
+  const resp = await fetch(`${baseUrl}/tiles/tasks/${taskId}/cancel`, { method: 'POST' })
+  if (!resp.ok) throw new Error(await resp.text())
+}

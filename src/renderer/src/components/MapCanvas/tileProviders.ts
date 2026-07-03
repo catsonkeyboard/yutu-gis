@@ -96,3 +96,10 @@ export function getTileStyle(provider: MapProvider, apiKeys: ApiKeys): StyleSpec
   }
   return styles[provider]
 }
+
+/** Extract the raw {z}/{x}/{y} tile URL template for a provider (for tile download). */
+export function getTileUrlTemplate(provider: MapProvider, apiKeys: ApiKeys): string {
+  const style = getTileStyle(provider, apiKeys)
+  const source = Object.values(style.sources)[0] as { tiles?: string[] }
+  return source.tiles?.[0] ?? ''
+}
