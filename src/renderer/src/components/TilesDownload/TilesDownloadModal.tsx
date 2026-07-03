@@ -33,9 +33,16 @@ interface Props {
   onClose: () => void
 }
 
+function timestampName(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `tiles-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+}
+
 export default function TilesDownloadModal({ open, bounds, onClose }: Props) {
   const provider = useMapStore((s) => s.provider)
   const apiKeys = useSettingsStore((s) => s.apiKeys)
+  const downloadDir = useSettingsStore((s) => s.downloadDir)
 
   const [south, setSouth] = useState(0)
   const [west, setWest] = useState(0)
@@ -51,7 +58,13 @@ export default function TilesDownloadModal({ open, bounds, onClose }: Props) {
   const [starting, setStarting] = useState(false)
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // 打开时用右键捕获的视图范围和当前底图初始化表单
+  const defaultPathFor = (fmt: 'mbtiles' | 'directory'): string => {
+    if (!downloadDir) return ''
+    const base = `${downloadDir}/${timestampName()}`
+    return fmt === 'mbtiles' ? `${base}.mbtiles` : base
+  }
+
+  // 打开时用右键捕获的视图范围和当前底图初始化表单，并预填默认下载路径
   useEffect(() => {
     if (open && bounds) {
       setSouth(parseFloat(bounds[0].toFixed(6)))
@@ -59,7 +72,9 @@ export default function TilesDownloadModal({ open, bounds, onClose }: Props) {
       setNorth(parseFloat(bounds[2].toFixed(6)))
       setEast(parseFloat(bounds[3].toFixed(6)))
       setSource(provider)
+      setPath(defaultPathFor(output))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, bounds, provider])
 
   const stopPolling = () => {
@@ -85,12 +100,13 @@ export default function TilesDownloadModal({ open, bounds, onClose }: Props) {
 
   const handlePickPath = async () => {
     if (output === 'mbtiles') {
-      const p = await window.electronAPI.saveFileDialog([
-        { name: 'MBTiles', extensions: ['mbtiles'] }
-      ])
+      const p = await window.electronAPI.saveFileDialog(
+        [{ name: 'MBTiles', extensions: ['mbtiles'] }],
+        path || defaultPathFor('mbtiles')
+      )
       if (p) setPath(p)
     } else {
-      const p = await window.electronAPI.openDirectoryDialog()
+      const p = await window.electronAPI.openDirectoryDialog(downloadDir || undefined)
       if (p) setPath(p)
     }
   }
@@ -199,7 +215,7 @@ export default function TilesDownloadModal({ open, bounds, onClose }: Props) {
         <Form.Item label="输出格式" style={{ marginBottom: 8 }}>
           <Radio.Group
             value={output}
-            onChange={(e) => { setOutput(e.target.value); setPath('') }}
+            onChange={(e) => { setOutput(e.target.value); setPath(defaultPathFor(e.target.value)) }}
             disabled={running}
           >
             <Radio.Button value="mbtiles">MBTiles 文件</Radio.Button>

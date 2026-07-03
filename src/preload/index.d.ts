@@ -1,4 +1,4 @@
-type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string } }
+type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; download: { dir: string } }
 type VehicleServerConfig = { host: string; port: number; protocol: 'udp' | 'tcp' }
 type VehiclePacket = {
   time: number
@@ -51,8 +51,11 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<Buffer>
   writeFile: (filePath: string, content: string) => Promise<void>
   openFileDialog: (filters: { name: string; extensions: string[] }[]) => Promise<string | null>
-  saveFileDialog: (filters: { name: string; extensions: string[] }[]) => Promise<string | null>
-  openDirectoryDialog: () => Promise<string | null>
+  saveFileDialog: (
+    filters: { name: string; extensions: string[] }[],
+    defaultPath?: string
+  ) => Promise<string | null>
+  openDirectoryDialog: (defaultPath?: string) => Promise<string | null>
   onMenuAction: (callback: (action: string) => void) => () => void
   loadConfig: () => Promise<AppConfig>
   saveConfig: (config: AppConfig) => Promise<void>

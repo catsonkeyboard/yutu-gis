@@ -1,4 +1,5 @@
-import { Modal, Form, Input, Select, Divider, Typography } from 'antd'
+import { Modal, Form, Input, Select, Divider, Typography, Button, Space } from 'antd'
+import { FolderOpenOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../stores/settingsStore'
 import i18n from '../../i18n'
@@ -12,18 +13,26 @@ interface Props {
 
 export default function SettingsModal({ open, onClose }: Props) {
   const { t } = useTranslation()
-  const { language, apiKeys, setLanguage, setApiKeys } = useSettingsStore()
+  const { language, apiKeys, downloadDir, setLanguage, setApiKeys, setDownloadDir } =
+    useSettingsStore()
   const [form] = Form.useForm()
+
+  const handlePickDownloadDir = async () => {
+    const dir = await window.electronAPI.openDirectoryDialog(form.getFieldValue('downloadDir'))
+    if (dir) form.setFieldValue('downloadDir', dir)
+  }
 
   const handleOk = async () => {
     const values = await form.validateFields()
     setLanguage(values.language)
     setApiKeys({ google: values.googleKey ?? '', amap: values.amapKey ?? '' })
+    setDownloadDir(values.downloadDir ?? '')
     await i18n.changeLanguage(values.language)
     await window.electronAPI.saveConfig({
       language: values.language,
       googleMap: { apiKey: values.googleKey ?? '' },
       amap: { apiKey: values.amapKey ?? '' },
+      download: { dir: values.downloadDir ?? '' },
     })
     onClose()
   }
@@ -45,6 +54,7 @@ export default function SettingsModal({ open, onClose }: Props) {
           language,
           googleKey: apiKeys.google,
           amapKey: apiKeys.amap,
+          downloadDir,
         }}
         style={{ marginTop: 16 }}
       >
@@ -56,6 +66,17 @@ export default function SettingsModal({ open, onClose }: Props) {
             ]}
             style={{ width: 200 }}
           />
+        </Form.Item>
+
+        <Form.Item label={t('settings.downloadDir')} extra={t('settings.downloadDirHint')}>
+          <Space.Compact style={{ width: '100%' }}>
+            <Form.Item name="downloadDir" noStyle>
+              <Input readOnly placeholder="~/Downloads" />
+            </Form.Item>
+            <Button icon={<FolderOpenOutlined />} onClick={handlePickDownloadDir}>
+              {t('settings.browse')}
+            </Button>
+          </Space.Compact>
         </Form.Item>
 
         <Divider style={{ margin: '12px 0' }}>

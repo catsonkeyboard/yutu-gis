@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string } }
+type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; download: { dir: string } }
 type VehicleServerConfig = { host: string; port: number; protocol: 'udp' | 'tcp' }
 type VehiclePacket = { time: number; devNo: string; direct: number; speed: number; lat: number; lon: number }
 type OpenSkyBounds = { lamin: number; lomin: number; lamax: number; lomax: number }
@@ -29,11 +29,14 @@ const electronAPI = {
   openFileDialog: (filters: { name: string; extensions: string[] }[]): Promise<string | null> =>
     ipcRenderer.invoke('dialog:openFile', filters),
 
-  saveFileDialog: (filters: { name: string; extensions: string[] }[]): Promise<string | null> =>
-    ipcRenderer.invoke('dialog:saveFile', filters),
+  saveFileDialog: (
+    filters: { name: string; extensions: string[] }[],
+    defaultPath?: string
+  ): Promise<string | null> =>
+    ipcRenderer.invoke('dialog:saveFile', filters, defaultPath),
 
-  openDirectoryDialog: (): Promise<string | null> =>
-    ipcRenderer.invoke('dialog:openDirectory'),
+  openDirectoryDialog: (defaultPath?: string): Promise<string | null> =>
+    ipcRenderer.invoke('dialog:openDirectory', defaultPath),
 
   onMenuAction: (callback: (action: string) => void): (() => void) => {
     const actions = ['menu:import', 'menu:export', 'menu:open', 'menu:save']

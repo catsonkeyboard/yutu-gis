@@ -27,7 +27,8 @@
   },
   "settings": {
     "title": "Settings", "language": "Language", "apiKeys": "API Keys",
-    "googleKey": "Google Maps API Key", "amapKey": "Amap API Key", "save": "Save"
+    "googleKey": "Google Maps API Key", "amapKey": "Amap API Key", "save": "Save",
+    "downloadDir": "Default Download Directory", "downloadDirHint": "Default location for map tiles and other downloads", "browse": "Browse"
   },
   "osm": {
     "menuItem": "OSM Feature Extraction",
