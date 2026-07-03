@@ -2,20 +2,9 @@
 OSM Feature Extraction via Overpass API.
 """
 from typing import Any
-import urllib.request
 import httpx
 
-def _build_proxy_mounts() -> dict:
-    """Convert urllib system proxies to httpx mounts format."""
-    raw = urllib.request.getproxies()
-    mounts = {}
-    if "https" in raw:
-        mounts["https://"] = httpx.AsyncHTTPTransport(proxy=raw["https"], verify=False)
-    if "http" in raw:
-        mounts["http://"] = httpx.AsyncHTTPTransport(proxy=raw["http"])
-    return mounts
-
-_PROXY_MOUNTS = _build_proxy_mounts()
+from services.netutil import PROXY_MOUNTS as _PROXY_MOUNTS
 
 # Public Overpass API endpoints tried in order; first success wins
 OVERPASS_ENDPOINTS = [
