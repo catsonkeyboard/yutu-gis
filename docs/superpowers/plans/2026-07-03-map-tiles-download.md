@@ -121,8 +121,8 @@ def test_deg2num_origin_zoom0():
 
 
 def test_deg2num_known_beijing_z10():
-    # 北京 (39.9093, 116.3974) 在 z10 对应 OSM 瓦片 10/843/387
-    assert deg2num(39.9093, 116.3974, 10) == (843, 387)
+    # 北京 (39.9093, 116.3974) 在 z10 对应 OSM 瓦片 10/843/388
+    assert deg2num(39.9093, 116.3974, 10) == (843, 388)
 
 
 def test_deg2num_clamps_polar_latitude():
