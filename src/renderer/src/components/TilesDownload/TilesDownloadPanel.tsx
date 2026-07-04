@@ -91,6 +91,7 @@ interface Props {
 
 export default function TilesDownloadPanel({ map }: Props) {
   const provider = useMapStore((s) => s.provider)
+  const setProvider = useMapStore((s) => s.setProvider)
   const apiKeys = useSettingsStore((s) => s.apiKeys)
   const downloadDir = useSettingsStore((s) => s.downloadDir)
 
@@ -121,7 +122,6 @@ export default function TilesDownloadPanel({ map }: Props) {
   // 缩放区间从当前地图缩放推算，并预填默认下载路径
   useEffect(() => {
     if (!open || !map) return
-    setSource(provider)
     if (!useTilesPanelStore.getState().bbox) {
       const b = map.getBounds()
       setBbox([r6(b.getSouth()), r6(b.getWest()), r6(b.getNorth()), r6(b.getEast())])
@@ -131,6 +131,18 @@ export default function TilesDownloadPanel({ map }: Props) {
     setPath(defaultPathFor(output))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, map])
+
+  // 面板选择瓦片源 → 地图底图跟随，所见即所下
+  const handleSourceChange = (v: MapProvider | 'custom') => {
+    setSource(v)
+    if (v !== 'custom') setProvider(v)
+  }
+
+  // 反向同步：面板开着时用底图切换器换图，面板选择跟随（自定义模板除外）
+  useEffect(() => {
+    if (!open) return
+    setSource((cur) => (cur === 'custom' ? cur : provider))
+  }, [open, provider])
 
   // 地图上渲染 / 更新 / 移除范围矩形（底图切换会重建样式，需要重挂载）
   useEffect(() => {
@@ -350,7 +362,7 @@ export default function TilesDownloadPanel({ map }: Props) {
         style={{ marginTop: 0, marginBottom: 12 }} />
 
       <div style={labelStyle}>瓦片源</div>
-      <Select size="small" value={source} options={SOURCE_OPTIONS} onChange={setSource}
+      <Select size="small" value={source} options={SOURCE_OPTIONS} onChange={handleSourceChange}
         disabled={running} style={{ width: '100%', marginBottom: 8 }} />
 
       {source === 'custom' && (
