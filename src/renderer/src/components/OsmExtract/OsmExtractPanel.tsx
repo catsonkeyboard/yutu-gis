@@ -1,9 +1,20 @@
-// src/renderer/src/components/OsmExtract/OsmExtractModal.tsx
-import { useState, useEffect, useMemo } from 'react'
-import { Modal, Table, Spin, Alert, Button, Tag, Space, Divider, Segmented } from 'antd'
+import { useMemo, useState } from 'react'
+import maplibregl from 'maplibre-gl'
+import { nanoid } from 'nanoid'
+import { Table, Alert, Button, Tag, Space, Divider, Segmented, Typography, message } from 'antd'
 import type { TableProps } from 'antd'
+import { CloseOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { osmExtract } from '../../services/api'
+import { useOsmPanelStore } from '../../stores/osmPanelStore'
+import { useMapStore } from '../../stores/mapStore'
+import { useLayerStore } from '../../stores/layerStore'
+import { useMapBboxSelect, viewportBbox } from '../../hooks/useMapBboxSelect'
+import BboxSelector from '../common/BboxSelector'
+import { getGeoJSONBounds } from '../../utils/geo'
+import i18n from '../../i18n'
+
+const { Text } = Typography
 
 interface OsmFeature {
   key: string
@@ -12,18 +23,6 @@ interface OsmFeature {
   subCategory: string
   geomType: string
   feature: GeoJSON.Feature
-}
-
-interface ImportLayer {
-  fc: GeoJSON.FeatureCollection
-  name: string
-}
-
-interface Props {
-  open: boolean
-  bounds: [number, number, number, number] | null // [south, west, north, east]
-  onClose: () => void
-  onImport: (layers: ImportLayer[]) => void
 }
 
 const TAG_KEYS = ['aeroway', 'building', 'highway', 'landuse', 'amenity', 'leisure', 'natural']
@@ -54,53 +53,75 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 const TAG_STYLE: React.CSSProperties = { cursor: 'pointer', userSelect: 'none' }
 
-export default function OsmExtractModal({ open, bounds, onClose, onImport }: Props) {
+interface Props {
+  map: maplibregl.Map | null
+}
+
+export default function OsmExtractPanel({ map }: Props) {
   const { t } = useTranslation()
+  const provider = useMapStore((s) => s.provider)
+  const requestFitBounds = useMapStore((s) => s.requestFitBounds)
+  const addLayer = useLayerStore((s) => s.addLayer)
+  const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
+
+  const open = useOsmPanelStore((s) => s.open)
+  const bbox = useOsmPanelStore((s) => s.bbox)
+  const selecting = useOsmPanelStore((s) => s.selecting)
+  const setOpen = useOsmPanelStore((s) => s.setOpen)
+  const setBbox = useOsmPanelStore((s) => s.setBbox)
+  const setSelecting = useOsmPanelStore((s) => s.setSelecting)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [queried, setQueried] = useState(false)
   const [rows, setRows] = useState<OsmFeature[]>([])
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [activeSubCategory, setActiveSubCategory] = useState<string>('all')
   const [importMode, setImportMode] = useState<'single' | 'split'>('single')
 
-  useEffect(() => {
-    if (!open || !bounds) return
+  useMapBboxSelect({
+    map, active: open, bbox, selecting, setBbox, setSelecting,
+    sourceId: 'osm-extract-bbox', color: '#52c41a', provider
+  })
+
+  const handleExtract = async () => {
+    if (!bbox) return
     setLoading(true)
     setError(null)
+    setQueried(true)
     setRows([])
     setSelectedKeys([])
     setActiveCategory('all')
     setActiveSubCategory('all')
-
-    osmExtract(bounds[0], bounds[1], bounds[2], bounds[3])
-      .then((fc) => {
-        const items: OsmFeature[] = fc.features.map((f, i) => {
-          const props = f.properties ?? {}
-          const cat = getCategory(props)
-          return {
-            key: `${props._osm_type}-${props._osm_id}-${i}`,
-            label: props._feature_label ?? t('osm.colName'),
-            category: cat,
-            subCategory: getSubCategory(props, cat),
-            geomType: f.geometry.type,
-            feature: f,
-          }
-        })
-        setRows(items)
-        setSelectedKeys(items.map((r) => r.key))
+    try {
+      const fc = await osmExtract(bbox[0], bbox[1], bbox[2], bbox[3])
+      const items: OsmFeature[] = fc.features.map((f, i) => {
+        const props = f.properties ?? {}
+        const cat = getCategory(props)
+        return {
+          key: `${props._osm_type}-${props._osm_id}-${i}`,
+          label: (props._feature_label as string) ?? t('osm.colName'),
+          category: cat,
+          subCategory: getSubCategory(props, cat),
+          geomType: f.geometry.type,
+          feature: f,
+        }
       })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [open, bounds]) // eslint-disable-line react-hooks/exhaustive-deps
+      setRows(items)
+      setSelectedKeys(items.map((r) => r.key))
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  // Top-level categories present in results
   const categories = useMemo(() => {
     const present = new Set(rows.map((r) => r.category))
     return TAG_KEYS.filter((k) => present.has(k)).concat(present.has('other') ? ['other'] : [])
   }, [rows])
 
-  // Sub-categories for the active category (sorted by count desc)
   const subCategories = useMemo(() => {
     if (activeCategory === 'all') return []
     const catRows = rows.filter((r) => r.category === activeCategory)
@@ -111,7 +132,6 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
       .map(([sub]) => sub)
   }, [rows, activeCategory])
 
-  // Rows shown in the table
   const visibleRows = useMemo(() => {
     if (activeCategory === 'all') return rows
     const catRows = rows.filter((r) => r.category === activeCategory)
@@ -119,20 +139,18 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
     return catRows.filter((r) => r.subCategory === activeSubCategory)
   }, [rows, activeCategory, activeSubCategory])
 
-  const selectRows = (targetRows: OsmFeature[]) => {
-    setSelectedKeys(targetRows.map((r) => r.key))
-  }
-
   const handleCategoryClick = (cat: string) => {
     setActiveCategory(cat)
     setActiveSubCategory('all')
-    selectRows(cat === 'all' ? rows : rows.filter((r) => r.category === cat))
+    const target = cat === 'all' ? rows : rows.filter((r) => r.category === cat)
+    setSelectedKeys(target.map((r) => r.key))
   }
 
   const handleSubCategoryClick = (sub: string) => {
     setActiveSubCategory(sub)
     const base = rows.filter((r) => r.category === activeCategory)
-    selectRows(sub === 'all' ? base : base.filter((r) => r.subCategory === sub))
+    const target = sub === 'all' ? base : base.filter((r) => r.subCategory === sub)
+    setSelectedKeys(target.map((r) => r.key))
   }
 
   const columns: TableProps<OsmFeature>['columns'] = [
@@ -157,7 +175,7 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
     {
       title: t('osm.colGeom'),
       dataIndex: 'geomType',
-      width: 110,
+      width: 96,
       render: (v: string) => {
         const color = v === 'Polygon' ? 'blue' : v === 'LineString' ? 'green' : 'orange'
         return <Tag color={color}>{v}</Tag>
@@ -168,7 +186,7 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
   const handleImport = () => {
     const selected = rows.filter((r) => selectedKeys.includes(r.key))
 
-    let layers: ImportLayer[]
+    let layers: { fc: GeoJSON.FeatureCollection; name: string }[]
     if (importMode === 'single') {
       layers = [
         {
@@ -194,50 +212,96 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
       })
     }
 
-    onImport(layers)
-    onClose()
+    let lastId = ''
+    for (const { fc, name } of layers) {
+      const id = nanoid()
+      addLayer({ id, name, type: 'geojson', source: fc, visible: true, opacity: 1 })
+      lastId = id
+    }
+    if (lastId) setSelectedLayer(lastId)
+    const allFeatures = layers.flatMap((l) => l.fc.features)
+    const bounds = getGeoJSONBounds({ type: 'FeatureCollection', features: allFeatures })
+    if (bounds) requestFitBounds(bounds)
+    if (layers.length === 1) {
+      message.success(i18n.t('osm.importSuccess', { name: layers[0].name, count: allFeatures.length }))
+    } else {
+      message.success(`已导入 ${layers.length} 个图层，共 ${allFeatures.length} 个要素`)
+    }
+    handleClose()
   }
 
-  const footer = (
-    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-      <Segmented
-        size="small"
-        value={importMode}
-        onChange={(v) => setImportMode(v as 'single' | 'split')}
-        options={[
-          { label: '单图层', value: 'single' },
-          { label: '按子类型拆分', value: 'split' },
-        ]}
-        disabled={selectedKeys.length === 0 || loading}
-      />
-      <Space>
-        <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button type="primary" disabled={selectedKeys.length === 0 || loading} onClick={handleImport}>
-          {t('osm.importSelected')} ({selectedKeys.length})
-        </Button>
-      </Space>
-    </Space>
-  )
+  const handleClose = () => {
+    setRows([])
+    setSelectedKeys([])
+    setError(null)
+    setQueried(false)
+    setOpen(false)
+  }
+
+  if (!open) return null
+
+  const labelStyle: React.CSSProperties = { fontSize: 12, color: '#646a73', marginBottom: 4 }
 
   return (
-    <Modal title={t('osm.modalTitle')} open={open} onCancel={onClose} footer={footer} width={520}>
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '32px 0' }}>
-          <Spin size="large" />
-          <div style={{ marginTop: 12, color: '#888', fontSize: 13 }}>{t('osm.loading')}</div>
-        </div>
+    <div
+      style={{
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        width: 360,
+        maxHeight: 'calc(100% - 24px)',
+        overflowY: 'auto',
+        background: '#fff',
+        borderRadius: 8,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        zIndex: 600,
+        padding: '10px 14px 14px'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+        <Text strong style={{ flex: 1, fontSize: 13 }}>
+          <ThunderboltOutlined style={{ marginRight: 6 }} />
+          {t('osm.menuItem')}
+        </Text>
+        <Button type="text" size="small" icon={<CloseOutlined />} onClick={handleClose} />
+      </div>
+
+      <div style={labelStyle}>范围（WGS-84）</div>
+      <div style={{ marginBottom: 8 }}>
+        <BboxSelector
+          bbox={bbox}
+          onChange={setBbox}
+          selecting={selecting}
+          onToggleSelecting={() => setSelecting(!selecting)}
+          onUseViewport={() => map && setBbox(viewportBbox(map))}
+          disabled={loading}
+        />
+      </div>
+
+      <Button
+        type="primary"
+        size="small"
+        icon={<ThunderboltOutlined />}
+        loading={loading}
+        disabled={!bbox || bbox[0] >= bbox[2] || bbox[1] >= bbox[3]}
+        onClick={handleExtract}
+        style={{ width: '100%', marginBottom: 8 }}
+      >
+        {loading ? t('osm.loading') : '提取要素'}
+      </Button>
+
+      {error && (
+        <Alert type="error" message={t('osm.errorTitle')} description={error} showIcon
+          style={{ marginBottom: 8 }} />
       )}
-      {!loading && error && (
-        <Alert type="error" message={t('osm.errorTitle')} description={error} showIcon />
-      )}
-      {!loading && !error && rows.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '32px 0', color: '#888' }}>
+      {!loading && !error && queried && rows.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '12px 0', color: '#888', fontSize: 12 }}>
           {t('osm.noFeatures')}
         </div>
       )}
-      {!loading && !error && rows.length > 0 && (
+
+      {rows.length > 0 && (
         <>
-          {/* Level 1: category filter */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
             <Tag
               style={TAG_STYLE}
@@ -258,7 +322,6 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
             ))}
           </div>
 
-          {/* Level 2: sub-category filter (only when a category is selected) */}
           {activeCategory !== 'all' && subCategories.length > 1 && (
             <>
               <Divider style={{ margin: '6px 0' }} />
@@ -298,10 +361,32 @@ export default function OsmExtractModal({ open, bounds, onClose, onImport }: Pro
             dataSource={visibleRows}
             size="small"
             pagination={false}
-            scroll={{ y: 280 }}
+            scroll={{ y: 220 }}
+            style={{ marginBottom: 8 }}
           />
+
+          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+            <Segmented
+              size="small"
+              value={importMode}
+              onChange={(v) => setImportMode(v as 'single' | 'split')}
+              options={[
+                { label: '单图层', value: 'single' },
+                { label: '按子类型拆分', value: 'split' },
+              ]}
+              disabled={selectedKeys.length === 0 || loading}
+            />
+            <Button
+              type="primary"
+              size="small"
+              disabled={selectedKeys.length === 0 || loading}
+              onClick={handleImport}
+            >
+              {t('osm.importSelected')} ({selectedKeys.length})
+            </Button>
+          </Space>
         </>
       )}
-    </Modal>
+    </div>
   )
 }
