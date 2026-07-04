@@ -284,8 +284,10 @@ Toolbar DownloadOutlined button → tilesPanelStore.setOpen(true)
 - Tile image format (png/jpg/webp) is sniffed from magic bytes, not headers.
 
 ### Offline map import (load downloaded tiles as layers)
-Toolbar GlobalOutlined dropdown ("导入离线地图") → pick a .mbtiles file or a
-z/x/y tile directory → `POST /tiles/sources { path }` registers it in
+The regular import flow (toolbar 导入 button / File menu) accepts offline maps
+alongside GIS files: pick a `.mbtiles` file, or pick the `metadata.json`
+inside a z/x/y tile directory (the parent directory is registered)
+→ `POST /tiles/sources { path }` registers it in
 python/services/tile_sources.py (in-memory registry; metadata read from the
 MBTiles metadata table or metadata.json, with fallbacks for foreign files)
 → renderer adds a `type: 'raster'` layer whose source is
