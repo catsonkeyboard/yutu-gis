@@ -144,3 +144,25 @@ export async function cancelTileTask(taskId: string): Promise<void> {
   const resp = await fetch(`${baseUrl}/tiles/tasks/${taskId}/cancel`, { method: 'POST' })
   if (!resp.ok) throw new Error(await resp.text())
 }
+
+// ---------------------------------------------------------------------------
+// Offline tile sources (local MBTiles / tile directories as map layers)
+// ---------------------------------------------------------------------------
+
+export interface TileSourceInfo {
+  source_id: string
+  name: string
+  format: string
+  bounds: [number, number, number, number] | null // [west, south, east, north]
+  minzoom: number
+  maxzoom: number
+}
+
+export async function registerTileSource(path: string): Promise<TileSourceInfo> {
+  return postJson('/tiles/sources', { path })
+}
+
+/** XYZ URL template served by the local Python backend for a registered source. */
+export function getTileSourceUrlTemplate(sourceId: string): string {
+  return `${baseUrl}/tiles/sources/${sourceId}/{z}/{x}/{y}`
+}

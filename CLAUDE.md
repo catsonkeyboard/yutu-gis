@@ -283,6 +283,20 @@ Toolbar DownloadOutlined button → tilesPanelStore.setOpen(true)
   is involved in tile download.
 - Tile image format (png/jpg/webp) is sniffed from magic bytes, not headers.
 
+### Offline map import (load downloaded tiles as layers)
+Toolbar GlobalOutlined dropdown ("导入离线地图") → pick a .mbtiles file or a
+z/x/y tile directory → `POST /tiles/sources { path }` registers it in
+python/services/tile_sources.py (in-memory registry; metadata read from the
+MBTiles metadata table or metadata.json, with fallbacks for foreign files)
+→ renderer adds a `type: 'raster'` layer whose source is
+`GET /tiles/sources/{id}/{z}/{x}/{y}` on the local Python backend
+(MBTiles rows are TMS — y is inverted on read).
+- Raster layers render below geojson layers in renderLayers; opacity works
+  via `raster-opacity`; LayerPanel zoom-to-layer uses the source bounds.
+- Registration is idempotent (source_id = sha1(abspath)[:12]).
+- GCJ-02 caveat: tiles downloaded from Amap only align when overlaid on an
+  Amap basemap; on OSM/Google basemaps they appear offset (~100-700 m).
+
 ---
 
 ## IPC API (`window.electronAPI`)

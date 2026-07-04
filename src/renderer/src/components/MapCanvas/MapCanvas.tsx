@@ -73,6 +73,33 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
         if (map.getSource(id)) map.removeSource(id)
       })
 
+    // Offline raster tile layers first — they sit under vector data layers
+    layerList
+      .filter((l) => l.visible && l.type === 'raster')
+      .forEach((layer) => {
+        const sourceId = `user-${layer.id}`
+        const src = layer.source as {
+          tiles: string[]
+          bounds?: [number, number, number, number]
+          minzoom?: number
+          maxzoom?: number
+        }
+        map.addSource(sourceId, {
+          type: 'raster',
+          tiles: src.tiles,
+          tileSize: 256,
+          ...(src.bounds ? { bounds: src.bounds } : {}),
+          minzoom: src.minzoom ?? 0,
+          maxzoom: src.maxzoom ?? 19,
+        })
+        map.addLayer({
+          id: `user-${layer.id}-raster`,
+          type: 'raster',
+          source: sourceId,
+          paint: { 'raster-opacity': layer.opacity },
+        })
+      })
+
     // Add current visible layers
     layerList
       .filter((l) => l.visible && l.type === 'geojson')

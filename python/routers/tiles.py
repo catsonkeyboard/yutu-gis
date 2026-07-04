@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
-from services import tile_tasks
+from services import tile_tasks, tile_sources
 from services.tiles import MBTilesWriter, DirectoryWriter, count_tiles
 
 router = APIRouter()
@@ -71,3 +71,34 @@ async def cancel_task(task_id: str):
     if not tile_tasks.request_cancel(task_id):
         raise HTTPException(status_code=404, detail="任务不存在或已结束")
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Offline tile sources (serve local MBTiles / tile directories as layers)
+# ---------------------------------------------------------------------------
+
+class TileSourceRequest(BaseModel):
+    path: str
+
+
+@router.post("/sources")
+async def register_source(req: TileSourceRequest):
+    try:
+        src = tile_sources.register(req.path)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"无法读取离线地图：{e}")
+    return src.to_dict()
+
+
+@router.get("/sources/{source_id}/{z}/{x}/{y}")
+async def get_source_tile(source_id: str, z: int, x: int, y: int):
+    src = tile_sources.get(source_id)
+    if src is None:
+        raise HTTPException(status_code=404, detail="瓦片源不存在")
+    data = tile_sources.read_tile(src, z, x, y)
+    if data is None:
+        raise HTTPException(status_code=404, detail="瓦片不存在")
+    media_type = tile_sources.MEDIA_TYPES.get(src.format, "image/png")
+    return Response(content=data, media_type=media_type)
