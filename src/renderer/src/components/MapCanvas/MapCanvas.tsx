@@ -14,6 +14,8 @@ import DrawHintBanner from './DrawHintBanner'
 import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
 import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
 import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
+import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
+import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 
 const DEFAULT_COLOR = '#0080ff'
 const SELECTED_COLOR = '#ff7700'
@@ -21,10 +23,9 @@ const SELECTED_COLOR = '#ff7700'
 interface Props {
   onSave?: () => void
   onOsmExtract?: (bounds: [number, number, number, number]) => void
-  onTilesDownload?: (bounds: [number, number, number, number]) => void
 }
 
-export default function MapCanvas({ onSave, onOsmExtract, onTilesDownload }: Props) {
+export default function MapCanvas({ onSave, onOsmExtract }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null)
@@ -162,6 +163,8 @@ export default function MapCanvas({ onSave, onOsmExtract, onTilesDownload }: Pro
     // Click: select layer by clicking on its features
     map.on('click', (e) => {
       if (drawModeRef.current !== 'off') return
+      // Ignore the click synthesized right after a tiles-bbox drag selection
+      if (Date.now() - useTilesPanelStore.getState().selectEndAt < 300) return
       const style = map.getStyle()
       if (!style) return
       const userLayerIds = style.layers
@@ -271,9 +274,14 @@ export default function MapCanvas({ onSave, onOsmExtract, onTilesDownload }: Pro
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => onOsmExtract?.(bounds)}
-        onTilesDownload={(bounds) => onTilesDownload?.(bounds)}
+        onTilesDownload={(bounds) => {
+          const store = useTilesPanelStore.getState()
+          store.setBbox(bounds)
+          store.setOpen(true)
+        }}
         onClose={() => setContextMenuPos(null)}
       />
+      <TilesDownloadPanel map={mapInstance} />
       <DrawHintBanner onSave={onSave} />
       <BasemapSwitcher />
     </div>

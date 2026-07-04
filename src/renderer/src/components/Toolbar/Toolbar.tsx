@@ -13,6 +13,7 @@ import {
   SearchOutlined,
   CarOutlined,
   CloudOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
@@ -21,6 +22,7 @@ import VehicleTrackingModal from '../VehicleTracking/VehicleTrackingModal'
 import FlightTrackingModal from '../FlightTracking/FlightTrackingModal'
 import { useVehicleStore } from '../../stores/vehicleStore'
 import { useFlightStore } from '../../stores/flightStore'
+import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 
 interface Props {
   onImport?: () => void
@@ -38,6 +40,8 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
   const [flightTrackingOpen, setFlightTrackingOpen] = useState(false)
   const vehicleConnected = useVehicleStore((s) => s.connected)
   const flightActive = useFlightStore((s) => s.active)
+  const tilesPanelOpen = useTilesPanelStore((s) => s.open)
+  const setTilesPanelOpen = useTilesPanelStore((s) => s.setOpen)
 
   const handleDraw = (mode: DrawMode) => {
     onDrawModeChange?.(drawMode === mode ? 'off' : mode)
@@ -60,6 +64,14 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
       </Tooltip>
       <Tooltip title="连接 WFS / OGC API">
         <Button icon={<ApiOutlined />} type="text" size="small" onClick={onWFS} />
+      </Tooltip>
+      <Tooltip title="下载地图瓦片">
+        <Button
+          icon={<DownloadOutlined />}
+          type={tilesPanelOpen ? 'primary' : 'text'}
+          size="small"
+          onClick={() => setTilesPanelOpen(!tilesPanelOpen)}
+        />
       </Tooltip>
       <Divider type="vertical" />
       <Tooltip title={t('toolbar.drawPoint')}>
