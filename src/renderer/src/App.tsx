@@ -5,7 +5,10 @@ import Toolbar from './components/Toolbar/Toolbar'
 import LayerPanel from './components/LayerPanel/LayerPanel'
 import MapCanvas from './components/MapCanvas/MapCanvas'
 import StatusBar from './components/StatusBar/StatusBar'
-import { initApi, importGisFile, importGisFileFromFile, type ImportedLayer } from './services/api'
+import {
+  initApi, importGisFile, importGisFileFromFile, importPbfFile, parseApiError,
+  type ImportedLayer
+} from './services/api'
 import { importOfflineMap } from './utils/importOfflineMap'
 import { useLayerStore } from './stores/layerStore'
 import { useMapStore } from './stores/mapStore'
@@ -163,9 +166,23 @@ export default function App() {
     if (bounds) requestFitBounds(bounds)
   }
 
+  // Shared tail of every vector import: small imports merge directly,
+  // larger ones go through the merge/split dialog
+  const processImportedLayers = (layers: ImportedLayer[]) => {
+    const totalFeatures = layers.reduce((sum, l) => sum + l.geojson.features.length, 0)
+    if (totalFeatures <= 1) {
+      applyImport(layers, 'merge')
+      return
+    }
+    setImportMode('merge')
+    setPendingImportLayers(layers)
+    setImportDialogOpen(true)
+  }
+
   const handleImport = async () => {
     const filePath = await window.electronAPI.openFileDialog([
-      { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx', 'mbtiles'] },
+      { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx', 'pbf', 'mbtiles'] },
+      { name: 'OSM PBF', extensions: ['pbf'] },
       { name: '离线地图 (MBTiles / 瓦片目录 metadata.json)', extensions: ['mbtiles', 'json'] },
       { name: 'All Files', extensions: ['*'] }
     ])
@@ -179,16 +196,22 @@ export default function App() {
       await importOfflineMap(filePath.replace(/[/\\]metadata\.json$/i, ''))
       return
     }
+    // OSM PBF extracts are parsed server-side from disk (no upload)
+    if (/\.pbf$/i.test(filePath)) {
+      try {
+        const { layers, truncated } = await importPbfFile(filePath)
+        if (truncated) {
+          message.warning('PBF 数据量过大，仅加载前 100,000 个要素，建议使用更小的区域提取')
+        }
+        processImportedLayers(layers)
+      } catch (e) {
+        message.error(`导入失败：${parseApiError(e)}`)
+      }
+      return
+    }
     try {
       const layers = await importGisFile(filePath)
-      const totalFeatures = layers.reduce((sum, l) => sum + l.geojson.features.length, 0)
-      if (totalFeatures <= 1) {
-        applyImport(layers, 'merge')
-        return
-      }
-      setImportMode('merge')
-      setPendingImportLayers(layers)
-      setImportDialogOpen(true)
+      processImportedLayers(layers)
     } catch (e) {
       message.error(`导入失败：${(e as Error).message}`)
     }
@@ -208,14 +231,7 @@ export default function App() {
     }
     try {
       const layers = await importGisFileFromFile(file)
-      const totalFeatures = layers.reduce((sum, l) => sum + l.geojson.features.length, 0)
-      if (totalFeatures <= 1) {
-        applyImport(layers, 'merge')
-        return
-      }
-      setImportMode('merge')
-      setPendingImportLayers(layers)
-      setImportDialogOpen(true)
+      processImportedLayers(layers)
     } catch (e) {
       message.error(`导入失败：${(e as Error).message}`)
     }

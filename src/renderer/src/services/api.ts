@@ -18,6 +18,17 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return resp.json() as Promise<T>
 }
 
+/** Extract FastAPI's {"detail": "..."} message from a thrown error, if present. */
+export function parseApiError(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e)
+  try {
+    const parsed = JSON.parse(raw) as { detail?: string }
+    return parsed.detail || raw
+  } catch {
+    return raw
+  }
+}
+
 // ---------------------------------------------------------------------------
 // File import
 // ---------------------------------------------------------------------------
@@ -47,6 +58,13 @@ export async function importGisFileFromFile(file: File): Promise<ImportedLayer[]
   if (!resp.ok) throw new Error(await resp.text())
   const data = await resp.json() as { layers: ImportedLayer[] }
   return data.layers
+}
+
+/** Parse a local .osm.pbf extract server-side (read from disk, no upload). */
+export async function importPbfFile(
+  path: string
+): Promise<{ layers: ImportedLayer[]; truncated: boolean }> {
+  return postJson('/data/import/pbf', { path })
 }
 
 // ---------------------------------------------------------------------------
