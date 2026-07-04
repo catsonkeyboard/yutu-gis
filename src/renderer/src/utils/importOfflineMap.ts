@@ -2,18 +2,7 @@ import { nanoid } from 'nanoid'
 import { message } from 'antd'
 import { useLayerStore } from '../stores/layerStore'
 import { useMapStore } from '../stores/mapStore'
-import { registerTileSource, getTileSourceUrlTemplate } from '../services/api'
-
-/** Extract FastAPI's {"detail": "..."} message from a thrown error, if present. */
-function errorDetail(e: unknown): string {
-  const raw = e instanceof Error ? e.message : String(e)
-  try {
-    const parsed = JSON.parse(raw) as { detail?: string }
-    return parsed.detail || raw
-  } catch {
-    return raw
-  }
-}
+import { registerTileSource, getTileSourceUrlTemplate, parseApiError } from '../services/api'
 
 /**
  * Import a downloaded offline map (an .mbtiles file or a z/x/y tile directory)
@@ -47,6 +36,6 @@ export async function importOfflineMap(path: string): Promise<void> {
     }
     message.success(`已导入离线地图：${info.name}（z${info.minzoom}~${info.maxzoom}）`)
   } catch (e: unknown) {
-    message.error(`导入离线地图失败：${errorDetail(e)}`)
+    message.error(`导入离线地图失败：${parseApiError(e)}`)
   }
 }

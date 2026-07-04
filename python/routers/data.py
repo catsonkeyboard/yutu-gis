@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from services.gis import file_to_layers
 from services import wfs as wfs_service
 from services import osm as osm_service
+from services import pbf as pbf_service
 
 router = APIRouter()
 
@@ -28,6 +29,25 @@ async def import_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         Path(tmp_path).unlink(missing_ok=True)
+
+
+class PbfImportRequest(BaseModel):
+    path: str
+
+
+@router.post("/import/pbf")
+async def import_pbf(req: PbfImportRequest):
+    """Parse a local .osm.pbf extract into GeoJSON layers.
+
+    The file is read directly from disk (no upload) — PBF extracts are
+    large and the backend runs on the same machine.
+    """
+    try:
+        return pbf_service.pbf_to_layers(req.path)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"PBF 解析失败：{e}")
 
 
 # ---------------------------------------------------------------------------

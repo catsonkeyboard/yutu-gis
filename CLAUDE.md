@@ -186,6 +186,15 @@ Google and Amap API keys are optional — public endpoints are used when no key 
 
 GeoJSON, JSON, SHP (Shapefile), KML, GPX — handled by `fiona` in the Python backend. The file is read by the main process (`fs.readFile`), sent to Python as multipart form data, and returned as a GeoJSON FeatureCollection.
 
+**OSM PBF** (`.osm.pbf` / `.pbf`, e.g. Geofabrik extracts) — parsed by `pyosmium`
+in `python/services/pbf.py` via `POST /data/import/pbf { path }` (read directly
+from disk, NOT uploaded — extracts are large). Tagged nodes → Point, linear
+ways → LineString, closed area ways + multipolygon relations → MultiPolygon
+(osmium area assembler; closed `highway` rings stay lines). Grouped into up to
+three layers (点/线/面), reusing `_feature_label` from osm.py. Hard cap
+`MAX_FEATURES = 100,000` — parsing stops there and the response is flagged
+`truncated`, surfaced as a UI warning. Requires `osmium>=4.0` in requirements.
+
 ---
 
 ## WFS / OGC API Features
