@@ -14,6 +14,7 @@ import {
   CarOutlined,
   CloudOutlined,
   DownloadOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
@@ -23,6 +24,7 @@ import FlightTrackingModal from '../FlightTracking/FlightTrackingModal'
 import { useVehicleStore } from '../../stores/vehicleStore'
 import { useFlightStore } from '../../stores/flightStore'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
+import { useOsmPanelStore } from '../../stores/osmPanelStore'
 
 interface Props {
   onImport?: () => void
@@ -42,6 +44,8 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
   const flightActive = useFlightStore((s) => s.active)
   const tilesPanelOpen = useTilesPanelStore((s) => s.open)
   const setTilesPanelOpen = useTilesPanelStore((s) => s.setOpen)
+  const osmPanelOpen = useOsmPanelStore((s) => s.open)
+  const setOsmPanelOpen = useOsmPanelStore((s) => s.setOpen)
 
   const handleDraw = (mode: DrawMode) => {
     onDrawModeChange?.(drawMode === mode ? 'off' : mode)
@@ -70,7 +74,21 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
           icon={<DownloadOutlined />}
           type={tilesPanelOpen ? 'primary' : 'text'}
           size="small"
-          onClick={() => setTilesPanelOpen(!tilesPanelOpen)}
+          onClick={() => {
+            if (!tilesPanelOpen) setOsmPanelOpen(false)
+            setTilesPanelOpen(!tilesPanelOpen)
+          }}
+        />
+      </Tooltip>
+      <Tooltip title={t('osm.menuItem')}>
+        <Button
+          icon={<ThunderboltOutlined />}
+          type={osmPanelOpen ? 'primary' : 'text'}
+          size="small"
+          onClick={() => {
+            if (!osmPanelOpen) setTilesPanelOpen(false)
+            setOsmPanelOpen(!osmPanelOpen)
+          }}
         />
       </Tooltip>
       <Divider type="vertical" />

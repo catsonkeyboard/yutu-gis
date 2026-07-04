@@ -13,7 +13,6 @@ import { useDrawStore, type DrawMode } from './stores/drawStore'
 import { getGeoJSONBounds } from './utils/geo'
 import SettingsModal from './components/Settings/SettingsModal'
 import WFSModal from './components/WFS/WFSModal'
-import OsmExtractModal from './components/OsmExtract/OsmExtractModal'
 import ExportLayersModal from './components/Toolbar/ExportLayersModal'
 import FeaturePanel from './components/FeaturePanel/FeaturePanel'
 import i18n from './i18n'
@@ -26,10 +25,6 @@ const ALLOWED_DROP_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'gpx'])
 export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [wfsOpen, setWfsOpen] = useState(false)
-  const [osmExtractOpen, setOsmExtractOpen] = useState(false)
-  const [osmExtractBounds, setOsmExtractBounds] = useState<[number, number, number, number] | null>(
-    null
-  )
   const [siderWidth, setSiderWidth] = useState(260)
   const resizingRef = useRef(false)
   const resizeStartX = useRef(0)
@@ -382,13 +377,7 @@ export default function App() {
               </span>
             </div>
           )}
-          <MapCanvas
-            onSave={() => handleDrawModeChange('off')}
-            onOsmExtract={(bounds) => {
-              setOsmExtractBounds(bounds)
-              setOsmExtractOpen(true)
-            }}
-          />
+          <MapCanvas onSave={() => handleDrawModeChange('off')} />
         </Content>
         <Sider
           width={rightPanelWidth}
@@ -439,29 +428,6 @@ export default function App() {
           const bounds = getGeoJSONBounds(geojson)
           if (bounds) requestFitBounds(bounds)
           message.success(`已导入：${name}（${geojson.features.length} 个要素）`)
-        }}
-      />
-      <OsmExtractModal
-        open={osmExtractOpen}
-        bounds={osmExtractBounds}
-        onClose={() => setOsmExtractOpen(false)}
-        onImport={(layers) => {
-          let lastId = ''
-          for (const { fc, name } of layers) {
-            const id = nanoid()
-            addLayer({ id, name, type: 'geojson', source: fc, visible: true, opacity: 1 })
-            lastId = id
-          }
-          if (lastId) setSelectedLayer(lastId)
-          const allFeatures = layers.flatMap((l) => l.fc.features)
-          const bounds = getGeoJSONBounds({ type: 'FeatureCollection', features: allFeatures })
-          if (bounds) requestFitBounds(bounds)
-          const total = allFeatures.length
-          if (layers.length === 1) {
-            message.success(i18n.t('osm.importSuccess', { name: layers[0].name, count: total }))
-          } else {
-            message.success(`已导入 ${layers.length} 个图层，共 ${total} 个要素`)
-          }
         }}
       />
       <Modal

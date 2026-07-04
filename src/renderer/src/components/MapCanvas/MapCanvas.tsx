@@ -15,17 +15,18 @@ import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
 import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
 import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
 import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
+import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
+import { useOsmPanelStore } from '../../stores/osmPanelStore'
 
 const DEFAULT_COLOR = '#0080ff'
 const SELECTED_COLOR = '#ff7700'
 
 interface Props {
   onSave?: () => void
-  onOsmExtract?: (bounds: [number, number, number, number]) => void
 }
 
-export default function MapCanvas({ onSave, onOsmExtract }: Props) {
+export default function MapCanvas({ onSave }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null)
@@ -190,8 +191,9 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
     // Click: select layer by clicking on its features
     map.on('click', (e) => {
       if (drawModeRef.current !== 'off') return
-      // Ignore the click synthesized right after a tiles-bbox drag selection
+      // Ignore the click synthesized right after a bbox drag selection
       if (Date.now() - useTilesPanelStore.getState().selectEndAt < 300) return
+      if (Date.now() - useOsmPanelStore.getState().selectEndAt < 300) return
       const style = map.getStyle()
       if (!style) return
       const userLayerIds = style.layers
@@ -300,8 +302,14 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
       <FlightLayer map={mapInstance} />
       <MapContextMenu
         pos={contextMenuPos}
-        onExtract={(bounds) => onOsmExtract?.(bounds)}
+        onExtract={(bounds) => {
+          useTilesPanelStore.getState().setOpen(false)
+          const store = useOsmPanelStore.getState()
+          store.setBbox(bounds)
+          store.setOpen(true)
+        }}
         onTilesDownload={(bounds) => {
+          useOsmPanelStore.getState().setOpen(false)
           const store = useTilesPanelStore.getState()
           store.setBbox(bounds)
           store.setOpen(true)
@@ -309,6 +317,7 @@ export default function MapCanvas({ onSave, onOsmExtract }: Props) {
         onClose={() => setContextMenuPos(null)}
       />
       <TilesDownloadPanel map={mapInstance} />
+      <OsmExtractPanel map={mapInstance} />
       <DrawHintBanner onSave={onSave} />
       <BasemapSwitcher />
     </div>

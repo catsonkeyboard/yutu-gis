@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import {
-  InputNumber, Slider, Select, Radio, Input, Button, Space, Typography, Progress, message
+  Slider, Select, Radio, Input, Button, Space, Typography, Progress, message
 } from 'antd'
-import {
-  DownloadOutlined, FolderOpenOutlined, CloseOutlined, BorderOutlined, AimOutlined
-} from '@ant-design/icons'
+import { DownloadOutlined, FolderOpenOutlined, CloseOutlined } from '@ant-design/icons'
 import { useMapStore } from '../../stores/mapStore'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { useTilesPanelStore, type TilesBbox } from '../../stores/tilesPanelStore'
+import { useTilesPanelStore } from '../../stores/tilesPanelStore'
+import { useMapBboxSelect, viewportBbox } from '../../hooks/useMapBboxSelect'
+import BboxSelector from '../common/BboxSelector'
 import { getTileUrlTemplate, type MapProvider } from '../MapCanvas/tileProviders'
 import { countTiles } from '../../utils/tileMath'
 import {
@@ -20,10 +20,6 @@ const { Text } = Typography
 const WARN_TILES = 10_000
 const MAX_TILES = 200_000 // 与后端 routers/tiles.py MAX_TILES 保持一致
 
-const BBOX_SOURCE = 'tiles-bbox'
-const BBOX_FILL = 'tiles-bbox-fill'
-const BBOX_LINE = 'tiles-bbox-line'
-
 const SOURCE_OPTIONS: { value: MapProvider | 'custom'; label: string }[] = [
   { value: 'osm', label: 'OSM 街道图' },
   { value: 'google-street', label: 'Google 街道图' },
@@ -34,55 +30,10 @@ const SOURCE_OPTIONS: { value: MapProvider | 'custom'; label: string }[] = [
   { value: 'custom', label: '自定义 URL 模板' }
 ]
 
-const r6 = (n: number): number => parseFloat(n.toFixed(6))
-
 function timestampName(): string {
   const d = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   return `tiles-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
-}
-
-function bboxToGeoJSON(bbox: TilesBbox): GeoJSON.Feature {
-  const [south, west, north, east] = bbox
-  return {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[
-        [west, south], [east, south], [east, north], [west, north], [west, south]
-      ]]
-    }
-  }
-}
-
-/** Add / update / remove the bbox rectangle overlay on the map. */
-function applyBboxOverlay(map: maplibregl.Map, bbox: TilesBbox | null): void {
-  if (!bbox) {
-    if (map.getLayer(BBOX_FILL)) map.removeLayer(BBOX_FILL)
-    if (map.getLayer(BBOX_LINE)) map.removeLayer(BBOX_LINE)
-    if (map.getSource(BBOX_SOURCE)) map.removeSource(BBOX_SOURCE)
-    return
-  }
-  const data = bboxToGeoJSON(bbox)
-  const src = map.getSource(BBOX_SOURCE) as maplibregl.GeoJSONSource | undefined
-  if (src) {
-    src.setData(data)
-    return
-  }
-  map.addSource(BBOX_SOURCE, { type: 'geojson', data })
-  map.addLayer({
-    id: BBOX_FILL,
-    type: 'fill',
-    source: BBOX_SOURCE,
-    paint: { 'fill-color': '#1a6fb5', 'fill-opacity': 0.08 }
-  })
-  map.addLayer({
-    id: BBOX_LINE,
-    type: 'line',
-    source: BBOX_SOURCE,
-    paint: { 'line-color': '#1a6fb5', 'line-width': 2, 'line-dasharray': [2, 2] }
-  })
 }
 
 interface Props {
@@ -123,8 +74,7 @@ export default function TilesDownloadPanel({ map }: Props) {
   useEffect(() => {
     if (!open || !map) return
     if (!useTilesPanelStore.getState().bbox) {
-      const b = map.getBounds()
-      setBbox([r6(b.getSouth()), r6(b.getWest()), r6(b.getNorth()), r6(b.getEast())])
+      setBbox(viewportBbox(map))
     }
     const z = Math.floor(map.getZoom())
     setZoomRange([Math.max(z, 0), Math.min(z + 3, 19)])
@@ -144,46 +94,11 @@ export default function TilesDownloadPanel({ map }: Props) {
     setSource((cur) => (cur === 'custom' ? cur : provider))
   }, [open, provider])
 
-  // 地图上渲染 / 更新 / 移除范围矩形（底图切换会重建样式，需要重挂载）
-  useEffect(() => {
-    if (!map) return
-    const apply = () => applyBboxOverlay(map, open ? bbox : null)
-    if (map.isStyleLoaded()) apply()
-    else map.once('styledata', apply)
-  }, [map, bbox, open, provider])
-
-  // 框选模式：暂停地图拖拽，按下-拖动-松开画出矩形
-  useEffect(() => {
-    if (!map || !selecting) return
-    const canvas = map.getCanvas()
-    map.dragPan.disable()
-    canvas.style.cursor = 'crosshair'
-    let start: maplibregl.LngLat | null = null
-
-    const toBbox = (a: maplibregl.LngLat, b: maplibregl.LngLat): TilesBbox => [
-      r6(Math.min(a.lat, b.lat)), r6(Math.min(a.lng, b.lng)),
-      r6(Math.max(a.lat, b.lat)), r6(Math.max(a.lng, b.lng))
-    ]
-    const onDown = (e: maplibregl.MapMouseEvent) => { start = e.lngLat }
-    const onMove = (e: maplibregl.MapMouseEvent) => {
-      if (start) setBbox(toBbox(start, e.lngLat))
-    }
-    const onUp = (e: maplibregl.MapMouseEvent) => {
-      if (start) setBbox(toBbox(start, e.lngLat))
-      start = null
-      setSelecting(false)
-    }
-    map.on('mousedown', onDown)
-    map.on('mousemove', onMove)
-    map.on('mouseup', onUp)
-    return () => {
-      map.off('mousedown', onDown)
-      map.off('mousemove', onMove)
-      map.off('mouseup', onUp)
-      map.dragPan.enable()
-      canvas.style.cursor = ''
-    }
-  }, [map, selecting, setBbox, setSelecting])
+  // 地图上的范围矩形 + 框选交互（与 OSM 提取面板共用同一套机制）
+  useMapBboxSelect({
+    map, active: open, bbox, selecting, setBbox, setSelecting,
+    sourceId: 'tiles-bbox', color: '#1a6fb5', provider
+  })
 
   const stopPolling = () => {
     if (pollTimer.current) {
@@ -207,19 +122,6 @@ export default function TilesDownloadPanel({ map }: Props) {
   const canStart =
     !running && !starting && estimate > 0 && estimate <= MAX_TILES &&
     path !== '' && urlTemplate.includes('{z}')
-
-  const updateBboxField = (index: number, value: number | null) => {
-    if (!bbox || value === null) return
-    const next = [...bbox] as TilesBbox
-    next[index] = value
-    setBbox(next)
-  }
-
-  const handleUseViewport = () => {
-    if (!map) return
-    const b = map.getBounds()
-    setBbox([r6(b.getSouth()), r6(b.getWest()), r6(b.getNorth()), r6(b.getEast())])
-  }
 
   const handlePickPath = async () => {
     if (output === 'mbtiles') {
@@ -327,34 +229,16 @@ export default function TilesDownloadPanel({ map }: Props) {
       </div>
 
       <div style={labelStyle}>范围（WGS-84）</div>
-      <Space direction="vertical" size={4} style={{ width: '100%', marginBottom: 8 }}>
-        <Space size={4}>
-          <InputNumber size="small" addonBefore="南" value={bbox?.[0]} step={0.01}
-            onChange={(v) => updateBboxField(0, v)} style={{ width: 140 }} disabled={running} />
-          <InputNumber size="small" addonBefore="北" value={bbox?.[2]} step={0.01}
-            onChange={(v) => updateBboxField(2, v)} style={{ width: 140 }} disabled={running} />
-        </Space>
-        <Space size={4}>
-          <InputNumber size="small" addonBefore="西" value={bbox?.[1]} step={0.01}
-            onChange={(v) => updateBboxField(1, v)} style={{ width: 140 }} disabled={running} />
-          <InputNumber size="small" addonBefore="东" value={bbox?.[3]} step={0.01}
-            onChange={(v) => updateBboxField(3, v)} style={{ width: 140 }} disabled={running} />
-        </Space>
-        <Space size={4}>
-          <Button
-            size="small"
-            icon={<BorderOutlined />}
-            type={selecting ? 'primary' : 'default'}
-            onClick={() => setSelecting(!selecting)}
-            disabled={running}
-          >
-            {selecting ? '在地图上拖动框选…' : '框选范围'}
-          </Button>
-          <Button size="small" icon={<AimOutlined />} onClick={handleUseViewport} disabled={running}>
-            当前视图
-          </Button>
-        </Space>
-      </Space>
+      <div style={{ marginBottom: 8 }}>
+        <BboxSelector
+          bbox={bbox}
+          onChange={setBbox}
+          selecting={selecting}
+          onToggleSelecting={() => setSelecting(!selecting)}
+          onUseViewport={() => map && setBbox(viewportBbox(map))}
+          disabled={running}
+        />
+      </div>
 
       <div style={labelStyle}>缩放级别 {zoomRange[0]} ~ {zoomRange[1]}</div>
       <Slider range min={0} max={19} value={zoomRange}

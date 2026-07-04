@@ -32,7 +32,7 @@ Renderer (React)
   │   │   │                     right-click context menu (OSM extraction)
   │   │   └── MapContextMenu.tsx — floating right-click menu; captures map viewport bounds
   │   ├── OsmExtract/
-  │   │   └── OsmExtractModal.tsx — Overpass query, two-level category filter, feature import
+  │   │   └── OsmExtractPanel.tsx — floating panel: Overpass query, two-level filter, import
   │   ├── LayerPanel/         — layer list, visibility, selection, delete, auto-scroll
   │   ├── Toolbar/            — toolbar buttons (import, WFS, draw modes, settings)
   │   ├── WFS/WFSModal.tsx    — WFS/OGC API connection and multi-layer import
@@ -199,19 +199,22 @@ GeoJSON, JSON, SHP (Shapefile), KML, GPX — handled by `fiona` in the Python ba
 
 ## OSM Feature Extraction
 
-Right-click on map → "OSM 要素提取" → query Overpass API → preview + filter → import as new layer.
+Toolbar ThunderboltOutlined button (or right-click → "OSM 要素提取") toggles a
+**floating panel** (top-right, NOT a modal) → pick the area (drag-select /
+viewport / numbers) → 提取要素 queries Overpass → preview + filter → import.
 
 ### Data flow
 ```
-Right-click (drawMode must be 'off')
-  → MapCanvas.handleContextMenu → map.getBounds() → ContextMenuPos { x, y, bounds }
-  → MapContextMenu renders at cursor
-  → click "OSM 要素提取"
-  → App.tsx opens OsmExtractModal with bounds [south, west, north, east]
-  → POST /data/osm/extract { south, west, north, east }
+Toolbar button → osmPanelStore.setOpen(true)
+  (right-click menu item also opens it, pre-setting bbox to the viewport;
+   the tiles-download and OSM panels are mutually exclusive — opening one
+   closes the other, both live at top-right)
+  → OsmExtractPanel (floating; bbox via shared BboxSelector + green dashed
+    overlay from useMapBboxSelect)
+  → 提取要素 → POST /data/osm/extract { south, west, north, east }
       → python/services/osm.py: overpass_extract() → Overpass QL [bbox:s,w,n,e]
       → returns GeoJSON FeatureCollection
-  → OsmExtractModal: two-level filter → import selected → addLayer
+  → two-level filter → import selected (单图层 / 按子类型拆分) → addLayer
 ```
 
 ### `ContextMenuPos` (MapContextMenu.tsx)
@@ -227,7 +230,7 @@ Right-click (drawMode must be 'off')
 - `_feature_label(tags)` maps OSM tags → Chinese labels: 建筑/道路/土地利用/设施/休闲/自然/航空
 - Multi-endpoint retry: `overpass-api.de` → `overpass.kumi.systems` → `overpass.private.coffee`; timeout 35 s / query 25 s
 
-### `OsmExtractModal` (src/renderer/src/components/OsmExtract/OsmExtractModal.tsx)
+### `OsmExtractPanel` (src/renderer/src/components/OsmExtract/OsmExtractPanel.tsx)
 - Two-level filter bar:
   - **Level 1** (blue tags): category — 全部 / 建筑 / 道路 / 航空 / …  (only categories present in results)
   - **Level 2** (geekblue tags): sub-type — `taxiway` / `runway` / `primary` / … (tag value; hidden when only one sub-type)
