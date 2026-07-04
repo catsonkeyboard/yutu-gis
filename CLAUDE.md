@@ -247,12 +247,17 @@ The public `overpass-api.de` endpoint frequently returns 504 under load. The ser
 
 ## Map Tiles Download
 
-Right-click on map → "下载地图瓦片" → pick zoom range / source / output → download XYZ raster tiles.
+Toolbar download button (or right-click → "下载地图瓦片") toggles a **floating
+panel** (top-right over the map, NOT a modal) → the map stays interactive:
+drag-select the area, pan/zoom, and tweak params at the same time.
 
 ### Data flow
 ```
-Right-click (drawMode must be 'off') → ContextMenuPos { x, y, bounds }
-  → TilesDownloadModal (bbox editable, zoom range slider, source select, output format)
+Toolbar DownloadOutlined button → tilesPanelStore.setOpen(true)
+  (right-click menu item also opens it, pre-setting bbox to the viewport)
+  → TilesDownloadPanel (floating; bbox from drag-select "框选范围" /
+    current viewport "当前视图" / editable numbers; zoom slider, source,
+    output format; bbox drawn on map as dashed-blue rectangle overlay)
   → POST /tiles/download { south, west, north, east, min_zoom, max_zoom,
                            url_template, output: 'mbtiles'|'directory', path, name }
       → python/services/tile_tasks.py: asyncio engine, 6 concurrent workers,
@@ -265,7 +270,10 @@ Right-click (drawMode must be 'off') → ContextMenuPos { x, y, bounds }
 
 ### Key behaviors
 - Tile count hard limit: 200,000 per request (MAX_TILES in routers/tiles.py,
-  mirrored in TilesDownloadModal.tsx); UI warns above 10,000.
+  mirrored in TilesDownloadPanel.tsx); UI warns above 10,000.
+- Panel state lives in tilesPanelStore (open, bbox, selecting). During
+  drag-select the panel disables map dragPan; `selectEndAt` lets MapCanvas's
+  click handler ignore the click fired right after selection mouseup.
 - Resume: re-running against the same .mbtiles file / directory skips existing
   tiles (`has_tile` dedup) — cancel + restart is safe.
 - URL templates come from tileProviders.ts `getTileUrlTemplate()` or a custom
