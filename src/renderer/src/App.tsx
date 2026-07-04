@@ -6,6 +6,7 @@ import LayerPanel from './components/LayerPanel/LayerPanel'
 import MapCanvas from './components/MapCanvas/MapCanvas'
 import StatusBar from './components/StatusBar/StatusBar'
 import { initApi, importGisFile, importGisFileFromFile, type ImportedLayer } from './services/api'
+import { importOfflineMap } from './utils/importOfflineMap'
 import { useLayerStore } from './stores/layerStore'
 import { useMapStore } from './stores/mapStore'
 import { useDrawStore, type DrawMode } from './stores/drawStore'
@@ -169,10 +170,20 @@ export default function App() {
 
   const handleImport = async () => {
     const filePath = await window.electronAPI.openFileDialog([
-      { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx'] },
+      { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx', 'mbtiles'] },
+      { name: '离线地图 (MBTiles / 瓦片目录 metadata.json)', extensions: ['mbtiles', 'json'] },
       { name: 'All Files', extensions: ['*'] }
     ])
     if (!filePath) return
+    // Offline maps: .mbtiles files, or a tile directory picked via its metadata.json
+    if (/\.mbtiles$/i.test(filePath)) {
+      await importOfflineMap(filePath)
+      return
+    }
+    if (/(^|[/\\])metadata\.json$/i.test(filePath)) {
+      await importOfflineMap(filePath.replace(/[/\\]metadata\.json$/i, ''))
+      return
+    }
     try {
       const layers = await importGisFile(filePath)
       const totalFeatures = layers.reduce((sum, l) => sum + l.geojson.features.length, 0)
