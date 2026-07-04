@@ -23,6 +23,7 @@ import FlightTrackingModal from '../FlightTracking/FlightTrackingModal'
 import { useVehicleStore } from '../../stores/vehicleStore'
 import { useFlightStore } from '../../stores/flightStore'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
+import OfflineMapImportButton from './OfflineMapImportButton'
 
 interface Props {
   onImport?: () => void
@@ -73,6 +74,7 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
           onClick={() => setTilesPanelOpen(!tilesPanelOpen)}
         />
       </Tooltip>
+      <OfflineMapImportButton />
       <Divider type="vertical" />
       <Tooltip title={t('toolbar.drawPoint')}>
         <Button

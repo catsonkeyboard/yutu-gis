@@ -31,6 +31,15 @@ export default function LayerPanel({ onExportLayer }: Props) {
     if (layer?.type === 'geojson') {
       const bounds = getGeoJSONBounds(layer.source as GeoJSON.FeatureCollection)
       if (bounds) requestFitBounds(bounds)
+    } else if (layer?.type === 'raster') {
+      const src = layer.source as { bounds?: [number, number, number, number] }
+      if (src.bounds) {
+        const [west, south, east, north] = src.bounds
+        requestFitBounds([
+          [west, south],
+          [east, north]
+        ])
+      }
     }
   }
 
