@@ -87,7 +87,8 @@
     "gdacsLayer": "Disaster alerts (GDACS)",
     "airQuality": "Air Quality",
     "aqiLayer": "AQI stations (WAQI)",
-    "needWaqiKey": "Please configure a WAQI token in Settings first"
+    "needWaqiKey": "Please configure a WAQI token in Settings first",
+    "forecast": "Forecast"
   },
   "osm": {
     "menuItem": "OSM Feature Extraction",

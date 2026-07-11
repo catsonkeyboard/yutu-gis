@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { RainviewerFrame, GibsOverlayKey } from '../services/api'
+import type { RadarFrame, GibsOverlayKey } from '../services/api'
 
 /** Weather overlay keys — 'radar' is RainViewer (no key), the rest are OpenWeatherMap tiles. */
 export type WeatherOverlayKey = 'radar' | 'precipitation' | 'temp' | 'clouds' | 'wind' | 'pressure'
@@ -36,7 +36,10 @@ interface MonitorStoreState {
   /** Fetched data (runtime cache) */
   earthquakes: GeoJSON.FeatureCollection | null
   typhoons: GeoJSON.FeatureCollection | null
-  radarFrame: RainviewerFrame | null
+  /** Radar animation timeline (past + short-term forecast frames) */
+  radarFrames: RadarFrame[]
+  radarIndex: number
+  radarPlaying: boolean
   fires: GeoJSON.FeatureCollection | null
   gdacs: GeoJSON.FeatureCollection | null
   aqi: GeoJSON.FeatureCollection | null
@@ -53,7 +56,12 @@ interface MonitorStoreState {
   setAqiOn: (v: boolean) => void
   setEarthquakes: (fc: GeoJSON.FeatureCollection | null) => void
   setTyphoons: (fc: GeoJSON.FeatureCollection | null) => void
-  setRadarFrame: (f: RainviewerFrame | null) => void
+  /** Replace the frame list; resets the index to the last live (non-forecast) frame. */
+  setRadarFrames: (frames: RadarFrame[]) => void
+  setRadarIndex: (index: number) => void
+  setRadarPlaying: (playing: boolean) => void
+  /** Advance to the next frame (wraps around). */
+  advanceRadar: () => void
   setFires: (fc: GeoJSON.FeatureCollection | null) => void
   setGdacs: (fc: GeoJSON.FeatureCollection | null) => void
   setAqi: (fc: GeoJSON.FeatureCollection | null) => void
@@ -81,7 +89,9 @@ export const useMonitorStore = create<MonitorStoreState>((set) => ({
   aqiOn: false,
   earthquakes: null,
   typhoons: null,
-  radarFrame: null,
+  radarFrames: [],
+  radarIndex: 0,
+  radarPlaying: false,
   fires: null,
   gdacs: null,
   aqi: null,
@@ -98,7 +108,17 @@ export const useMonitorStore = create<MonitorStoreState>((set) => ({
   setAqiOn: (aqiOn) => set({ aqiOn }),
   setEarthquakes: (earthquakes) => set({ earthquakes }),
   setTyphoons: (typhoons) => set({ typhoons }),
-  setRadarFrame: (radarFrame) => set({ radarFrame }),
+  setRadarFrames: (radarFrames) => {
+    let lastLive = radarFrames.length - 1
+    while (lastLive > 0 && radarFrames[lastLive].nowcast) lastLive--
+    set({ radarFrames, radarIndex: Math.max(0, lastLive), radarPlaying: false })
+  },
+  setRadarIndex: (radarIndex) => set({ radarIndex }),
+  setRadarPlaying: (radarPlaying) => set({ radarPlaying }),
+  advanceRadar: () =>
+    set((s) => ({
+      radarIndex: s.radarFrames.length ? (s.radarIndex + 1) % s.radarFrames.length : 0,
+    })),
   setFires: (fires) => set({ fires }),
   setGdacs: (gdacs) => set({ gdacs }),
   setAqi: (aqi) => set({ aqi }),
