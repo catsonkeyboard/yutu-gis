@@ -349,6 +349,26 @@ export async function registerTileSource(path: string): Promise<TileSourceInfo> 
   return postJson('/tiles/sources', { path })
 }
 
+export interface GeoTiffInfo {
+  id: string
+  name: string
+  bounds: [number, number, number, number] // [west, south, east, north]
+  minzoom: number
+  maxzoom: number
+  band_count: number
+  has_overviews: boolean
+}
+
+/** Register a local GeoTIFF/COG as a dynamically rendered tile source. */
+export async function registerGeoTiff(path: string): Promise<GeoTiffInfo> {
+  return postJson('/tiles/geotiff', { path })
+}
+
+/** XYZ URL template for a registered GeoTIFF source. */
+export function getGeoTiffUrlTemplate(sourceId: string): string {
+  return `${baseUrl}/tiles/geotiff/${sourceId}/{z}/{x}/{y}.png`
+}
+
 /** XYZ URL template served by the local Python backend for a registered source. */
 export function getTileSourceUrlTemplate(sourceId: string): string {
   return `${baseUrl}/tiles/sources/${sourceId}/{z}/{x}/{y}`

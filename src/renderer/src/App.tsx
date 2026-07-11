@@ -10,6 +10,7 @@ import {
   type ImportedLayer
 } from './services/api'
 import { importOfflineMap } from './utils/importOfflineMap'
+import { importGeoTiff } from './utils/importGeoTiff'
 import { serializeProject, loadProject } from './services/project'
 import { useLayerStore } from './stores/layerStore'
 import { useMapStore } from './stores/mapStore'
@@ -196,12 +197,18 @@ export default function App() {
 
   const handleImport = async () => {
     const filePath = await window.electronAPI.openFileDialog([
-      { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx', 'pbf', 'mbtiles'] },
+      { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx', 'pbf', 'mbtiles', 'tif', 'tiff'] },
       { name: 'OSM PBF', extensions: ['pbf'] },
       { name: '离线地图 (MBTiles / 瓦片目录 metadata.json)', extensions: ['mbtiles', 'json'] },
+      { name: 'GeoTIFF 影像', extensions: ['tif', 'tiff'] },
       { name: 'All Files', extensions: ['*'] }
     ])
     if (!filePath) return
+    // GeoTIFF/COG imagery — registered server-side, rendered as dynamic tiles
+    if (/\.tiff?$/i.test(filePath)) {
+      await importGeoTiff(filePath)
+      return
+    }
     // Offline maps: .mbtiles files, or a tile directory picked via its metadata.json
     if (/\.mbtiles$/i.test(filePath)) {
       await importOfflineMap(filePath)

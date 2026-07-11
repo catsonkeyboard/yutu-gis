@@ -1,6 +1,11 @@
 import { useLayerStore, type Layer, type LayerStyle } from '../stores/layerStore'
 import { useMapStore, type MapProvider } from '../stores/mapStore'
-import { registerTileSource, getTileSourceUrlTemplate } from './api'
+import {
+  registerTileSource,
+  getTileSourceUrlTemplate,
+  registerGeoTiff,
+  getGeoTiffUrlTemplate,
+} from './api'
 
 export const PROJECT_VERSION = 1
 
@@ -100,23 +105,32 @@ export async function loadProject(json: unknown): Promise<{ warnings: string[] }
       })
     } else if (pl.kind === 'raster') {
       try {
-        const info = await registerTileSource(pl.path)
+        // GeoTIFF imagery and offline maps (MBTiles/tile dirs) re-register
+        // through different endpoints — dispatch by file extension
+        const source = /\.tiff?$/i.test(pl.path)
+          ? await registerGeoTiff(pl.path).then((info) => ({
+              tiles: [getGeoTiffUrlTemplate(info.id)],
+              bounds: info.bounds as [number, number, number, number] | undefined,
+              minzoom: info.minzoom,
+              maxzoom: info.maxzoom,
+            }))
+          : await registerTileSource(pl.path).then((info) => ({
+              tiles: [getTileSourceUrlTemplate(info.source_id)],
+              bounds: info.bounds ?? undefined,
+              minzoom: info.minzoom,
+              maxzoom: info.maxzoom,
+            }))
         restored.push({
           id: pl.id,
           name: pl.name,
           type: 'raster',
           sourcePath: pl.path,
-          source: {
-            tiles: [getTileSourceUrlTemplate(info.source_id)],
-            bounds: info.bounds ?? undefined,
-            minzoom: info.minzoom,
-            maxzoom: info.maxzoom,
-          },
+          source,
           visible: pl.visible,
           opacity: pl.opacity,
         })
       } catch {
-        warnings.push(`离线地图图层「${pl.name}」无法恢复（${pl.path}）`)
+        warnings.push(`栅格图层「${pl.name}」无法恢复（${pl.path}）`)
       }
     }
   }
