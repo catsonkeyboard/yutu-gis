@@ -18,6 +18,7 @@ import {
   CaretRightOutlined,
   CloseOutlined,
   DownOutlined,
+  FileAddOutlined,
   PlusOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
@@ -31,6 +32,7 @@ import {
   sqlListTables,
   sqlQuery,
   sqlQueryGeojson,
+  sqlRegisterFile,
   sqlRegisterTable,
   sqlStatus,
   type SqlQueryResult,
@@ -106,6 +108,25 @@ export default function SqlPanel(): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const handleOpenFile = async () => {
+    const filePath = await window.electronAPI.openFileDialog([
+      {
+        name: '数据文件 (GPKG/SHP/GeoJSON/CSV/Parquet…)',
+        extensions: ['gpkg', 'shp', 'geojson', 'json', 'kml', 'kmz', 'gpx', 'fgb', 'csv', 'parquet'],
+      },
+      { name: 'All Files', extensions: ['*'] },
+    ])
+    if (!filePath) return
+    try {
+      const info = await sqlRegisterFile(filePath)
+      setTables(await sqlListTables())
+      message.success(t('sql.fileRegistered', { table: info.table }))
+      if (!sql.trim()) setSql(`SELECT * FROM "${info.table}" LIMIT 100`)
+    } catch (e) {
+      message.error(parseApiError(e))
+    }
+  }
+
   const insertText = (text: string) => {
     const el = textareaRef.current
     if (!el) {
@@ -174,8 +195,15 @@ export default function SqlPanel(): ReactElement {
     () =>
       tables.map((tb) => ({
         title: (
-          <span style={{ fontSize: 12 }}>
-            {tb.table} <Text type="secondary" style={{ fontSize: 10 }}>({tb.rows})</Text>
+          <span style={{ fontSize: 12 }} title={tb.path ?? undefined}>
+            {tb.table}{' '}
+            {tb.kind === 'file' ? (
+              <Tag color="geekblue" style={{ fontSize: 9, lineHeight: '14px', marginInlineEnd: 0 }}>
+                {t('sql.fileTag')}
+              </Tag>
+            ) : (
+              <Text type="secondary" style={{ fontSize: 10 }}>({tb.rows})</Text>
+            )}
           </span>
         ),
         key: `t:${tb.table}`,
@@ -255,6 +283,11 @@ export default function SqlPanel(): ReactElement {
           </Tag>
         )}
         <Space size={4} style={{ marginLeft: 'auto' }}>
+          <Tooltip title={t('sql.openFileHint')}>
+            <Button size="small" icon={<FileAddOutlined />} onClick={handleOpenFile}>
+              {t('sql.openFile')}
+            </Button>
+          </Tooltip>
           <Tooltip title={t('sql.sync')}>
             <Button size="small" icon={<SyncOutlined />} loading={syncing} onClick={syncLayers}>
               {t('sql.sync')}

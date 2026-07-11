@@ -78,6 +78,27 @@ POST /sql/query/geojson     { sql } → FeatureCollection
 - GCJ-02：注册用 store 中 WGS-84 数据；结果转图层后由 renderLayers 统一处理。
 - 后端重启（应用重启）后表清单为空 → 面板打开时自动同步兜底。
 
+## 磁盘文件直查（v1.1 追加）
+
+不把大数据集加载为地图图层，直接对本地文件建**惰性视图**查询：
+
+```
+POST /sql/files { path, name? } → { table, columns, rows: null, kind: 'file', path }
+```
+
+- `register_file(path)`：按扩展名分派——GIS 格式（gpkg/shp/geojson/json/kml/kmz/
+  gpx/fgb）用 `ST_Read`（需 spatial）；`csv` 用 `read_csv_auto`；`parquet` 用
+  `read_parquet`（后两者无需 spatial）。`CREATE OR REPLACE VIEW <名> AS SELECT *
+  FROM ...`，视图名取文件名净化去重。
+- **不做 count(*)**（大文件全表扫描太慢），`rows` 返回 null，前端显示"文件"Tag
+  而非行数；列信息经 DESCRIBE（惰性，秒回）。
+- 路径为绝对路径（来自 openFileDialog），单机桌面应用不做路径白名单。
+- 注册表与图层表共用清单（`kind: 'layer' | 'file'`），同名去重规则一致；
+  重复注册同一路径 → 复用原视图名（幂等）。
+- 前端：SQL 面板侧栏"打开文件"按钮 → openFileDialog → 注册 → 刷新表清单；
+  文件视图行尾加 Tag 区分。
+- 边界：文件被删除后查询报 GDAL/IO 错误，透传 detail；不主动失效视图。
+
 ## 测试
 
 pytest：表名净化/注册回读（spatial 与降级两路径，spatial 不可用时跳过）、白名单

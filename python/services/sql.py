@@ -28,6 +28,9 @@ ALLOWED_PREFIXES = ('SELECT', 'WITH', 'SHOW', 'DESCRIBE')
 DISPLAY_LIMIT_DEFAULT = 1000
 GEOJSON_CAP = 100_000
 
+# Disk-file views: extensions read via GDAL/ST_Read (needs spatial)
+GIS_FILE_EXTS = {'.gpkg', '.shp', '.geojson', '.json', '.kml', '.kmz', '.gpx', '.fgb'}
+
 
 def _connection():
     global _con, _spatial
@@ -163,14 +166,68 @@ def register_layer(name: str, geojson: dict, layer_id: str | None = None) -> dic
 
         rows = con.execute(f'SELECT count(*) FROM {_quote(table)}').fetchone()[0]
         columns = _describe(con, table)
-        _tables[table] = {'layer_id': layer_id, 'rows': rows, 'columns': columns}
-        return {'table': table, 'columns': columns, 'rows': rows}
+        _tables[table] = {
+            'layer_id': layer_id, 'rows': rows, 'columns': columns,
+            'kind': 'layer', 'path': None,
+        }
+        return {'table': table, 'columns': columns, 'rows': rows, 'kind': 'layer'}
+
+
+def register_file(path: str, name: str | None = None) -> dict:
+    """Register a local file as a lazy VIEW (no data copied into DuckDB).
+
+    GIS formats go through ST_Read (spatial extension required); CSV and
+    Parquet use DuckDB's native readers. Row counts are not computed —
+    a count(*) would scan the whole file, which defeats the purpose.
+    """
+    abspath = str(Path(path).resolve())
+    if not Path(abspath).is_file():
+        raise ValueError(f'文件不存在：{path}')
+
+    ext = Path(abspath).suffix.lower()
+    with _lock:
+        con = _connection()
+        # CREATE VIEW cannot be a prepared statement — inline the path escaped
+        path_literal = "'" + abspath.replace("'", "''") + "'"
+        if ext in GIS_FILE_EXTS:
+            if not _spatial:
+                raise ValueError('spatial 扩展不可用，无法读取 GIS 文件（需联网安装一次）')
+            reader = f'ST_Read({path_literal})'
+        elif ext == '.csv':
+            reader = f'read_csv_auto({path_literal})'
+        elif ext == '.parquet':
+            reader = f'read_parquet({path_literal})'
+        else:
+            raise ValueError(f'不支持的文件类型：{ext}')
+
+        # Same path re-registers into the same view (idempotent)
+        table = None
+        for tname, meta in _tables.items():
+            if meta.get('path') == abspath:
+                table = tname
+                break
+        if table is None:
+            table = _dedupe_table_name(sanitize_table_name(Path(abspath).stem if name is None else name))
+
+        con.execute(f'CREATE OR REPLACE VIEW {_quote(table)} AS SELECT * FROM {reader}')
+        columns = _describe(con, table)
+        _tables[table] = {
+            'layer_id': None, 'rows': None, 'columns': columns,
+            'kind': 'file', 'path': abspath,
+        }
+        return {'table': table, 'columns': columns, 'rows': None, 'kind': 'file', 'path': abspath}
 
 
 def list_tables() -> list[dict]:
     with _lock:
         return [
-            {'table': t, 'rows': meta['rows'], 'columns': meta['columns']}
+            {
+                'table': t,
+                'rows': meta['rows'],
+                'columns': meta['columns'],
+                'kind': meta.get('kind', 'layer'),
+                'path': meta.get('path'),
+            }
             for t, meta in _tables.items()
         ]
 

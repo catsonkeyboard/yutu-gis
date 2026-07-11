@@ -16,6 +16,11 @@ class QueryRequest(BaseModel):
     limit: int = 1000
 
 
+class FileRequest(BaseModel):
+    path: str
+    name: str | None = None
+
+
 @router.get("/status")
 async def status():
     return {"spatial": sql_service.spatial_enabled()}
@@ -32,6 +37,17 @@ async def register_table(req: RegisterRequest):
         return sql_service.register_layer(req.name, req.geojson, req.layer_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"注册图层失败：{e}")
+
+
+@router.post("/files")
+async def register_file(req: FileRequest):
+    """Register a local file (GPKG/SHP/GeoJSON/CSV/Parquet…) as a lazy view."""
+    try:
+        return sql_service.register_file(req.path, req.name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"读取文件失败：{e}")
 
 
 @router.post("/query")
