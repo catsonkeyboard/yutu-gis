@@ -7,6 +7,7 @@ from services.gis import file_to_layers
 from services import wfs as wfs_service
 from services import osm as osm_service
 from services import pbf as pbf_service
+from services import export as export_service
 
 router = APIRouter()
 
@@ -48,6 +49,28 @@ async def import_pbf(req: PbfImportRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"PBF 解析失败：{e}")
+
+
+# ---------------------------------------------------------------------------
+# Layer export (SHP / GPKG / KML / CSV — GeoJSON is written by the renderer)
+# ---------------------------------------------------------------------------
+
+class ExportRequest(BaseModel):
+    geojson: dict
+    format: str
+    path: str   # target directory
+    name: str   # base file name (sanitized server-side)
+
+
+@router.post("/export")
+async def export_layer(req: ExportRequest):
+    try:
+        files = export_service.export_layer(req.geojson, req.format, req.path, req.name)
+        return {'files': files}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"导出失败：{e}")
 
 
 # ---------------------------------------------------------------------------
