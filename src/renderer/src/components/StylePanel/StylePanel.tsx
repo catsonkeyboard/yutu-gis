@@ -144,8 +144,15 @@ export default function StylePanel(): ReactElement | null {
           { value: 'single', label: t('style.modeSingle') },
           { value: 'categorized', label: t('style.modeCategorized') },
           { value: 'graduated', label: t('style.modeGraduated') },
+          { value: 'cluster', label: t('style.modeCluster') },
+          { value: 'heatmap', label: t('style.modeHeatmap') },
         ]}
       />
+      {(style.mode === 'cluster' || style.mode === 'heatmap') && (
+        <div style={{ fontSize: 11, color: '#8f959e', marginTop: 2 }}>
+          {t('style.pointsOnlyHint')}
+        </div>
+      )}
 
       {/* Base symbol */}
       <div style={labelStyle}>{t('style.baseSymbol')}</div>
@@ -212,6 +219,32 @@ export default function StylePanel(): ReactElement | null {
         value={layer.opacity}
         onChange={(v) => setOpacity(layer.id, v)}
       />
+
+      {/* Cluster / heatmap parameters */}
+      {style.mode === 'cluster' && (
+        <>
+          <div style={labelStyle}>{t('style.clusterRadius')}</div>
+          <Slider
+            min={20}
+            max={120}
+            step={5}
+            value={style.clusterRadius ?? 50}
+            onChange={(v) => update({ clusterRadius: v })}
+          />
+        </>
+      )}
+      {style.mode === 'heatmap' && (
+        <>
+          <div style={labelStyle}>{t('style.heatRadius')}</div>
+          <Slider
+            min={5}
+            max={60}
+            step={1}
+            value={style.heatRadius ?? 20}
+            onChange={(v) => update({ heatRadius: v })}
+          />
+        </>
+      )}
 
       {/* Categorized */}
       {style.mode === 'categorized' && (
