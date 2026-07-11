@@ -1,0 +1,54 @@
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from services import sql as sql_service
+
+router = APIRouter()
+
+
+class RegisterRequest(BaseModel):
+    name: str
+    geojson: dict
+    layer_id: str | None = None
+
+
+class QueryRequest(BaseModel):
+    sql: str
+    limit: int = 1000
+
+
+@router.get("/status")
+async def status():
+    return {"spatial": sql_service.spatial_enabled()}
+
+
+@router.get("/tables")
+async def tables():
+    return {"tables": sql_service.list_tables()}
+
+
+@router.post("/tables")
+async def register_table(req: RegisterRequest):
+    try:
+        return sql_service.register_layer(req.name, req.geojson, req.layer_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"注册图层失败：{e}")
+
+
+@router.post("/query")
+async def query(req: QueryRequest):
+    try:
+        return sql_service.run_query(req.sql, req.limit)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/query/geojson")
+async def query_geojson(req: QueryRequest):
+    try:
+        return sql_service.query_as_geojson(req.sql)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
