@@ -42,6 +42,22 @@ export function wgs84ToGcj02(lng: number, lat: number): [number, number] {
   return [lng + dlng, lat + dlat]
 }
 
+/**
+ * Convert a single [lng, lat] pair from GCJ-02 back to WGS-84 (iterative
+ * inverse of wgs84ToGcj02; converges to <1e-7° in a few iterations).
+ */
+export function gcj02ToWgs84(lng: number, lat: number): [number, number] {
+  if (outOfChina(lng, lat)) return [lng, lat]
+  let wgsLng = lng
+  let wgsLat = lat
+  for (let i = 0; i < 6; i++) {
+    const [gLng, gLat] = wgs84ToGcj02(wgsLng, wgsLat)
+    wgsLng += lng - gLng
+    wgsLat += lat - gLat
+  }
+  return [wgsLng, wgsLat]
+}
+
 function transformPositions(coords: unknown): unknown {
   if (!Array.isArray(coords)) return coords
   if (typeof coords[0] === 'number') {
