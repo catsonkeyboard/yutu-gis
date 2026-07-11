@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { List, Switch, Button, Typography, Empty, Tooltip } from 'antd'
+import { useEffect, useRef, useState } from 'react'
+import { List, Switch, Button, Typography, Empty, Tooltip, Input } from 'antd'
 import { BgColorsOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useLayerStore } from '../../stores/layerStore'
@@ -15,7 +15,15 @@ interface Props {
 
 export default function LayerPanel({ onExportLayer }: Props) {
   const { t } = useTranslation()
-  const { layers, selectedLayerId, toggleVisible, removeLayer, setSelectedLayer } = useLayerStore()
+  const { layers, selectedLayerId, toggleVisible, removeLayer, setSelectedLayer, rename } =
+    useLayerStore()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+
+  const commitRename = () => {
+    if (editingId && editingName.trim()) rename(editingId, editingName.trim())
+    setEditingId(null)
+  }
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
   const openStylePanel = useStylePanelStore((s) => s.openFor)
   const listRef = useRef<HTMLDivElement>(null)
@@ -143,15 +151,36 @@ export default function LayerPanel({ onExportLayer }: Props) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, overflow: 'hidden' }}>
                   <EyeOutlined style={{ color: isSelected ? '#1a6fb5' : '#646a73', flexShrink: 0 }} />
-                  <Tooltip title={layer.name}>
-                    <Text
-                      ellipsis
-                      strong={isSelected}
-                      style={{ fontSize: 12, flex: 1, minWidth: 0, color: isSelected ? '#1a6fb5' : undefined }}
-                    >
-                      {layer.name}
-                    </Text>
-                  </Tooltip>
+                  {editingId === layer.id ? (
+                    <Input
+                      size="small"
+                      value={editingName}
+                      autoFocus
+                      style={{ fontSize: 12, flex: 1, minWidth: 0 }}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onPressEnter={commitRename}
+                      onBlur={commitRename}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setEditingId(null)
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <Tooltip title={`${layer.name}（双击重命名）`}>
+                      <Text
+                        ellipsis
+                        strong={isSelected}
+                        style={{ fontSize: 12, flex: 1, minWidth: 0, color: isSelected ? '#1a6fb5' : undefined }}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          setEditingId(layer.id)
+                          setEditingName(layer.name)
+                        }}
+                      >
+                        {layer.name}
+                      </Text>
+                    </Tooltip>
+                  )}
                 </div>
               </List.Item>
             )
