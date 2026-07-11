@@ -190,5 +190,12 @@
     "noValues": "No usable values in this field",
     "tooManyCategories": "Too many unique values, using top {{cap}}",
     "reset": "Reset to default"
+  },
+  "measure": {
+    "distanceMode": "Distance",
+    "areaMode": "Area",
+    "hint": "Click to add · double-click to finish · right-click to undo",
+    "clear": "Clear",
+    "exit": "Exit"
   }
 }

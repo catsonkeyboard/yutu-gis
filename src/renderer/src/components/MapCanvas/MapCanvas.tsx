@@ -15,6 +15,8 @@ import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
 import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
 import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
 import MonitorLayer, { bringMonitorLayersToTop } from './MonitorLayer'
+import MeasureLayer, { bringMeasureLayersToTop } from './MeasureLayer'
+import { useMeasureStore } from '../../stores/measureStore'
 import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
 import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
 import AnalysisPanel from '../Analysis/AnalysisPanel'
@@ -152,11 +154,13 @@ export default function MapCanvas({ onSave }: Props) {
     bringVehicleLayersToTop(map)
     bringFlightLayersToTop(map)
     bringMonitorLayersToTop(map)
+    bringMeasureLayersToTop(map)
   }
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault()
     if (drawModeRef.current !== 'off') return
+    if (useMeasureStore.getState().mode !== 'off') return // right-click undoes a measure vertex
     const map = mapRef.current
     if (!map) return
     const b = map.getBounds()
@@ -199,6 +203,7 @@ export default function MapCanvas({ onSave }: Props) {
     // Click: select layer by clicking on its features
     map.on('click', (e) => {
       if (drawModeRef.current !== 'off') return
+      if (useMeasureStore.getState().mode !== 'off') return
       // Ignore the click synthesized right after a bbox drag selection
       if (Date.now() - useTilesPanelStore.getState().selectEndAt < 300) return
       if (Date.now() - useOsmPanelStore.getState().selectEndAt < 300) return
@@ -223,6 +228,7 @@ export default function MapCanvas({ onSave }: Props) {
         map.getCanvas().style.cursor = ''
         return
       }
+      if (useMeasureStore.getState().mode !== 'off') return // MeasureLayer owns the cursor
       const style = map.getStyle()
       if (!style) return
       const userLayerIds = style.layers
@@ -310,6 +316,7 @@ export default function MapCanvas({ onSave }: Props) {
       <VehicleLayer map={mapInstance} />
       <FlightLayer map={mapInstance} />
       <MonitorLayer map={mapInstance} />
+      <MeasureLayer map={mapInstance} />
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => {
