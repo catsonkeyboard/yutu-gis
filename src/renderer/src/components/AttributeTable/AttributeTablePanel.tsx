@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { Button, Empty, Input, Popover, Select, Space, Table, Tooltip, Typography, message } from 'antd'
+import { Button, Empty, Input, Popover, Radio, Select, Space, Table, Tooltip, Typography, message } from 'antd'
 import type { TableProps } from 'antd'
 import { CloseOutlined, FilterOutlined, InfoCircleOutlined, SaveOutlined } from '@ant-design/icons'
 import { nanoid } from 'nanoid'
@@ -17,6 +17,7 @@ import {
   type ColumnInfo,
   type FilterOp,
 } from './tableUtils'
+import ChartsTab from './ChartsTab'
 
 const { Text } = Typography
 
@@ -69,6 +70,7 @@ export default function AttributeTablePanel(): ReactElement {
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
   const { height, filter, setOpen, setHeight, setFilter } = useAttributeTableStore()
 
+  const [activeTab, setActiveTab] = useState<'table' | 'charts'>('table')
   const [filterField, setFilterField] = useState<string | undefined>(undefined)
   const [filterOp, setFilterOp] = useState<FilterOp>('eq')
   const [filterValue, setFilterValue] = useState('')
@@ -247,6 +249,19 @@ export default function AttributeTablePanel(): ReactElement {
         <Text strong style={{ fontSize: 13, flexShrink: 0 }}>
           {t('attrTable.title')}
         </Text>
+        {isVector && (
+          <Radio.Group
+            size="small"
+            optionType="button"
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            options={[
+              { value: 'table', label: t('attrTable.tabTable') },
+              { value: 'charts', label: t('attrTable.tabCharts') },
+            ]}
+            style={{ flexShrink: 0 }}
+          />
+        )}
         {selectedLayer && (
           <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>
             {selectedLayer.name} ·{' '}
@@ -319,6 +334,10 @@ export default function AttributeTablePanel(): ReactElement {
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           style={{ marginTop: 24 }}
         />
+      ) : activeTab === 'charts' ? (
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <ChartsTab features={filtered} columns={colInfos} height={height} />
+        </div>
       ) : (
         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <Table<Row>
