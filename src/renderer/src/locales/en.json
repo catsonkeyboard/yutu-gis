@@ -228,5 +228,13 @@
     "copied": "Copied to clipboard",
     "failed": "Export failed",
     "noMap": "Map not ready"
+  },
+  "swipe": {
+    "title": "Swipe Compare",
+    "hint": "The selected layer shows right of the divider",
+    "selectLayer": "Select swipe layer",
+    "on": "On",
+    "off": "Off",
+    "blocked": "Unavailable while drawing/measuring"
   }
 }

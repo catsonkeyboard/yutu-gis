@@ -17,6 +17,8 @@ import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
 import MonitorLayer, { bringMonitorLayersToTop } from './MonitorLayer'
 import MeasureLayer, { bringMeasureLayersToTop } from './MeasureLayer'
 import RadarTimelineBar from './RadarTimelineBar'
+import SwipeOverlay from './SwipeOverlay'
+import { useSwipeStore } from '../../stores/swipeStore'
 import { useMeasureStore } from '../../stores/measureStore'
 import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
 import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
@@ -67,6 +69,9 @@ export default function MapCanvas({ onSave }: Props) {
     currentSelectedId = selectedLayerIdRef.current,
   ) => {
     const needsGcj02 = currentProvider.startsWith('amap')
+    // The swipe-compare layer renders only on the overlay map
+    const swipe = useSwipeStore.getState()
+    const swipeLayerId = swipe.enabled ? swipe.layerId : null
     // Remove all user layers first
     const existingLayers = map.getStyle().layers
       .filter((l) => l.id.startsWith('user-'))
@@ -84,7 +89,7 @@ export default function MapCanvas({ onSave }: Props) {
 
     // Offline raster tile layers first — they sit under vector data layers
     layerList
-      .filter((l) => l.visible && l.type === 'raster')
+      .filter((l) => l.visible && l.type === 'raster' && l.id !== swipeLayerId)
       .forEach((layer) => {
         const sourceId = `user-${layer.id}`
         const src = layer.source as {
@@ -111,7 +116,7 @@ export default function MapCanvas({ onSave }: Props) {
 
     // Add current visible layers
     layerList
-      .filter((l) => l.visible && l.type === 'geojson')
+      .filter((l) => l.visible && l.type === 'geojson' && l.id !== swipeLayerId)
       .forEach((layer) => {
         const sourceId = `user-${layer.id}`
         const isSelected = layer.id === currentSelectedId
@@ -263,6 +268,16 @@ export default function MapCanvas({ onSave }: Props) {
     map.fitBounds(fitBoundsRequest.bounds as maplibregl.LngLatBoundsLike, { padding: 60, maxZoom: 16 })
   }, [fitBoundsRequest])
 
+  // Re-render user layers when swipe compare state changes (hide/show swipe layer)
+  const swipeEnabled = useSwipeStore((s) => s.enabled)
+  const swipeLayerId = useSwipeStore((s) => s.layerId)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !map.isStyleLoaded()) return
+    renderLayers(map, layersRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [swipeEnabled, swipeLayerId])
+
   // Jump to an exact center/zoom when requested (project open, bookmarks)
   useEffect(() => {
     const map = mapRef.current
@@ -331,6 +346,7 @@ export default function MapCanvas({ onSave }: Props) {
       <MonitorLayer map={mapInstance} />
       <MeasureLayer map={mapInstance} />
       <RadarTimelineBar />
+      <SwipeOverlay map={mapInstance} />
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => {
