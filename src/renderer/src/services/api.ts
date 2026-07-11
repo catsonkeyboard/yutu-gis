@@ -18,6 +18,15 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return resp.json() as Promise<T>
 }
 
+async function getJson<T>(path: string): Promise<T> {
+  const resp = await fetch(`${baseUrl}${path}`)
+  if (!resp.ok) {
+    const detail = await resp.text()
+    throw new Error(detail)
+  }
+  return resp.json() as Promise<T>
+}
+
 /** Extract FastAPI's {"detail": "..."} message from a thrown error, if present. */
 export function parseApiError(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e)
@@ -117,6 +126,112 @@ export async function ogcGetFeatures(
 
 export async function osmExtract(south: number, west: number, north: number, east: number): Promise<GeoJSON.FeatureCollection> {
   return postJson('/data/osm/extract', { south, west, north, east })
+}
+
+// ---------------------------------------------------------------------------
+// Data monitoring (weather / earthquakes / typhoons)
+// ---------------------------------------------------------------------------
+
+export interface RainviewerFrame {
+  host: string
+  path: string
+  time: number | null
+  tile_template: string
+}
+
+/** USGS earthquakes (proxied by the Python backend). */
+export async function fetchEarthquakes(feed = 'all_day'): Promise<GeoJSON.FeatureCollection> {
+  return getJson(`/monitor/earthquakes?feed=${encodeURIComponent(feed)}`)
+}
+
+/** Active west-Pacific typhoon tracks as GeoJSON (proxied by the Python backend). */
+export async function fetchTyphoons(): Promise<GeoJSON.FeatureCollection> {
+  return getJson('/monitor/typhoons')
+}
+
+/** Latest RainViewer precipitation radar frame. */
+export async function fetchRainviewerFrame(): Promise<RainviewerFrame> {
+  return getJson('/monitor/rainviewer')
+}
+
+/** OpenWeatherMap raster tile template — loaded directly by MapLibre, key required. */
+export function getOwmTileTemplate(owmLayer: string, apiKey: string): string {
+  return `https://tile.openweathermap.org/map/${owmLayer}/{z}/{x}/{y}.png?appid=${apiKey}`
+}
+
+/** NASA FIRMS wildfire detections, last 24 h (proxied; free MAP_KEY required). */
+export async function fetchFires(
+  apiKey: string
+): Promise<GeoJSON.FeatureCollection & { truncated?: boolean }> {
+  return getJson(`/monitor/fires?key=${encodeURIComponent(apiKey)}`)
+}
+
+/** GDACS global disaster alerts (proxied, no key). */
+export async function fetchGdacs(): Promise<GeoJSON.FeatureCollection> {
+  return getJson('/monitor/gdacs')
+}
+
+/** WAQI air-quality stations in a bbox (proxied; free token required). */
+export async function fetchWaqi(
+  token: string,
+  south: number,
+  west: number,
+  north: number,
+  east: number
+): Promise<GeoJSON.FeatureCollection> {
+  const params = new URLSearchParams({
+    token,
+    south: String(south),
+    west: String(west),
+    north: String(north),
+    east: String(east),
+  })
+  return getJson(`/monitor/waqi?${params}`)
+}
+
+/** NASA GIBS WMTS satellite imagery layers (no key). */
+export interface GibsLayerDef {
+  id: string
+  matrixSet: string
+  ext: 'jpg' | 'png'
+  maxzoom: number
+  /** Daily layers need an explicit UTC date; static layers accept 'default'. */
+  daily: boolean
+}
+
+export const GIBS_LAYERS = {
+  truecolor: {
+    id: 'MODIS_Terra_CorrectedReflectance_TrueColor',
+    matrixSet: 'GoogleMapsCompatible_Level9',
+    ext: 'jpg',
+    maxzoom: 9,
+    daily: true,
+  },
+  sst: {
+    id: 'GHRSST_L4_MUR_Sea_Surface_Temperature',
+    matrixSet: 'GoogleMapsCompatible_Level7',
+    ext: 'png',
+    maxzoom: 7,
+    daily: true,
+  },
+  nightlights: {
+    id: 'VIIRS_Black_Marble',
+    matrixSet: 'GoogleMapsCompatible_Level8',
+    ext: 'png',
+    maxzoom: 8,
+    daily: false,
+  },
+} as const satisfies Record<string, GibsLayerDef>
+
+export type GibsOverlayKey = keyof typeof GIBS_LAYERS
+
+/** GIBS raster tile template; daily layers use yesterday (UTC) for full coverage. */
+export function getGibsTileTemplate(key: GibsOverlayKey): string {
+  const def = GIBS_LAYERS[key]
+  const time = def.daily
+    ? new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 10)
+    : 'default'
+  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${def.id}/default/${time}/${def.matrixSet}/{z}/{y}/{x}.${def.ext}`
 }
 
 // ---------------------------------------------------------------------------

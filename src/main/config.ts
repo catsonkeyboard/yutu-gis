@@ -6,6 +6,9 @@ export interface AppConfig {
   language: 'zh' | 'en'
   googleMap: { apiKey: string }
   amap: { apiKey: string }
+  openWeather: { apiKey: string }
+  firms: { apiKey: string }
+  waqi: { apiKey: string }
   download: { dir: string }
 }
 
@@ -13,6 +16,9 @@ const DEFAULT_CONFIG: AppConfig = {
   language: 'zh',
   googleMap: { apiKey: '' },
   amap: { apiKey: '' },
+  openWeather: { apiKey: '' },
+  firms: { apiKey: '' },
+  waqi: { apiKey: '' },
   download: { dir: join(homedir(), 'Downloads') }
 }
 

@@ -116,7 +116,7 @@ Python venv path: `<project_root>/python/.venv/bin/python3.12`
 Structure:
 ```json
 { "language": "zh", "googleMap": { "apiKey": "" }, "amap": { "apiKey": "" },
-  "download": { "dir": "<home>/Downloads" } }
+  "openWeather": { "apiKey": "" }, "download": { "dir": "<home>/Downloads" } }
 ```
 - `loadConfig()` merges file contents with `DEFAULT_CONFIG` — missing keys fall back to defaults.
 - `saveConfig()` is called from `SettingsModal` when the user saves settings.
@@ -313,6 +313,41 @@ MBTiles metadata table or metadata.json, with fallbacks for foreign files)
 
 ---
 
+## Data Monitoring 数据监控
+
+Toolbar FundOutlined button → Popover panel (controlled, stays open while
+toggling) with checkboxes for live overlays. Badge dot + primary button state
+while any overlay is active. State in `monitorStore` (runtime only).
+
+| Overlay | Source | Key | Rendering |
+|---|---|---|---|
+| 降水雷达 | RainViewer `GET /monitor/rainviewer` → latest frame tile template | none | raster |
+| 降水/温度/云量/风场/气压 | OpenWeatherMap `tile.openweathermap.org/map/{layer}/…?appid=KEY` (URL built in renderer, `getOwmTileTemplate`) | `openWeather.apiKey` in config | raster |
+| 卫星影像 真彩/海温/夜光 | NASA GIBS WMTS (URL built in renderer, `getGibsTileTemplate`; daily layers use yesterday UTC — truecolor 404s with `default` time; static Black Marble uses `default`) | none | raster, `maxzoom` from `GIBS_LAYERS` (7–9) |
+| 地震 | USGS via `GET /monitor/earthquakes?feed=all_day` (props slimmed to mag/place/time/depth/url) | none | circles sized/colored by magnitude |
+| 台风 | 温州台风网 istrongcloud via `GET /monitor/typhoons` — active (`is_current`) typhoons, else latest of the year; features tagged `kind: track/point/forecast/forecast-point/label`; forecast = 中国 agency | none | solid track + dashed forecast, points colored by CMA intensity scale |
+| 火点 | NASA FIRMS via `GET /monitor/fires?key=…` (VIIRS S-NPP world last 24 h CSV→GeoJSON; low-confidence dropped, capped MAX_FIRES=20k by FRP, `truncated` flag; FIRMS returns key errors as HTTP-200 plain text — detected server-side) | `firms.apiKey` in config | circles sized/colored by FRP |
+| 灾害警报 | GDACS via `GET /monitor/gdacs` (Point features only, deduped per event; 60 s timeout — slow multi-MB feed) | none | circles colored Green/Orange/Red + eventtype text |
+| 空气质量 | WAQI via `GET /monitor/waqi?token&south&west&north&east` — fetched for the **current viewport**, refetched on `moveend` (1.2 s debounce) | `waqi.apiKey` in config | circles in EPA AQI colors + value label |
+
+- Backend: `python/routers/monitor.py` + `python/services/monitor.py`
+  (httpx + system proxy mounts, same as WFS/OSM). Vector data proxied through
+  Python; raster tiles loaded directly by MapLibre.
+- Renderer: `MapCanvas/MonitorLayer.tsx` (modeled on FlightLayer). Raster
+  overlays are inserted **below** the first `user-*`/`monitor-v-*` layer;
+  vector overlays use the `monitor-v-` prefix and are kept on top via
+  `bringMonitorLayersToTop(map)` (called in `renderLayers`). Click on
+  quake/typhoon points opens a maplibre Popup. Re-syncs on `style.load`.
+- Refresh: earthquakes 5 min, typhoons/radar/GDACS/AQI 10 min, fires 30 min.
+  Toggling off clears cached data.
+- GCJ-02: quake/typhoon GeoJSON converted with `convertToGcj02` on Amap
+  basemaps; weather raster tiles stay WGS-84 (inherent offset on Amap, same
+  caveat as offline tiles).
+- Key-gated overlays (OWM / FIRMS / WAQI) without a configured key: enabling is
+  blocked with a message and the Settings modal is opened (`onSettings` passed
+  through Toolbar). Keys live in `~/.yutugis/config.json`:
+  `openWeather.apiKey` / `firms.apiKey` / `waqi.apiKey`.
+
 ## IPC API (`window.electronAPI`)
 
 ```ts
@@ -321,7 +356,7 @@ readFile(path: string): Promise<ArrayBuffer>
 writeFile(path: string, content: string): Promise<void>
 openFileDialog(filters): Promise<string | null>
 saveFileDialog(filters): Promise<string | null>
-loadConfig(): Promise<{ language: 'zh'|'en'; googleMap: { apiKey: string }; amap: { apiKey: string } }>
+loadConfig(): Promise<{ language: 'zh'|'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; openWeather: { apiKey: string }; download: { dir: string } }>
 saveConfig(config): Promise<void>
 onMenuAction(cb: (action: string) => void): () => void
 ```

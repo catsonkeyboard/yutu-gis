@@ -25,13 +25,22 @@ export default function SettingsModal({ open, onClose }: Props) {
   const handleOk = async () => {
     const values = await form.validateFields()
     setLanguage(values.language)
-    setApiKeys({ google: values.googleKey ?? '', amap: values.amapKey ?? '' })
+    setApiKeys({
+      google: values.googleKey ?? '',
+      amap: values.amapKey ?? '',
+      openweather: values.openWeatherKey ?? '',
+      firms: values.firmsKey ?? '',
+      waqi: values.waqiKey ?? '',
+    })
     setDownloadDir(values.downloadDir ?? '')
     await i18n.changeLanguage(values.language)
     await window.electronAPI.saveConfig({
       language: values.language,
       googleMap: { apiKey: values.googleKey ?? '' },
       amap: { apiKey: values.amapKey ?? '' },
+      openWeather: { apiKey: values.openWeatherKey ?? '' },
+      firms: { apiKey: values.firmsKey ?? '' },
+      waqi: { apiKey: values.waqiKey ?? '' },
       download: { dir: values.downloadDir ?? '' },
     })
     onClose()
@@ -54,6 +63,9 @@ export default function SettingsModal({ open, onClose }: Props) {
           language,
           googleKey: apiKeys.google,
           amapKey: apiKeys.amap,
+          openWeatherKey: apiKeys.openweather,
+          firmsKey: apiKeys.firms,
+          waqiKey: apiKeys.waqi,
           downloadDir,
         }}
         style={{ marginTop: 16 }}
@@ -99,6 +111,30 @@ export default function SettingsModal({ open, onClose }: Props) {
           extra="用于高德地图（当前使用公共服务，无需 Key）"
         >
           <Input.Password placeholder="your-amap-key" autoComplete="off" />
+        </Form.Item>
+
+        <Form.Item
+          name="openWeatherKey"
+          label={t('settings.openWeatherKey')}
+          extra={t('settings.openWeatherKeyHint')}
+        >
+          <Input.Password placeholder="OpenWeatherMap API Key" autoComplete="off" />
+        </Form.Item>
+
+        <Form.Item
+          name="firmsKey"
+          label={t('settings.firmsKey')}
+          extra={t('settings.firmsKeyHint')}
+        >
+          <Input.Password placeholder="NASA FIRMS MAP_KEY" autoComplete="off" />
+        </Form.Item>
+
+        <Form.Item
+          name="waqiKey"
+          label={t('settings.waqiKey')}
+          extra={t('settings.waqiKeyHint')}
+        >
+          <Input.Password placeholder="WAQI token" autoComplete="off" />
         </Form.Item>
       </Form>
     </Modal>

@@ -28,7 +28,41 @@
   "settings": {
     "title": "Settings", "language": "Language", "apiKeys": "API Keys",
     "googleKey": "Google Maps API Key", "amapKey": "Amap API Key", "save": "Save",
+    "openWeatherKey": "OpenWeatherMap API Key",
+    "openWeatherKeyHint": "Used by weather overlays (temperature/clouds/wind) in Data Monitor — free signup at openweathermap.org",
+    "firmsKey": "NASA FIRMS MAP Key",
+    "firmsKeyHint": "Used by the wildfire overlay in Data Monitor — free at firms.modaps.eosdis.nasa.gov",
+    "waqiKey": "WAQI Token",
+    "waqiKeyHint": "Used by the air-quality overlay in Data Monitor — free at aqicn.org/data-platform/token",
     "downloadDir": "Default Download Directory", "downloadDirHint": "Default location for map tiles and other downloads", "browse": "Browse"
+  },
+  "monitor": {
+    "title": "Data Monitor",
+    "weather": "Weather",
+    "radar": "Precipitation Radar (RainViewer)",
+    "precipitation": "Precipitation (OWM)",
+    "temp": "Temperature (OWM)",
+    "clouds": "Clouds (OWM)",
+    "wind": "Wind (OWM)",
+    "pressure": "Pressure (OWM)",
+    "owmHint": "OWM layers need an OpenWeatherMap key",
+    "goSettings": "Settings",
+    "needKey": "Please configure an OpenWeatherMap API key in Settings first",
+    "satellite": "Satellite Imagery (NASA GIBS)",
+    "gibs": {
+      "truecolor": "True-color imagery (daily)",
+      "sst": "Sea surface temperature",
+      "nightlights": "Night lights"
+    },
+    "hazards": "Hazards",
+    "quakeLayer": "Global earthquakes (past 24 h · USGS)",
+    "typhoonLayer": "West Pacific typhoon tracks (live + forecast)",
+    "fireLayer": "Global wildfires (past 24 h · FIRMS)",
+    "needFirmsKey": "Please configure a NASA FIRMS MAP key in Settings first",
+    "gdacsLayer": "Disaster alerts (GDACS)",
+    "airQuality": "Air Quality",
+    "aqiLayer": "AQI stations (WAQI)",
+    "needWaqiKey": "Please configure a WAQI token in Settings first"
   },
   "osm": {
     "menuItem": "OSM Feature Extraction",
