@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export interface LayerStyle {
-  mode: 'single' | 'categorized' | 'graduated'
+  mode: 'single' | 'categorized' | 'graduated' | 'cluster' | 'heatmap'
   fillColor: string
   strokeColor: string
   strokeWidth: number
@@ -12,6 +12,14 @@ export interface LayerStyle {
   breaks?: { max: number | null; color: string }[]
   fallbackColor?: string
   rampName?: string
+  /** Text label by attribute (independent of the symbology mode). */
+  labelField?: string
+  labelSize?: number
+  labelColor?: string
+  /** cluster mode */
+  clusterRadius?: number
+  /** heatmap mode */
+  heatRadius?: number
 }
 
 export interface Layer {

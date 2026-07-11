@@ -203,7 +203,10 @@
     "quantile": "Quantile",
     "noValues": "No usable values in this field",
     "tooManyCategories": "Too many unique values, using top {{cap}}",
-    "reset": "Reset to default"
+    "reset": "Reset to default",
+    "labelSection": "Labels",
+    "labelField": "Label field",
+    "labelSize": "Size"
   },
   "measure": {
     "distanceMode": "Distance",

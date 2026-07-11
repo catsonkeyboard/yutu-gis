@@ -203,7 +203,10 @@
     "quantile": "分位数",
     "noValues": "该字段没有可用的值",
     "tooManyCategories": "唯一值过多，仅取前 {{cap}} 类",
-    "reset": "恢复默认样式"
+    "reset": "恢复默认样式",
+    "labelSection": "标注",
+    "labelField": "标注字段",
+    "labelSize": "字号"
   },
   "measure": {
     "distanceMode": "测距",

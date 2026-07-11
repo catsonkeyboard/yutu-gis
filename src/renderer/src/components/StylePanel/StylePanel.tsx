@@ -341,6 +341,42 @@ export default function StylePanel(): ReactElement | null {
         </>
       )}
 
+      {/* Labels — independent of the symbology mode */}
+      <Divider style={{ margin: '8px 0' }} />
+      <div style={labelStyle}>{t('style.labelSection')}</div>
+      <Space size={8} wrap>
+        <Select
+          size="small"
+          style={{ width: 140 }}
+          value={style.labelField}
+          onChange={(v) => update({ labelField: v })}
+          options={allFields}
+          placeholder={t('style.labelField')}
+          allowClear
+          showSearch
+        />
+        {style.labelField && (
+          <>
+            <span style={{ fontSize: 12 }}>
+              {t('style.labelSize')}{' '}
+              <InputNumber
+                size="small"
+                min={8}
+                max={32}
+                value={style.labelSize ?? 12}
+                onChange={(v) => update({ labelSize: v ?? 12 })}
+                style={{ width: 56 }}
+              />
+            </span>
+            <ColorPicker
+              size="small"
+              value={style.labelColor ?? '#333333'}
+              onChange={(c) => update({ labelColor: c.toHexString() })}
+            />
+          </>
+        )}
+      </Space>
+
       <Divider style={{ margin: '8px 0' }} />
       <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
         <Button size="small" onClick={() => setStyle(layer.id, undefined)}>
