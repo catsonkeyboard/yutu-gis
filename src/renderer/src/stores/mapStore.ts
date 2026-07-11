@@ -13,17 +13,25 @@ interface FitBoundsRequest {
   timestamp: number
 }
 
+interface JumpToRequest {
+  center: [number, number]
+  zoom: number
+  timestamp: number
+}
+
 interface MapState {
   center: [number, number]
   zoom: number
   rotation: number
   provider: MapProvider
   fitBoundsRequest: FitBoundsRequest | null
+  jumpToRequest: JumpToRequest | null
   setCenter: (center: [number, number]) => void
   setZoom: (zoom: number) => void
   setRotation: (rotation: number) => void
   setProvider: (provider: MapProvider) => void
   requestFitBounds: (bounds: [[number, number], [number, number]]) => void
+  requestJumpTo: (center: [number, number], zoom: number) => void
   reset: () => void
 }
 
@@ -33,6 +41,7 @@ const DEFAULT = {
   rotation: 0,
   provider: 'osm' as MapProvider,
   fitBoundsRequest: null as FitBoundsRequest | null,
+  jumpToRequest: null as JumpToRequest | null,
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -42,5 +51,6 @@ export const useMapStore = create<MapState>((set) => ({
   setRotation: (rotation) => set({ rotation }),
   setProvider: (provider) => set({ provider }),
   requestFitBounds: (bounds) => set({ fitBoundsRequest: { bounds, timestamp: Date.now() } }),
+  requestJumpTo: (center, zoom) => set({ jumpToRequest: { center, zoom, timestamp: Date.now() } }),
   reset: () => set(DEFAULT),
 }))

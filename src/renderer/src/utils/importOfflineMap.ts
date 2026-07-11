@@ -17,6 +17,7 @@ export async function importOfflineMap(path: string): Promise<void> {
       id,
       name: info.name,
       type: 'raster',
+      sourcePath: path,
       source: {
         tiles: [getTileSourceUrlTemplate(info.source_id)],
         bounds: info.bounds ?? undefined,

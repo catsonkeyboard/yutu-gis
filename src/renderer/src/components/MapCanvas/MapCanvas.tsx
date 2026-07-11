@@ -40,7 +40,7 @@ export default function MapCanvas({ onSave }: Props) {
   const drawMode = useDrawStore((s) => s.drawMode)
   const drawModeRef = useRef(drawMode)
   const setFeatures = useDrawStore((s) => s.setFeatures)
-  const { center, zoom, provider, fitBoundsRequest, setCenter, setZoom } = useMapStore()
+  const { center, zoom, provider, fitBoundsRequest, jumpToRequest, setCenter, setZoom } = useMapStore()
   const { apiKeys } = useSettingsStore()
   const layers = useLayerStore((s) => s.layers)
   const selectedLayerId = useLayerStore((s) => s.selectedLayerId)
@@ -256,6 +256,13 @@ export default function MapCanvas({ onSave }: Props) {
     if (!map || !fitBoundsRequest) return
     map.fitBounds(fitBoundsRequest.bounds as maplibregl.LngLatBoundsLike, { padding: 60, maxZoom: 16 })
   }, [fitBoundsRequest])
+
+  // Jump to an exact center/zoom when requested (project open, bookmarks)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !jumpToRequest) return
+    map.jumpTo({ center: jumpToRequest.center, zoom: jumpToRequest.zoom })
+  }, [jumpToRequest])
 
   // Update style when provider or API keys change
   useEffect(() => {
