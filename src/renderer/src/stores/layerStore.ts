@@ -45,6 +45,8 @@ interface LayerState {
   setOpacity: (id: string, opacity: number) => void
   setStyle: (id: string, style: LayerStyle | undefined) => void
   rename: (id: string, name: string) => void
+  /** Replace a layer's data wholesale (field calculator etc.). */
+  setSource: (id: string, source: object) => void
   setSelectedLayer: (id: string | null) => void
   setSelectedFeatureProps: (props: Record<string, unknown> | null) => void
   appendFeatures: (id: string, features: GeoJSON.Feature[]) => void
@@ -71,6 +73,8 @@ export const useLayerStore = create<LayerState>((set) => ({
     set((s) => ({ layers: s.layers.map((l) => (l.id === id ? { ...l, style } : l)) })),
   rename: (id, name) =>
     set((s) => ({ layers: s.layers.map((l) => (l.id === id ? { ...l, name } : l)) })),
+  setSource: (id, source) =>
+    set((s) => ({ layers: s.layers.map((l) => (l.id === id ? { ...l, source } : l)) })),
   setSelectedLayer: (id) => set({ selectedLayerId: id, selectedFeatureProps: null }),
   setSelectedFeatureProps: (props) => set({ selectedFeatureProps: props }),
   appendFeatures: (id, newFeatures) =>

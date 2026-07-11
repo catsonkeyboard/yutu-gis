@@ -280,6 +280,60 @@ def run_query(sql: str, limit: int = DISPLAY_LIMIT_DEFAULT) -> dict:
         return {'columns': columns, 'rows': rows, 'row_count': len(rows), 'truncated': truncated}
 
 
+def calculate_field(geojson: dict, expression: str, field_name: str) -> dict:
+    """Field calculator: add a computed column (any DuckDB scalar expression,
+    spatial functions included) and return the layer as a new FeatureCollection.
+
+    Uses a throwaway table outside the user-facing registry.
+    """
+    if ';' in expression:
+        raise ValueError('表达式不能包含分号')
+    field = sanitize_table_name(field_name)
+    existing_keys = set()
+    for f in (geojson or {}).get('features', []):
+        existing_keys.update((f.get('properties') or {}).keys())
+    if field in existing_keys:
+        raise ValueError(f'字段已存在：{field}')
+
+    with _lock:
+        con = _connection()
+        tmp = '__calc_tmp'
+        try:
+            if _spatial:
+                _register_spatial(con, tmp, geojson)
+            else:
+                _register_fallback(con, tmp, geojson)
+
+            columns = _describe(con, tmp)
+            geom_col = next((c['name'] for c in columns if c['geometry']), None)
+            keep = [c['name'] for c in columns if c['name'] not in (geom_col, 'OGC_FID')]
+
+            select_parts = [_quote(k) for k in keep]
+            select_parts.append(f'({expression}) AS {_quote(field)}')
+            if geom_col:
+                geom_expr = (
+                    f'ST_AsGeoJSON({_quote(geom_col)})'
+                    if _spatial and _is_geometry_type(next(c['type'] for c in columns if c['name'] == geom_col))
+                    else _quote(geom_col)
+                )
+                select_parts.append(f'{geom_expr} AS __geom')
+            rows = con.execute(f'SELECT {", ".join(select_parts)} FROM {_quote(tmp)}').fetchall()
+        finally:
+            con.execute(f'DROP TABLE IF EXISTS {_quote(tmp)}')
+
+    prop_names = keep + [field]
+    features = []
+    for row in rows:
+        geom_raw = row[len(prop_names)] if geom_col else None
+        try:
+            geometry = json.loads(geom_raw) if isinstance(geom_raw, str) else geom_raw
+        except (json.JSONDecodeError, TypeError):
+            geometry = None
+        props = {prop_names[i]: _json_safe(row[i]) for i in range(len(prop_names))}
+        features.append({'type': 'Feature', 'geometry': geometry, 'properties': props})
+    return {'type': 'FeatureCollection', 'features': features}
+
+
 def export_query(sql: str, path: str) -> dict:
     """Export the FULL query result to a CSV file (display is capped, this is not)."""
     stmt = _validate(sql)
