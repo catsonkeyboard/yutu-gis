@@ -18,7 +18,9 @@
     "drawPolygon": "Polygon",
     "measure": "Measure",
     "measureArea": "Area",
-    "zoomFit": "Fit"
+    "zoomFit": "Fit",
+    "openProject": "Open Project",
+    "saveProject": "Save Project"
   },
   "layer": {
     "panel": "Layers",

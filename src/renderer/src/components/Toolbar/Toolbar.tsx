@@ -40,9 +40,19 @@ interface Props {
   onSettings?: () => void
   onWFS?: () => void
   onDrawModeChange?: (mode: DrawMode | 'off') => void
+  onOpenProject?: () => void
+  onSaveProject?: () => void
 }
 
-export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawModeChange }: Props) {
+export default function Toolbar({
+  onImport,
+  onExport,
+  onSettings,
+  onWFS,
+  onDrawModeChange,
+  onOpenProject,
+  onSaveProject,
+}: Props) {
   const { t } = useTranslation()
   const drawMode = useDrawStore((s) => s.drawMode)
   const [locationSearchOpen, setLocationSearchOpen] = useState(false)
@@ -74,11 +84,11 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
 
   return (
     <Space style={{ padding: '0 8px', height: '100%' }} size={4}>
-      <Tooltip title={t('toolbar.open')}>
-        <Button icon={<FolderOpenOutlined />} type="text" size="small" />
+      <Tooltip title={t('toolbar.openProject')}>
+        <Button icon={<FolderOpenOutlined />} type="text" size="small" onClick={onOpenProject} />
       </Tooltip>
-      <Tooltip title={t('toolbar.save')}>
-        <Button icon={<SaveOutlined />} type="text" size="small" />
+      <Tooltip title={t('toolbar.saveProject')}>
+        <Button icon={<SaveOutlined />} type="text" size="small" onClick={onSaveProject} />
       </Tooltip>
       <Divider type="vertical" />
       <Tooltip title={t('toolbar.import')}>

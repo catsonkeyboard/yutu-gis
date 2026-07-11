@@ -18,7 +18,9 @@
     "drawPolygon": "画面",
     "measure": "测距",
     "measureArea": "测面",
-    "zoomFit": "缩放适配"
+    "zoomFit": "缩放适配",
+    "openProject": "打开工程",
+    "saveProject": "保存工程"
   },
   "layer": {
     "panel": "图层",
