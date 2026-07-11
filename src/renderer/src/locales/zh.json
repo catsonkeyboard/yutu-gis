@@ -108,7 +108,9 @@
     "selectDir": "选择导出目录",
     "success": "已导出 {{count}} 个图层",
     "selectAll": "全选",
-    "errorFile": "导出失败：{{name}} — {{error}}"
+    "errorFile": "导出失败：{{name}} — {{error}}",
+    "format": "格式",
+    "shpHint": "混合几何类型将按点/线/面拆分为多个 .shp 文件"
   },
   "common": {
     "cancel": "取消"

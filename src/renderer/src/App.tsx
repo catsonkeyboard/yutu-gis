@@ -45,6 +45,7 @@ export default function App() {
   const [pendingImportLayers, setPendingImportLayers] = useState<ImportedLayer[]>([])
   const [importMode, setImportMode] = useState<'merge' | 'split'>('merge')
   const [exportOpen, setExportOpen] = useState(false)
+  const [exportLayerId, setExportLayerId] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const addLayer = useLayerStore((s) => s.addLayer)
   const appendFeatures = useLayerStore((s) => s.appendFeatures)
@@ -291,19 +292,9 @@ export default function App() {
     }
   }
 
-  const handleExportLayer = async (layerId: string) => {
-    const layer = useLayerStore.getState().layers.find((l) => l.id === layerId)
-    if (!layer) return
-    const filePath = await window.electronAPI.saveFileDialog([
-      { name: 'GeoJSON', extensions: ['geojson'] }
-    ])
-    if (!filePath) return
-    try {
-      await window.electronAPI.writeFile(filePath, JSON.stringify(layer.source, null, 2))
-      message.success(`已导出：${layer.name}`)
-    } catch (e) {
-      message.error(`导出失败：${(e as Error).message}`)
-    }
+  const handleExportLayer = (layerId: string) => {
+    setExportLayerId(layerId)
+    setExportOpen(true)
   }
 
   return (
@@ -445,7 +436,14 @@ export default function App() {
         <StatusBar />
       </Footer>
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <ExportLayersModal open={exportOpen} onClose={() => setExportOpen(false)} />
+      <ExportLayersModal
+        open={exportOpen}
+        initialLayerId={exportLayerId}
+        onClose={() => {
+          setExportOpen(false)
+          setExportLayerId(null)
+        }}
+      />
       <WFSModal
         open={wfsOpen}
         onClose={() => setWfsOpen(false)}
