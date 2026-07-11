@@ -6,7 +6,7 @@ type BookmarkEntry = {
   provider: string
   createdAt: number
 }
-type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; openWeather: { apiKey: string }; firms: { apiKey: string }; waqi: { apiKey: string }; download: { dir: string }; bookmarks: BookmarkEntry[] }
+type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; openWeather: { apiKey: string }; firms: { apiKey: string }; waqi: { apiKey: string }; download: { dir: string }; bookmarks: BookmarkEntry[]; recentProjects: string[] }
 type VehicleServerConfig = { host: string; port: number; protocol: 'udp' | 'tcp' }
 type VehiclePacket = {
   time: number

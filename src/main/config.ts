@@ -20,6 +20,7 @@ export interface AppConfig {
   waqi: { apiKey: string }
   download: { dir: string }
   bookmarks: BookmarkEntry[]
+  recentProjects: string[]
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -30,7 +31,8 @@ const DEFAULT_CONFIG: AppConfig = {
   firms: { apiKey: '' },
   waqi: { apiKey: '' },
   download: { dir: join(homedir(), 'Downloads') },
-  bookmarks: []
+  bookmarks: [],
+  recentProjects: []
 }
 
 function getConfigDir(): string {

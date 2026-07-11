@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Space, Divider, Tooltip, Badge } from 'antd'
+import { Button, Space, Divider, Tooltip, Badge, Dropdown } from 'antd'
 import {
   FolderOpenOutlined,
   SaveOutlined,
@@ -47,6 +47,8 @@ interface Props {
   onDrawModeChange?: (mode: DrawMode | 'off') => void
   onOpenProject?: () => void
   onSaveProject?: () => void
+  recentProjects?: string[]
+  onOpenRecent?: (path: string) => void
 }
 
 export default function Toolbar({
@@ -57,6 +59,8 @@ export default function Toolbar({
   onDrawModeChange,
   onOpenProject,
   onSaveProject,
+  recentProjects = [],
+  onOpenRecent,
 }: Props) {
   const { t } = useTranslation()
   const drawMode = useDrawStore((s) => s.drawMode)
@@ -91,9 +95,35 @@ export default function Toolbar({
 
   return (
     <Space style={{ padding: '0 8px', height: '100%' }} size={4}>
-      <Tooltip title={t('toolbar.openProject')}>
-        <Button icon={<FolderOpenOutlined />} type="text" size="small" onClick={onOpenProject} />
-      </Tooltip>
+      <Dropdown
+        menu={{
+          items: [
+            { key: '__open', label: t('toolbar.openProject') + '…' },
+            ...(recentProjects.length
+              ? [
+                  { type: 'divider' as const },
+                  ...recentProjects.map((p) => ({
+                    key: p,
+                    label: (
+                      <Tooltip title={p} placement="right">
+                        <span style={{ fontSize: 12 }}>{p.split('/').pop()}</span>
+                      </Tooltip>
+                    ),
+                  })),
+                ]
+              : []),
+          ],
+          onClick: ({ key }) => {
+            if (key === '__open') onOpenProject?.()
+            else onOpenRecent?.(key)
+          },
+        }}
+        trigger={['click']}
+      >
+        <Tooltip title={t('toolbar.openProject')}>
+          <Button icon={<FolderOpenOutlined />} type="text" size="small" />
+        </Tooltip>
+      </Dropdown>
       <Tooltip title={t('toolbar.saveProject')}>
         <Button icon={<SaveOutlined />} type="text" size="small" onClick={onSaveProject} />
       </Tooltip>
