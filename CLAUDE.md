@@ -378,6 +378,30 @@ Do not tighten `img-src` or `connect-src` — tiles will stop loading.
 
 ---
 
+## GeoLibre 对标功能（2026-07 新增）
+
+设计文档在 `docs/superpowers/specs/2026-07-11-*.md`，实施计划在
+`docs/superpowers/plans/`。总览：`2026-07-11-geolibre-features-overview.md`。
+
+| 功能 | 关键位置 | 说明 |
+|---|---|---|
+| 属性表 | `components/AttributeTable/`（`tableUtils.ts` 纯逻辑）、`attributeTableStore` | 底部面板；虚拟表格、排序、按值过滤、列头统计 Popover、筛选另存图层；表格/图表双页签 |
+| 属性图表 | `AttributeTable/ChartsTab.tsx` + `chartUtils.ts` | 直方图/柱状/饼图，手写 SVG（零依赖），基于过滤后行集 |
+| 矢量分析 | `python/services/analysis.py`、`components/Analysis/AnalysisPanel.tsx` | `POST /analysis/run`；10 种 op；米制运算用图层质心 UTM 带投影；与瓦片/OSM 面板互斥 |
+| 图层符号化 | `layerStore.LayerStyle`、`components/StylePanel/`（`styleUtils.buildPaint`） | 单一/分类（match 表达式）/分级（step 表达式）；**带 style 的图层不参与选中橙色高亮**；LayerPanel 行内调出 |
+| 测量工具 | `measureStore`、`MapCanvas/MeasureLayer.tsx`、`utils/geodesy.ts` | 独立于 MapboxDraw；单击加点/双击结束/右键撤销；Amap 底图下 `gcj02ToWgs84` 逆变换后存 WGS-84 |
+| 多格式导出 | `python/services/export.py`、`ExportLayersModal`（`initialLayerId` 复用单图层入口） | SHP（按点/线/面拆分、字段名 10 字节截断）/GPKG（Unknown 泛型几何）/KML、CSV（stdlib 手写）；GeoJSON 仍前端直写 |
+| 工程文件 | `services/project.ts`、`.yutugis` JSON | geojson 内联、raster 存 `sourcePath` 重注册；恢复视角用 `mapStore.requestJumpTo`；工具栏 + File 菜单 Cmd+O/S |
+| 空间书签 | `bookmarkStore`、`Toolbar/BookmarkDropdown.tsx` | 持久化到 config `bookmarks[]`；写入走 **`config:update` 局部合并 IPC**（防止互相覆盖，SettingsModal 也已切换） |
+| 地图出图 | `utils/mapExport.ts`、`Toolbar/MapExportDropdown.tsx`、`services/mapRef.ts` | 地图初始化已开 `preserveDrawingBuffer`；PNG 导出（`fs:writeFileBinary` IPC）/剪贴板；右下角合成署名 |
+| GeoTIFF/COG | `python/services/geotiff_sources.py`、`utils/importGeoTiff.ts` | `POST /tiles/geotiff` 注册（sha1 幂等）+ 动态瓦片 `GET /tiles/geotiff/{id}/{z}/{x}/{y}.png`；WarpedVRT→3857、2–98 百分位拉伸、渲染全局锁；统一导入流程接 `.tif/.tiff` |
+| 雷达时间滑块 | `monitorStore.radarFrames/radarIndex/radarPlaying`、`MapCanvas/RadarTimelineBar.tsx` | `/monitor/rainviewer` 返回 `frames[]`（past+nowcast，旧字段保留）；MonitorLayer 每帧一个 source，切帧只改 opacity |
+| 卷帘对比 | `swipeStore`、`MapCanvas/SwipeOverlay.tsx`、`Toolbar/SwipeDropdown.tsx` | 副地图 + CSS clip-path；主图 renderLayers 跳过卷帘层；相机单向同步；绘制/测量时禁用 |
+
+远期未做：AI 助手（自然语言 GIS）、SQL 工作台 —— 见总览文档"远期项"。
+
+---
+
 ## Known Pitfalls
 
 - **fiona requires Python 3.12** — pre-built wheels are available on PyPI. Python 3.13+ has no fiona wheels; do not upgrade Python version.
