@@ -10,6 +10,7 @@ import {
   type ImportedLayer
 } from './services/api'
 import { importOfflineMap } from './utils/importOfflineMap'
+import { serializeProject, loadProject } from './services/project'
 import { useLayerStore } from './stores/layerStore'
 import { useMapStore } from './stores/mapStore'
 import { useDrawStore, type DrawMode } from './stores/drawStore'
@@ -83,11 +84,13 @@ export default function App() {
   useEffect(() => {
     // Listen for menu actions from main process
     const cleanup = window.electronAPI.onMenuAction((action) => {
-      if (action === 'import') {
-        // handled by Toolbar
-      }
+      if (action === 'import') handleImport()
+      else if (action === 'export') setExportOpen(true)
+      else if (action === 'open') handleOpenProject()
+      else if (action === 'save') handleSaveProject()
     })
     return cleanup
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSiderResizeStart = (e: React.MouseEvent) => {
@@ -292,6 +295,48 @@ export default function App() {
     }
   }
 
+  const handleSaveProject = async () => {
+    const filePath = await window.electronAPI.saveFileDialog([
+      { name: 'YutuGIS 工程', extensions: ['yutugis'] }
+    ])
+    if (!filePath) return
+    try {
+      await window.electronAPI.writeFile(filePath, JSON.stringify(serializeProject()))
+      message.success(`已保存工程：${filePath.split('/').pop()}`)
+    } catch (e) {
+      message.error(`保存工程失败：${(e as Error).message}`)
+    }
+  }
+
+  const handleOpenProject = async () => {
+    const filePath = await window.electronAPI.openFileDialog([
+      { name: 'YutuGIS 工程', extensions: ['yutugis'] }
+    ])
+    if (!filePath) return
+    if (useLayerStore.getState().layers.length > 0) {
+      const ok = await new Promise<boolean>((resolve) => {
+        Modal.confirm({
+          title: '打开工程',
+          content: '打开工程将替换当前所有图层，是否继续？',
+          okText: '继续',
+          cancelText: '取消',
+          onOk: () => resolve(true),
+          onCancel: () => resolve(false)
+        })
+      })
+      if (!ok) return
+    }
+    try {
+      const buffer = await window.electronAPI.readFile(filePath)
+      const json = JSON.parse(new TextDecoder().decode(buffer))
+      const { warnings } = await loadProject(json)
+      warnings.forEach((w) => message.warning(w))
+      message.success('工程已打开')
+    } catch (e) {
+      message.error(`打开工程失败：${(e as Error).message}`)
+    }
+  }
+
   const handleExportLayer = (layerId: string) => {
     setExportLayerId(layerId)
     setExportOpen(true)
@@ -311,6 +356,8 @@ export default function App() {
         <Toolbar
           onSettings={() => setSettingsOpen(true)}
           onImport={handleImport}
+          onOpenProject={handleOpenProject}
+          onSaveProject={handleSaveProject}
           onExport={() => setExportOpen(true)}
           onWFS={() => setWfsOpen(true)}
           onDrawModeChange={handleDrawModeChange}

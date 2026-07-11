@@ -7,6 +7,17 @@ export function buildMenu(win: BrowserWindow): void {
       label: '文件',
       submenu: [
         {
+          label: '打开工程...',
+          accelerator: 'CmdOrCtrl+O',
+          click: () => win.webContents.send('menu:open'),
+        },
+        {
+          label: '保存工程...',
+          accelerator: 'CmdOrCtrl+S',
+          click: () => win.webContents.send('menu:save'),
+        },
+        { type: 'separator' },
+        {
           label: '导入数据...',
           accelerator: 'CmdOrCtrl+I',
           click: () => win.webContents.send('menu:import'),
