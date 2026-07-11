@@ -17,6 +17,8 @@ import {
   ThunderboltOutlined,
   TableOutlined,
   ExperimentOutlined,
+  ColumnWidthOutlined,
+  ExpandOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
@@ -30,6 +32,7 @@ import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
 import { useAttributeTableStore } from '../../stores/attributeTableStore'
 import { useAnalysisPanelStore } from '../../stores/analysisPanelStore'
+import { useMeasureStore, type MeasureMode } from '../../stores/measureStore'
 
 interface Props {
   onImport?: () => void
@@ -56,8 +59,17 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
   const analysisOpen = useAnalysisPanelStore((s) => s.open)
   const setAnalysisOpen = useAnalysisPanelStore((s) => s.setOpen)
 
+  const measureMode = useMeasureStore((s) => s.mode)
+  const setMeasureMode = useMeasureStore((s) => s.setMode)
+
   const handleDraw = (mode: DrawMode) => {
+    setMeasureMode('off') // drawing and measuring are mutually exclusive
     onDrawModeChange?.(drawMode === mode ? 'off' : mode)
+  }
+
+  const handleMeasure = (mode: Exclude<MeasureMode, 'off'>) => {
+    if (drawMode !== 'off') onDrawModeChange?.('off')
+    setMeasureMode(measureMode === mode ? 'off' : mode)
   }
 
   return (
@@ -151,6 +163,22 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
           type={drawMode === 'polygon' ? 'primary' : 'text'}
           size="small"
           onClick={() => handleDraw('polygon')}
+        />
+      </Tooltip>
+      <Tooltip title={t('toolbar.measure')}>
+        <Button
+          icon={<ColumnWidthOutlined />}
+          type={measureMode === 'distance' ? 'primary' : 'text'}
+          size="small"
+          onClick={() => handleMeasure('distance')}
+        />
+      </Tooltip>
+      <Tooltip title={t('toolbar.measureArea')}>
+        <Button
+          icon={<ExpandOutlined />}
+          type={measureMode === 'area' ? 'primary' : 'text'}
+          size="small"
+          onClick={() => handleMeasure('area')}
         />
       </Tooltip>
       <Divider type="vertical" />
