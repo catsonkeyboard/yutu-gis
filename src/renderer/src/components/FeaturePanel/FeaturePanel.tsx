@@ -4,7 +4,7 @@ import { Table, Tag, Typography, Empty, Divider } from 'antd'
 import type { TableProps } from 'antd'
 import { useLayerStore } from '../../stores/layerStore'
 import { useMapStore } from '../../stores/mapStore'
-import { getGeoJSONBounds } from '../../utils/geo'
+import { getFeatureBounds, matchesSelectedProps } from '../../utils/geo'
 
 const { Text } = Typography
 const PAGE_SIZE = 50
@@ -20,32 +20,6 @@ interface FeatureRow {
 interface PropRow {
   key: string
   value: string
-}
-
-function matchesSelected(
-  props: Record<string, unknown>,
-  selected: Record<string, unknown> | null
-): boolean {
-  if (!selected) return false
-  if (props._osm_id !== undefined && selected._osm_id !== undefined) {
-    return props._osm_id === selected._osm_id && props._osm_type === selected._osm_type
-  }
-  return JSON.stringify(props) === JSON.stringify(selected)
-}
-
-function getFeatureBounds(feature: GeoJSON.Feature): [[number, number], [number, number]] | null {
-  const bounds = getGeoJSONBounds({ type: 'FeatureCollection', features: [feature] })
-  if (!bounds) return null
-  const [[minLon, minLat], [maxLon, maxLat]] = bounds
-  // Point: add buffer so fitBounds has a meaningful area
-  if (minLon === maxLon && minLat === maxLat) {
-    const d = 0.005
-    return [
-      [minLon - d, minLat - d],
-      [maxLon + d, maxLat + d]
-    ]
-  }
-  return bounds
 }
 
 export default function FeaturePanel(): ReactElement {
@@ -82,7 +56,7 @@ export default function FeaturePanel(): ReactElement {
 
   const selectedRowKey = useMemo(() => {
     if (!selectedFeatureProps) return undefined
-    const idx = featureRows.findIndex((r) => matchesSelected(r.props, selectedFeatureProps))
+    const idx = featureRows.findIndex((r) => matchesSelectedProps(r.props, selectedFeatureProps))
     return idx >= 0 ? idx : undefined
   }, [featureRows, selectedFeatureProps])
 

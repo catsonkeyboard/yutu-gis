@@ -63,7 +63,13 @@ export default function App() {
       .loadConfig()
       .then((cfg) => {
         setLanguage(cfg.language)
-        setApiKeys({ google: cfg.googleMap.apiKey, amap: cfg.amap.apiKey })
+        setApiKeys({
+          google: cfg.googleMap.apiKey,
+          amap: cfg.amap.apiKey,
+          openweather: cfg.openWeather?.apiKey ?? '',
+          firms: cfg.firms?.apiKey ?? '',
+          waqi: cfg.waqi?.apiKey ?? '',
+        })
         setDownloadDir(cfg.download.dir)
         i18n.changeLanguage(cfg.language)
       })

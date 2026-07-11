@@ -19,6 +19,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
 import LocationSearchModal from './LocationSearchModal'
+import MonitorDropdown from './MonitorDropdown'
 import VehicleTrackingModal from '../VehicleTracking/VehicleTrackingModal'
 import FlightTrackingModal from '../FlightTracking/FlightTrackingModal'
 import { useVehicleStore } from '../../stores/vehicleStore'
@@ -149,6 +150,7 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
         </Badge>
       </Tooltip>
       <FlightTrackingModal open={flightTrackingOpen} onClose={() => setFlightTrackingOpen(false)} />
+      <MonitorDropdown onSettings={onSettings} />
       <Divider type="vertical" />
       <Tooltip title={t('settings.title')}>
         <Button icon={<SettingOutlined />} type="text" size="small" onClick={onSettings} />

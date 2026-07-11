@@ -28,7 +28,41 @@
   "settings": {
     "title": "设置", "language": "界面语言", "apiKeys": "API 密钥",
     "googleKey": "Google Maps API Key", "amapKey": "高德地图 API Key", "save": "保存",
+    "openWeatherKey": "OpenWeatherMap API Key",
+    "openWeatherKeyHint": "用于数据监控中的温度/云量/风场等气象图层（openweathermap.org 免费注册）",
+    "firmsKey": "NASA FIRMS MAP Key",
+    "firmsKeyHint": "用于数据监控中的全球火点图层（firms.modaps.eosdis.nasa.gov 免费申请）",
+    "waqiKey": "WAQI Token",
+    "waqiKeyHint": "用于数据监控中的空气质量图层（aqicn.org/data-platform/token 免费申请）",
     "downloadDir": "默认下载目录", "downloadDirHint": "地图瓦片等下载内容的默认保存位置", "browse": "浏览"
+  },
+  "monitor": {
+    "title": "数据监控",
+    "weather": "气象监控",
+    "radar": "降水雷达（RainViewer）",
+    "precipitation": "降水（OWM）",
+    "temp": "温度（OWM）",
+    "clouds": "云量（OWM）",
+    "wind": "风场（OWM）",
+    "pressure": "气压（OWM）",
+    "owmHint": "OWM 图层需 OpenWeatherMap Key",
+    "goSettings": "去设置",
+    "needKey": "请先在设置中配置 OpenWeatherMap API Key",
+    "satellite": "卫星影像（NASA GIBS）",
+    "gibs": {
+      "truecolor": "真彩卫星云图（每日）",
+      "sst": "海表温度",
+      "nightlights": "夜间灯光"
+    },
+    "hazards": "灾害监控",
+    "quakeLayer": "全球地震（近 24 小时 · USGS）",
+    "typhoonLayer": "西太平洋台风路径（实况 + 预报）",
+    "fireLayer": "全球火点（近 24 小时 · FIRMS）",
+    "needFirmsKey": "请先在设置中配置 NASA FIRMS MAP Key",
+    "gdacsLayer": "综合灾害警报（GDACS）",
+    "airQuality": "空气质量",
+    "aqiLayer": "AQI 监测站点（WAQI）",
+    "needWaqiKey": "请先在设置中配置 WAQI Token"
   },
   "osm": {
     "menuItem": "OSM 要素提取",

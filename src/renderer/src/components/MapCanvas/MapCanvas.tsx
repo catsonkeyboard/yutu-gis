@@ -14,6 +14,7 @@ import DrawHintBanner from './DrawHintBanner'
 import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
 import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
 import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
+import MonitorLayer, { bringMonitorLayersToTop } from './MonitorLayer'
 import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
 import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
@@ -141,9 +142,10 @@ export default function MapCanvas({ onSave }: Props) {
         })
       })
 
-    // Ensure vehicle layers stay on top of user data layers
+    // Ensure vehicle/flight/monitor overlay layers stay on top of user data layers
     bringVehicleLayersToTop(map)
     bringFlightLayersToTop(map)
+    bringMonitorLayersToTop(map)
   }
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -300,6 +302,7 @@ export default function MapCanvas({ onSave }: Props) {
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       <VehicleLayer map={mapInstance} />
       <FlightLayer map={mapInstance} />
+      <MonitorLayer map={mapInstance} />
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => {
