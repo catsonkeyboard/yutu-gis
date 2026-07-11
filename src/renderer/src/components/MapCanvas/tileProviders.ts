@@ -97,6 +97,13 @@ export function getTileStyle(provider: MapProvider, apiKeys: ApiKeys): StyleSpec
   return styles[provider]
 }
 
+/** Plain-text data attribution for a provider (baked into exported images). */
+export function getAttribution(provider: MapProvider): string {
+  if (provider === 'osm') return '© OpenStreetMap contributors'
+  if (provider.startsWith('google')) return '© Google'
+  return '© 高德地图'
+}
+
 /** Extract the raw {z}/{x}/{y} tile URL template for a provider (for tile download). */
 export function getTileUrlTemplate(provider: MapProvider, apiKeys: ApiKeys): string {
   const style = getTileStyle(provider, apiKeys)

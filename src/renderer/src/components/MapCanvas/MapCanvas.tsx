@@ -22,6 +22,7 @@ import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
 import AnalysisPanel from '../Analysis/AnalysisPanel'
 import StylePanel from '../StylePanel/StylePanel'
 import { buildPaint } from '../StylePanel/styleUtils'
+import { setMap as setGlobalMap } from '../../services/mapRef'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
 
@@ -178,6 +179,8 @@ export default function MapCanvas({ onSave }: Props) {
       center: center,
       zoom: zoom,
       attributionControl: {},
+      // Keep the WebGL drawing buffer readable for map export (PNG/clipboard)
+      canvasContextAttributes: { preserveDrawingBuffer: true },
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
@@ -242,11 +245,13 @@ export default function MapCanvas({ onSave }: Props) {
 
     mapRef.current = map
     setMapInstance(map)
+    setGlobalMap(map)
 
     return () => {
       map.remove()
       mapRef.current = null
       setMapInstance(null)
+      setGlobalMap(null)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
