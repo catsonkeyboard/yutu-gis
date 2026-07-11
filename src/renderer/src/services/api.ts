@@ -162,8 +162,10 @@ export interface SqlColumn {
 
 export interface SqlTableInfo {
   table: string
-  rows: number
+  rows: number | null // null for lazy file views (no full scan)
   columns: SqlColumn[]
+  kind?: 'layer' | 'file'
+  path?: string | null
 }
 
 export interface SqlQueryResult {
@@ -189,6 +191,11 @@ export async function sqlRegisterTable(
   layerId: string
 ): Promise<SqlTableInfo> {
   return postJson('/sql/tables', { name, geojson, layer_id: layerId })
+}
+
+/** Register a local file (GPKG/SHP/GeoJSON/CSV/Parquet…) as a lazy DuckDB view. */
+export async function sqlRegisterFile(path: string): Promise<SqlTableInfo> {
+  return postJson('/sql/files', { path })
 }
 
 export async function sqlQuery(sql: string, limit = 1000): Promise<SqlQueryResult> {

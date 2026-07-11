@@ -256,6 +256,10 @@
     "truncated": "showing first 1000 rows",
     "addAsLayer": "Add result as layer",
     "layerAdded": "Layer added: {{name}} ({{count}} features)",
-    "emptyGeojson": "No usable geometry in the result"
+    "emptyGeojson": "No usable geometry in the result",
+    "openFile": "Open file",
+    "openFileHint": "Query a local GPKG/SHP/GeoJSON/CSV/Parquet file as a lazy view (not loaded onto the map)",
+    "fileRegistered": "File view registered: {{table}}",
+    "fileTag": "FILE"
   }
 }

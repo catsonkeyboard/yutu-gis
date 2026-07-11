@@ -256,6 +256,10 @@
     "truncated": "已截断显示前 1000 行",
     "addAsLayer": "结果添加为图层",
     "layerAdded": "已添加图层：{{name}}（{{count}} 个要素）",
-    "emptyGeojson": "结果没有可用几何，未创建图层"
+    "emptyGeojson": "结果没有可用几何，未创建图层",
+    "openFile": "打开文件",
+    "openFileHint": "把本地 GPKG/SHP/GeoJSON/CSV/Parquet 文件注册为惰性视图直接查询（不加载到地图）",
+    "fileRegistered": "已注册文件视图：{{table}}",
+    "fileTag": "文件"
   }
 }

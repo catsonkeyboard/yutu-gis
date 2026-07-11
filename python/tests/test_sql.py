@@ -113,3 +113,64 @@ class TestQueryAsGeojson:
         sql_service.register_layer('poly', fc(SQUARE))
         with pytest.raises(ValueError):
             sql_service.query_as_geojson('SELECT name FROM poly')
+
+
+class TestRegisterFile:
+    def _write_geojson(self, tmp_path):
+        import json
+        p = tmp_path / '城市数据.geojson'
+        p.write_text(json.dumps(fc(
+            point_geom(116.4, 39.9, {'name': '北京'}),
+            point_geom(121.47, 31.23, {'name': '上海'}),
+        ), ensure_ascii=False), encoding='utf-8')
+        return str(p)
+
+    @pytest.mark.skipif(not sql_service.spatial_enabled(), reason='spatial extension unavailable')
+    def test_geojson_file_as_view(self, tmp_path):
+        path = self._write_geojson(tmp_path)
+        info = sql_service.register_file(path)
+        assert info['table'] == '城市数据'
+        assert info['kind'] == 'file'
+        assert info['rows'] is None
+        colnames = [c['name'] for c in info['columns']]
+        assert 'name' in colnames
+        assert any(c['geometry'] for c in info['columns'])
+
+        result = sql_service.run_query('SELECT name FROM 城市数据 ORDER BY name')
+        assert result['row_count'] == 2
+
+    @pytest.mark.skipif(not sql_service.spatial_enabled(), reason='spatial extension unavailable')
+    def test_same_path_is_idempotent(self, tmp_path):
+        path = self._write_geojson(tmp_path)
+        a = sql_service.register_file(path)
+        b = sql_service.register_file(path)
+        assert a['table'] == b['table']
+        assert len([t for t in sql_service.list_tables() if t['kind'] == 'file']) == 1
+
+    def test_csv_file_as_view(self, tmp_path):
+        p = tmp_path / 'data.csv'
+        p.write_text('id,value\n1,10\n2,20\n', encoding='utf-8')
+        info = sql_service.register_file(str(p))
+        assert info['kind'] == 'file'
+        result = sql_service.run_query('SELECT sum(value) FROM data')
+        assert result['rows'][0][0] == 30
+
+    def test_parquet_file_as_view(self, tmp_path):
+        import duckdb
+        p = tmp_path / 'nums.parquet'
+        duckdb.connect().execute(
+            f"COPY (SELECT range AS n FROM range(5)) TO '{p}' (FORMAT PARQUET)"
+        )
+        sql_service.register_file(str(p))
+        result = sql_service.run_query('SELECT count(*) FROM nums')
+        assert result['rows'][0][0] == 5
+
+    def test_missing_file_raises(self):
+        with pytest.raises(ValueError):
+            sql_service.register_file('/nonexistent/file.gpkg')
+
+    def test_unsupported_extension_raises(self, tmp_path):
+        p = tmp_path / 'x.docx'
+        p.write_text('hi')
+        with pytest.raises(ValueError):
+            sql_service.register_file(str(p))
