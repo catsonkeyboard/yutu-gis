@@ -1,15 +1,29 @@
 {
   "menu": {
-    "file": "File", "edit": "Edit", "view": "View",
-    "layer": "Layer", "tools": "Tools", "help": "Help"
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "layer": "Layer",
+    "tools": "Tools",
+    "help": "Help"
   },
   "toolbar": {
-    "open": "Open", "save": "Save", "import": "Import", "export": "Export",
-    "select": "Select", "drawPoint": "Point", "drawLine": "Line", "drawPolygon": "Polygon",
-    "measure": "Measure", "measureArea": "Area", "zoomFit": "Fit"
+    "open": "Open",
+    "save": "Save",
+    "import": "Import",
+    "export": "Export",
+    "select": "Select",
+    "drawPoint": "Point",
+    "drawLine": "Line",
+    "drawPolygon": "Polygon",
+    "measure": "Measure",
+    "measureArea": "Area",
+    "zoomFit": "Fit"
   },
   "layer": {
-    "panel": "Layers", "addLayer": "Add Layer", "noLayers": "No layers"
+    "panel": "Layers",
+    "addLayer": "Add Layer",
+    "noLayers": "No layers"
   },
   "map": {
     "basemap": "Basemap",
@@ -23,18 +37,27 @@
     }
   },
   "status": {
-    "lng": "Lng", "lat": "Lat", "zoom": "Zoom", "crs": "CRS"
+    "lng": "Lng",
+    "lat": "Lat",
+    "zoom": "Zoom",
+    "crs": "CRS"
   },
   "settings": {
-    "title": "Settings", "language": "Language", "apiKeys": "API Keys",
-    "googleKey": "Google Maps API Key", "amapKey": "Amap API Key", "save": "Save",
+    "title": "Settings",
+    "language": "Language",
+    "apiKeys": "API Keys",
+    "googleKey": "Google Maps API Key",
+    "amapKey": "Amap API Key",
+    "save": "Save",
     "openWeatherKey": "OpenWeatherMap API Key",
     "openWeatherKeyHint": "Used by weather overlays (temperature/clouds/wind) in Data Monitor — free signup at openweathermap.org",
     "firmsKey": "NASA FIRMS MAP Key",
     "firmsKeyHint": "Used by the wildfire overlay in Data Monitor — free at firms.modaps.eosdis.nasa.gov",
     "waqiKey": "WAQI Token",
     "waqiKeyHint": "Used by the air-quality overlay in Data Monitor — free at aqicn.org/data-platform/token",
-    "downloadDir": "Default Download Directory", "downloadDirHint": "Default location for map tiles and other downloads", "browse": "Browse"
+    "downloadDir": "Default Download Directory",
+    "downloadDirHint": "Default location for map tiles and other downloads",
+    "browse": "Browse"
   },
   "monitor": {
     "title": "Data Monitor",
@@ -89,5 +112,20 @@
   },
   "common": {
     "cancel": "Cancel"
+  },
+  "attrTable": {
+    "title": "Attribute Table",
+    "selectVectorLayer": "Select a vector layer",
+    "count": "{{total}} features",
+    "countFiltered": "{{shown}} / {{total}} features",
+    "tooManyColumns": "Too many fields, showing first 60 columns",
+    "field": "Field",
+    "value": "Value",
+    "applyFilter": "Filter",
+    "clearFilter": "Clear",
+    "saveFiltered": "Save filtered as layer",
+    "filteredPrefix": "Filtered",
+    "savedFiltered": "Saved layer: {{name}} ({{count}} features)",
+    "stats": "Field statistics"
   }
 }

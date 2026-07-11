@@ -1,15 +1,29 @@
 {
   "menu": {
-    "file": "文件", "edit": "编辑", "view": "视图",
-    "layer": "图层", "tools": "工具", "help": "帮助"
+    "file": "文件",
+    "edit": "编辑",
+    "view": "视图",
+    "layer": "图层",
+    "tools": "工具",
+    "help": "帮助"
   },
   "toolbar": {
-    "open": "打开", "save": "保存", "import": "导入", "export": "导出",
-    "select": "选择", "drawPoint": "画点", "drawLine": "画线", "drawPolygon": "画面",
-    "measure": "测距", "measureArea": "测面", "zoomFit": "缩放适配"
+    "open": "打开",
+    "save": "保存",
+    "import": "导入",
+    "export": "导出",
+    "select": "选择",
+    "drawPoint": "画点",
+    "drawLine": "画线",
+    "drawPolygon": "画面",
+    "measure": "测距",
+    "measureArea": "测面",
+    "zoomFit": "缩放适配"
   },
   "layer": {
-    "panel": "图层", "addLayer": "添加图层", "noLayers": "暂无图层"
+    "panel": "图层",
+    "addLayer": "添加图层",
+    "noLayers": "暂无图层"
   },
   "map": {
     "basemap": "底图切换",
@@ -23,18 +37,27 @@
     }
   },
   "status": {
-    "lng": "经度", "lat": "纬度", "zoom": "缩放", "crs": "坐标系"
+    "lng": "经度",
+    "lat": "纬度",
+    "zoom": "缩放",
+    "crs": "坐标系"
   },
   "settings": {
-    "title": "设置", "language": "界面语言", "apiKeys": "API 密钥",
-    "googleKey": "Google Maps API Key", "amapKey": "高德地图 API Key", "save": "保存",
+    "title": "设置",
+    "language": "界面语言",
+    "apiKeys": "API 密钥",
+    "googleKey": "Google Maps API Key",
+    "amapKey": "高德地图 API Key",
+    "save": "保存",
     "openWeatherKey": "OpenWeatherMap API Key",
     "openWeatherKeyHint": "用于数据监控中的温度/云量/风场等气象图层（openweathermap.org 免费注册）",
     "firmsKey": "NASA FIRMS MAP Key",
     "firmsKeyHint": "用于数据监控中的全球火点图层（firms.modaps.eosdis.nasa.gov 免费申请）",
     "waqiKey": "WAQI Token",
     "waqiKeyHint": "用于数据监控中的空气质量图层（aqicn.org/data-platform/token 免费申请）",
-    "downloadDir": "默认下载目录", "downloadDirHint": "地图瓦片等下载内容的默认保存位置", "browse": "浏览"
+    "downloadDir": "默认下载目录",
+    "downloadDirHint": "地图瓦片等下载内容的默认保存位置",
+    "browse": "浏览"
   },
   "monitor": {
     "title": "数据监控",
@@ -89,5 +112,20 @@
   },
   "common": {
     "cancel": "取消"
+  },
+  "attrTable": {
+    "title": "属性表",
+    "selectVectorLayer": "请选择矢量图层",
+    "count": "{{total}} 个要素",
+    "countFiltered": "{{shown}} / {{total}} 个要素",
+    "tooManyColumns": "字段过多，仅显示前 60 列",
+    "field": "字段",
+    "value": "值",
+    "applyFilter": "过滤",
+    "clearFilter": "清除",
+    "saveFiltered": "筛选结果另存为图层",
+    "filteredPrefix": "筛选",
+    "savedFiltered": "已保存图层：{{name}}（{{count}} 个要素）",
+    "stats": "字段统计"
   }
 }
