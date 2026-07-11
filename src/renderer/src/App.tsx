@@ -18,6 +18,8 @@ import SettingsModal from './components/Settings/SettingsModal'
 import WFSModal from './components/WFS/WFSModal'
 import ExportLayersModal from './components/Toolbar/ExportLayersModal'
 import FeaturePanel from './components/FeaturePanel/FeaturePanel'
+import AttributeTablePanel from './components/AttributeTable/AttributeTablePanel'
+import { useAttributeTableStore } from './stores/attributeTableStore'
 import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
 
@@ -49,6 +51,7 @@ export default function App() {
   const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
   const { features, setMode, clear, drawMode } = useDrawStore()
+  const attrTableOpen = useAttributeTableStore((s) => s.open)
   const setLanguage = useSettingsStore((s) => s.setLanguage)
   const setApiKeys = useSettingsStore((s) => s.setApiKeys)
   const setDownloadDir = useSettingsStore((s) => s.setDownloadDir)
@@ -348,7 +351,7 @@ export default function App() {
           />
         </Sider>
         <Content
-          style={{ position: 'relative', overflow: 'hidden' }}
+          style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           onDragOver={(e) => {
             e.preventDefault()
             setIsDragOver(true)
@@ -399,7 +402,10 @@ export default function App() {
               </span>
             </div>
           )}
-          <MapCanvas onSave={() => handleDrawModeChange('off')} />
+          <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+            <MapCanvas onSave={() => handleDrawModeChange('off')} />
+          </div>
+          {attrTableOpen && <AttributeTablePanel />}
         </Content>
         <Sider
           width={rightPanelWidth}

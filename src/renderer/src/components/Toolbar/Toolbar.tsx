@@ -15,6 +15,7 @@ import {
   CloudOutlined,
   DownloadOutlined,
   ThunderboltOutlined,
+  TableOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
@@ -26,6 +27,7 @@ import { useVehicleStore } from '../../stores/vehicleStore'
 import { useFlightStore } from '../../stores/flightStore'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
+import { useAttributeTableStore } from '../../stores/attributeTableStore'
 
 interface Props {
   onImport?: () => void
@@ -47,6 +49,8 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
   const setTilesPanelOpen = useTilesPanelStore((s) => s.setOpen)
   const osmPanelOpen = useOsmPanelStore((s) => s.open)
   const setOsmPanelOpen = useOsmPanelStore((s) => s.setOpen)
+  const attrTableOpen = useAttributeTableStore((s) => s.open)
+  const setAttrTableOpen = useAttributeTableStore((s) => s.setOpen)
 
   const handleDraw = (mode: DrawMode) => {
     onDrawModeChange?.(drawMode === mode ? 'off' : mode)
@@ -90,6 +94,14 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
             if (!osmPanelOpen) setTilesPanelOpen(false)
             setOsmPanelOpen(!osmPanelOpen)
           }}
+        />
+      </Tooltip>
+      <Tooltip title={t('attrTable.title')}>
+        <Button
+          icon={<TableOutlined />}
+          type={attrTableOpen ? 'primary' : 'text'}
+          size="small"
+          onClick={() => setAttrTableOpen(!attrTableOpen)}
         />
       </Tooltip>
       <Divider type="vertical" />
