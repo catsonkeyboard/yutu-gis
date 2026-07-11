@@ -168,5 +168,27 @@
       "contains": "包含",
       "disjoint": "不相交"
     }
+  },
+  "style": {
+    "title": "图层样式",
+    "modeSingle": "单一符号",
+    "modeCategorized": "分类",
+    "modeGraduated": "分级",
+    "baseSymbol": "基础符号",
+    "fillColor": "填充",
+    "strokeColor": "描边",
+    "strokeWidth": "描边宽",
+    "pointRadius": "点半径",
+    "fillOpacity": "填充透明度",
+    "layerOpacity": "图层透明度",
+    "field": "分类/分级字段",
+    "selectField": "选择字段",
+    "selectNumericField": "选择数值字段",
+    "classes": "分级数",
+    "equal": "等间距",
+    "quantile": "分位数",
+    "noValues": "该字段没有可用的值",
+    "tooManyCategories": "唯一值过多，仅取前 {{cap}} 类",
+    "reset": "恢复默认样式"
   }
 }

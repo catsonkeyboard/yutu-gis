@@ -168,5 +168,27 @@
       "contains": "Contains",
       "disjoint": "Disjoint"
     }
+  },
+  "style": {
+    "title": "Layer Style",
+    "modeSingle": "Single",
+    "modeCategorized": "Categorized",
+    "modeGraduated": "Graduated",
+    "baseSymbol": "Base symbol",
+    "fillColor": "Fill",
+    "strokeColor": "Stroke",
+    "strokeWidth": "Stroke width",
+    "pointRadius": "Point radius",
+    "fillOpacity": "Fill opacity",
+    "layerOpacity": "Layer opacity",
+    "field": "Classification field",
+    "selectField": "Select field",
+    "selectNumericField": "Select numeric field",
+    "classes": "Classes",
+    "equal": "Equal interval",
+    "quantile": "Quantile",
+    "noValues": "No usable values in this field",
+    "tooManyCategories": "Too many unique values, using top {{cap}}",
+    "reset": "Reset to default"
   }
 }

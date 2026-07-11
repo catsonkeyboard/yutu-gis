@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { List, Switch, Button, Typography, Empty, Tooltip } from 'antd'
-import { DeleteOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
+import { BgColorsOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useLayerStore } from '../../stores/layerStore'
 import { useMapStore } from '../../stores/mapStore'
+import { useStylePanelStore } from '../../stores/stylePanelStore'
 import { getGeoJSONBounds } from '../../utils/geo'
 
 const { Text } = Typography
@@ -16,6 +17,7 @@ export default function LayerPanel({ onExportLayer }: Props) {
   const { t } = useTranslation()
   const { layers, selectedLayerId, toggleVisible, removeLayer, setSelectedLayer } = useLayerStore()
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
+  const openStylePanel = useStylePanelStore((s) => s.openFor)
   const listRef = useRef<HTMLDivElement>(null)
 
   // Scroll selected item into view when selection changes (e.g. from map click)
@@ -89,6 +91,21 @@ export default function LayerPanel({ onExportLayer }: Props) {
                   cursor: 'pointer',
                 }}
                 actions={[
+                  ...(layer.type === 'geojson'
+                    ? [
+                        <Tooltip key="style" title={t('style.title')}>
+                          <Button
+                            size="small"
+                            type="text"
+                            icon={<BgColorsOutlined />}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openStylePanel(layer.id)
+                            }}
+                          />
+                        </Tooltip>,
+                      ]
+                    : []),
                   <Tooltip key="vis" title={layer.visible ? '隐藏' : '显示'}>
                     <Switch
                       size="small"
