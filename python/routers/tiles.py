@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
-from services import tile_tasks, tile_sources
+from services import tile_tasks, tile_sources, geotiff_sources
 from services.tiles import MBTilesWriter, DirectoryWriter, count_tiles
 
 router = APIRouter()
@@ -102,3 +102,32 @@ async def get_source_tile(source_id: str, z: int, x: int, y: int):
         raise HTTPException(status_code=404, detail="瓦片不存在")
     media_type = tile_sources.MEDIA_TYPES.get(src.format, "image/png")
     return Response(content=data, media_type=media_type)
+
+
+# ---------------------------------------------------------------------------
+# GeoTIFF / COG sources (rendered on the fly via rasterio)
+# ---------------------------------------------------------------------------
+
+class GeoTiffRequest(BaseModel):
+    path: str
+
+
+@router.post("/geotiff")
+async def register_geotiff(req: GeoTiffRequest):
+    try:
+        return geotiff_sources.register(req.path)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"无法读取 GeoTIFF：{e}")
+
+
+@router.get("/geotiff/{source_id}/{z}/{x}/{y}.png")
+async def get_geotiff_tile(source_id: str, z: int, x: int, y: int):
+    src = geotiff_sources.get(source_id)
+    if src is None:
+        raise HTTPException(status_code=404, detail="GeoTIFF 源不存在")
+    data = geotiff_sources.render_tile(src, z, x, y)
+    if data is None:
+        raise HTTPException(status_code=404, detail="瓦片超出影像范围")
+    return Response(content=data, media_type="image/png")
