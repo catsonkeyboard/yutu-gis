@@ -124,10 +124,74 @@ export default function MapCanvas({ onSave }: Props) {
         const data = needsGcj02
           ? convertToGcj02(layer.source as GeoJSON.FeatureCollection)
           : (layer.source as GeoJSON.FeatureCollection)
+        const style = layer.style
+
+        // Point-density modes render their own layer stack
+        if (style?.mode === 'heatmap') {
+          map.addSource(sourceId, { type: 'geojson', data })
+          map.addLayer({
+            id: `user-${layer.id}-heat`,
+            type: 'heatmap',
+            source: sourceId,
+            paint: {
+              'heatmap-radius': style.heatRadius ?? 20,
+              'heatmap-opacity': layer.opacity,
+            },
+          })
+          return
+        }
+        if (style?.mode === 'cluster') {
+          map.addSource(sourceId, {
+            type: 'geojson',
+            data,
+            cluster: true,
+            clusterRadius: style.clusterRadius ?? 50,
+          })
+          map.addLayer({
+            id: `user-${layer.id}-cluster`,
+            type: 'circle',
+            source: sourceId,
+            filter: ['has', 'point_count'],
+            paint: {
+              'circle-color': ['step', ['get', 'point_count'], '#51a4d0', 10, '#f1a340', 100, '#e5544e'],
+              'circle-radius': ['step', ['get', 'point_count'], 14, 10, 20, 100, 26],
+              'circle-opacity': layer.opacity * 0.85,
+              'circle-stroke-color': '#fff',
+              'circle-stroke-width': 1.5,
+            },
+          })
+          map.addLayer({
+            id: `user-${layer.id}-cluster-count`,
+            type: 'symbol',
+            source: sourceId,
+            filter: ['has', 'point_count'],
+            layout: {
+              'text-field': ['get', 'point_count_abbreviated'],
+              'text-font': ['Noto Sans Regular'],
+              'text-size': 11,
+            },
+            paint: { 'text-color': '#ffffff' },
+          })
+          map.addLayer({
+            id: `user-${layer.id}-point`,
+            type: 'circle',
+            source: sourceId,
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+              'circle-color': style.fillColor,
+              'circle-radius': style.pointRadius,
+              'circle-opacity': layer.opacity,
+              'circle-stroke-color': '#fff',
+              'circle-stroke-width': 1,
+            },
+          })
+          return
+        }
+
         map.addSource(sourceId, { type: 'geojson', data })
         // Custom symbology (StylePanel) takes precedence over the default
         // blue/orange-selection rendering
-        const custom = layer.style ? buildPaint(layer.style, layer.opacity) : null
+        const custom = style ? buildPaint(style, layer.opacity) : null
         map.addLayer({
           id: `user-${layer.id}-fill`,
           type: 'fill',
@@ -245,6 +309,19 @@ export default function MapCanvas({ onSave }: Props) {
       if (!userLayerIds.length) return
       const hits = map.queryRenderedFeatures(e.point, { layers: userLayerIds })
       if (!hits.length) return
+      // Clicking a cluster bubble zooms in to expand it
+      const clusterMatch = hits[0].layer.id.match(/^user-(.+)-cluster$/)
+      if (clusterMatch) {
+        const src = map.getSource(`user-${clusterMatch[1]}`) as maplibregl.GeoJSONSource
+        const clusterId = (hits[0].properties as { cluster_id?: number }).cluster_id
+        if (src && clusterId !== undefined) {
+          src
+            .getClusterExpansionZoom(clusterId)
+            .then((zoom) => map.easeTo({ center: e.lngLat, zoom }))
+            .catch(() => {})
+        }
+        return
+      }
       const match = hits[0].layer.id.match(/^user-(.+)-(fill|line|point)$/)
       if (match) {
         setSelectedLayer(match[1])

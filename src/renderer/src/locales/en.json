@@ -206,7 +206,12 @@
     "reset": "Reset to default",
     "labelSection": "Labels",
     "labelField": "Label field",
-    "labelSize": "Size"
+    "labelSize": "Size",
+    "modeCluster": "Cluster",
+    "modeHeatmap": "Heatmap",
+    "pointsOnlyHint": "Points only (lines/polygons hidden in this mode)",
+    "clusterRadius": "Cluster radius (px)",
+    "heatRadius": "Heat radius (px)"
   },
   "measure": {
     "distanceMode": "Distance",

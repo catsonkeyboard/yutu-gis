@@ -206,7 +206,12 @@
     "reset": "恢复默认样式",
     "labelSection": "标注",
     "labelField": "标注字段",
-    "labelSize": "字号"
+    "labelSize": "字号",
+    "modeCluster": "聚类",
+    "modeHeatmap": "热力图",
+    "pointsOnlyHint": "仅点要素参与（线/面在此模式下不显示）",
+    "clusterRadius": "聚类半径（像素）",
+    "heatRadius": "热力半径（像素）"
   },
   "measure": {
     "distanceMode": "测距",
