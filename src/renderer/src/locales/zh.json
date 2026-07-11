@@ -236,5 +236,26 @@
     "on": "已开启",
     "off": "已关闭",
     "blocked": "绘制/测量时不可用"
+  },
+  "sql": {
+    "title": "SQL 工作台",
+    "sync": "同步图层",
+    "synced": "已同步 {{count}} 个图层为表",
+    "syncFailed": "同步失败",
+    "samples": "示例查询",
+    "run": "执行",
+    "sampleStats": "要素计数",
+    "sampleArea": "按面积排序（ST_Area）",
+    "sampleJoin": "空间相交 JOIN（ST_Intersects）",
+    "placeholder": "输入 SELECT 语句，Cmd/Ctrl+Enter 执行；左侧点击表/列名插入",
+    "spatialOn": "空间扩展已启用",
+    "spatialOff": "空间扩展不可用（仅属性查询）",
+    "noTables": "暂无表，点击同步图层",
+    "noResult": "执行查询后在此查看结果",
+    "rowCount": "{{count}} 行",
+    "truncated": "已截断显示前 1000 行",
+    "addAsLayer": "结果添加为图层",
+    "layerAdded": "已添加图层：{{name}}（{{count}} 个要素）",
+    "emptyGeojson": "结果没有可用几何，未创建图层"
   }
 }

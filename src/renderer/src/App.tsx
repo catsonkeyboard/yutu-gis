@@ -22,6 +22,8 @@ import ExportLayersModal from './components/Toolbar/ExportLayersModal'
 import FeaturePanel from './components/FeaturePanel/FeaturePanel'
 import AttributeTablePanel from './components/AttributeTable/AttributeTablePanel'
 import { useAttributeTableStore } from './stores/attributeTableStore'
+import SqlPanel from './components/SqlWorkbench/SqlPanel'
+import { useSqlPanelStore } from './stores/sqlPanelStore'
 import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
 import { useBookmarkStore, type Bookmark } from './stores/bookmarkStore'
@@ -56,6 +58,7 @@ export default function App() {
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
   const { features, setMode, clear, drawMode } = useDrawStore()
   const attrTableOpen = useAttributeTableStore((s) => s.open)
+  const sqlPanelOpen = useSqlPanelStore((s) => s.open)
   const setLanguage = useSettingsStore((s) => s.setLanguage)
   const setApiKeys = useSettingsStore((s) => s.setApiKeys)
   const setDownloadDir = useSettingsStore((s) => s.setDownloadDir)
@@ -453,6 +456,7 @@ export default function App() {
             <MapCanvas onSave={() => handleDrawModeChange('off')} />
           </div>
           {attrTableOpen && <AttributeTablePanel />}
+          {sqlPanelOpen && <SqlPanel />}
         </Content>
         <Sider
           width={rightPanelWidth}

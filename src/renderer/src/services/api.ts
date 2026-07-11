@@ -151,6 +151,55 @@ export async function exportLayer(
 }
 
 // ---------------------------------------------------------------------------
+// SQL workbench (DuckDB)
+// ---------------------------------------------------------------------------
+
+export interface SqlColumn {
+  name: string
+  type: string
+  geometry: boolean
+}
+
+export interface SqlTableInfo {
+  table: string
+  rows: number
+  columns: SqlColumn[]
+}
+
+export interface SqlQueryResult {
+  columns: SqlColumn[]
+  rows: unknown[][]
+  row_count: number
+  truncated: boolean
+}
+
+export async function sqlStatus(): Promise<{ spatial: boolean }> {
+  return getJson('/sql/status')
+}
+
+export async function sqlListTables(): Promise<SqlTableInfo[]> {
+  const data = await getJson<{ tables: SqlTableInfo[] }>('/sql/tables')
+  return data.tables
+}
+
+/** Register a layer as a DuckDB table (re-registering by layer_id replaces it). */
+export async function sqlRegisterTable(
+  name: string,
+  geojson: GeoJSON.FeatureCollection,
+  layerId: string
+): Promise<SqlTableInfo> {
+  return postJson('/sql/tables', { name, geojson, layer_id: layerId })
+}
+
+export async function sqlQuery(sql: string, limit = 1000): Promise<SqlQueryResult> {
+  return postJson('/sql/query', { sql, limit })
+}
+
+export async function sqlQueryGeojson(sql: string): Promise<GeoJSON.FeatureCollection> {
+  return postJson('/sql/query/geojson', { sql })
+}
+
+// ---------------------------------------------------------------------------
 // Vector analysis
 // ---------------------------------------------------------------------------
 

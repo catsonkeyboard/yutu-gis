@@ -19,6 +19,7 @@ import {
   ExperimentOutlined,
   ColumnWidthOutlined,
   ExpandOutlined,
+  ConsoleSqlOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
@@ -36,6 +37,7 @@ import { useOsmPanelStore } from '../../stores/osmPanelStore'
 import { useAttributeTableStore } from '../../stores/attributeTableStore'
 import { useAnalysisPanelStore } from '../../stores/analysisPanelStore'
 import { useMeasureStore, type MeasureMode } from '../../stores/measureStore'
+import { useSqlPanelStore } from '../../stores/sqlPanelStore'
 
 interface Props {
   onImport?: () => void
@@ -71,6 +73,8 @@ export default function Toolbar({
   const setAttrTableOpen = useAttributeTableStore((s) => s.setOpen)
   const analysisOpen = useAnalysisPanelStore((s) => s.open)
   const setAnalysisOpen = useAnalysisPanelStore((s) => s.setOpen)
+  const sqlOpen = useSqlPanelStore((s) => s.open)
+  const setSqlOpen = useSqlPanelStore((s) => s.setOpen)
 
   const measureMode = useMeasureStore((s) => s.mode)
   const setMeasureMode = useMeasureStore((s) => s.setMode)
@@ -150,7 +154,21 @@ export default function Toolbar({
           icon={<TableOutlined />}
           type={attrTableOpen ? 'primary' : 'text'}
           size="small"
-          onClick={() => setAttrTableOpen(!attrTableOpen)}
+          onClick={() => {
+            if (!attrTableOpen) setSqlOpen(false) // both live at the bottom
+            setAttrTableOpen(!attrTableOpen)
+          }}
+        />
+      </Tooltip>
+      <Tooltip title={t('sql.title')}>
+        <Button
+          icon={<ConsoleSqlOutlined />}
+          type={sqlOpen ? 'primary' : 'text'}
+          size="small"
+          onClick={() => {
+            if (!sqlOpen) setAttrTableOpen(false)
+            setSqlOpen(!sqlOpen)
+          }}
         />
       </Tooltip>
       <Divider type="vertical" />
