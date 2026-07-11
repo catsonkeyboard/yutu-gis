@@ -16,6 +16,7 @@ import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
 import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
 import MonitorLayer, { bringMonitorLayersToTop } from './MonitorLayer'
 import MeasureLayer, { bringMeasureLayersToTop } from './MeasureLayer'
+import RadarTimelineBar from './RadarTimelineBar'
 import { useMeasureStore } from '../../stores/measureStore'
 import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
 import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
@@ -329,6 +330,7 @@ export default function MapCanvas({ onSave }: Props) {
       <FlightLayer map={mapInstance} />
       <MonitorLayer map={mapInstance} />
       <MeasureLayer map={mapInstance} />
+      <RadarTimelineBar />
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => {

@@ -87,7 +87,8 @@
     "gdacsLayer": "综合灾害警报（GDACS）",
     "airQuality": "空气质量",
     "aqiLayer": "AQI 监测站点（WAQI）",
-    "needWaqiKey": "请先在设置中配置 WAQI Token"
+    "needWaqiKey": "请先在设置中配置 WAQI Token",
+    "forecast": "预报"
   },
   "osm": {
     "menuItem": "OSM 要素提取",

@@ -318,15 +318,31 @@ async def fetch_rainviewer() -> dict:
         data: dict[str, Any] = resp.json()
 
     host = data.get("host") or "https://tilecache.rainviewer.com"
-    frames = (data.get("radar") or {}).get("past") or []
-    if not frames:
+    radar = data.get("radar") or {}
+    past = radar.get("past") or []
+    nowcast = radar.get("nowcast") or []
+    if not past:
         raise RuntimeError("RainViewer returned no radar frames")
-    latest = frames[-1]
-    path = latest["path"]
+
+    # 2 = universal blue color scheme, 1_1 = smoothed + snow shown
+    def template(path: str) -> str:
+        return f"{host}{path}/256/{{z}}/{{x}}/{{y}}/2/1_1.png"
+
+    frames = [
+        {"time": f.get("time"), "tile_template": template(f["path"]), "nowcast": False}
+        for f in past
+    ] + [
+        {"time": f.get("time"), "tile_template": template(f["path"]), "nowcast": True}
+        for f in nowcast
+    ]
+
+    latest = past[-1]
     return {
+        # Legacy single-frame fields (kept for compatibility)
         "host": host,
-        "path": path,
+        "path": latest["path"],
         "time": latest.get("time"),
-        # 2 = universal blue color scheme, 1_1 = smoothed + snow shown
-        "tile_template": f"{host}{path}/256/{{z}}/{{x}}/{{y}}/2/1_1.png",
+        "tile_template": template(latest["path"]),
+        # Full timeline (past + short-term forecast)
+        "frames": frames,
     }

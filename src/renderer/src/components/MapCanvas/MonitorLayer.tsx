@@ -12,7 +12,7 @@ import { useDrawStore } from '../../stores/drawStore'
 import {
   fetchEarthquakes,
   fetchTyphoons,
-  fetchRainviewerFrame,
+  fetchRainviewerFrames,
   fetchFires,
   fetchGdacs,
   fetchWaqi,
@@ -203,7 +203,9 @@ export default function MonitorLayer({ map }: Props) {
   const aqiOn = useMonitorStore((s) => s.aqiOn)
   const earthquakes = useMonitorStore((s) => s.earthquakes)
   const typhoons = useMonitorStore((s) => s.typhoons)
-  const radarFrame = useMonitorStore((s) => s.radarFrame)
+  const radarFrames = useMonitorStore((s) => s.radarFrames)
+  const radarIndex = useMonitorStore((s) => s.radarIndex)
+  const radarPlaying = useMonitorStore((s) => s.radarPlaying)
   const fires = useMonitorStore((s) => s.fires)
   const gdacs = useMonitorStore((s) => s.gdacs)
   const aqi = useMonitorStore((s) => s.aqi)
@@ -213,7 +215,7 @@ export default function MonitorLayer({ map }: Props) {
   const provider = useMapStore((s) => s.provider)
 
   const {
-    setEarthquakes, setTyphoons, setRadarFrame, setFires, setGdacs, setAqi, setError,
+    setEarthquakes, setTyphoons, setRadarFrames, advanceRadar, setFires, setGdacs, setAqi, setError,
   } = useMonitorStore.getState()
 
   // Currently-added raster overlays: id → tile template (to detect URL changes)
@@ -255,18 +257,25 @@ export default function MonitorLayer({ map }: Props) {
 
   useEffect(() => {
     if (!weather.radar) {
-      setRadarFrame(null)
+      setRadarFrames([])
       return
     }
     let cancelled = false
     const load = () =>
-      fetchRainviewerFrame()
-        .then((f) => { if (!cancelled) { setRadarFrame(f); setError(null) } })
+      fetchRainviewerFrames()
+        .then((frames) => { if (!cancelled) { setRadarFrames(frames); setError(null) } })
         .catch((e) => { if (!cancelled) setError(parseApiError(e)) })
     load()
     const timer = setInterval(load, RADAR_REFRESH_MS)
     return () => { cancelled = true; clearInterval(timer) }
   }, [weather.radar]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Radar animation loop
+  useEffect(() => {
+    if (!radarPlaying || radarFrames.length < 2) return
+    const timer = setInterval(() => advanceRadar(), 600)
+    return () => clearInterval(timer)
+  }, [radarPlaying, radarFrames.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!fireOn || !firmsKey) {
@@ -409,7 +418,33 @@ export default function MonitorLayer({ map }: Props) {
       )
     }
 
-    setRaster(RADAR_ID, weather.radar && radarFrame ? radarFrame.tile_template : null, 0.7)
+    // Radar timeline: one source/layer per frame, only the active frame is
+    // visible — switching frames is a paint-property change (no flicker)
+    const frames = weather.radar ? radarFrames : []
+    Object.keys(rasterTilesRef.current)
+      .filter((id) => id.startsWith(`${RADAR_ID}-f`))
+      .forEach((id) => {
+        const idx = Number(id.slice(`${RADAR_ID}-f`.length))
+        if (!frames[idx] || rasterTilesRef.current[id] !== frames[idx].tile_template) {
+          if (map.getLayer(`${id}-layer`)) map.removeLayer(`${id}-layer`)
+          if (map.getSource(id)) map.removeSource(id)
+          delete rasterTilesRef.current[id]
+        }
+      })
+    frames.forEach((frame, i) => {
+      const id = `${RADAR_ID}-f${i}`
+      if (!map.getSource(id)) {
+        map.addSource(id, { type: 'raster', tiles: [frame.tile_template], tileSize: 256 })
+      }
+      if (!map.getLayer(`${id}-layer`)) {
+        map.addLayer(
+          { id: `${id}-layer`, type: 'raster', source: id, paint: { 'raster-opacity': 0 } },
+          beforeId
+        )
+      }
+      map.setPaintProperty(`${id}-layer`, 'raster-opacity', i === radarIndex ? 0.7 : 0)
+      rasterTilesRef.current[id] = frame.tile_template
+    })
 
     // OpenWeatherMap overlays (skipped silently without a key — the dropdown blocks enabling)
     for (const key of Object.keys(OWM_LAYERS) as OwmOverlayKey[]) {
@@ -584,7 +619,7 @@ export default function MonitorLayer({ map }: Props) {
     bringMonitorLayersToTop(map)
   }, [
     map, weather, gibs, earthquakeOn, typhoonOn, fireOn, gdacsOn, aqiOn,
-    earthquakes, typhoons, radarFrame, fires, gdacs, aqi,
+    earthquakes, typhoons, radarFrames, radarIndex, fires, gdacs, aqi,
     owmKey, firmsKey, waqiKey, provider,
   ])
 

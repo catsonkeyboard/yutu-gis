@@ -193,6 +193,12 @@ export interface RainviewerFrame {
   tile_template: string
 }
 
+export interface RadarFrame {
+  time: number | null
+  tile_template: string
+  nowcast: boolean
+}
+
 /** USGS earthquakes (proxied by the Python backend). */
 export async function fetchEarthquakes(feed = 'all_day'): Promise<GeoJSON.FeatureCollection> {
   return getJson(`/monitor/earthquakes?feed=${encodeURIComponent(feed)}`)
@@ -206,6 +212,14 @@ export async function fetchTyphoons(): Promise<GeoJSON.FeatureCollection> {
 /** Latest RainViewer precipitation radar frame. */
 export async function fetchRainviewerFrame(): Promise<RainviewerFrame> {
   return getJson('/monitor/rainviewer')
+}
+
+/** Full RainViewer radar timeline (past + short-term forecast frames). */
+export async function fetchRainviewerFrames(): Promise<RadarFrame[]> {
+  const data = await getJson<RainviewerFrame & { frames?: RadarFrame[] }>('/monitor/rainviewer')
+  if (data.frames?.length) return data.frames
+  // Older backend without frames — degrade to a single-frame timeline
+  return [{ time: data.time, tile_template: data.tile_template, nowcast: false }]
 }
 
 /** OpenWeatherMap raster tile template — loaded directly by MapLibre, key required. */
