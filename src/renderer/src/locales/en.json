@@ -218,5 +218,14 @@
     "empty": "No bookmarks",
     "added": "Bookmark saved: {{name}}",
     "limit": "Bookmark limit reached ({{max}})"
+  },
+  "mapExport": {
+    "title": "Map Export",
+    "exportPng": "Export PNG…",
+    "copy": "Copy to clipboard",
+    "saved": "Exported: {{path}}",
+    "copied": "Copied to clipboard",
+    "failed": "Export failed",
+    "noMap": "Map not ready"
   }
 }

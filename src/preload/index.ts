@@ -30,6 +30,9 @@ const electronAPI = {
   writeFile: (filePath: string, content: string): Promise<void> =>
     ipcRenderer.invoke('fs:writeFile', filePath, content),
 
+  writeFileBinary: (filePath: string, data: ArrayBuffer): Promise<void> =>
+    ipcRenderer.invoke('fs:writeFileBinary', filePath, data),
+
   openFileDialog: (filters: { name: string; extensions: string[] }[]): Promise<string | null> =>
     ipcRenderer.invoke('dialog:openFile', filters),
 

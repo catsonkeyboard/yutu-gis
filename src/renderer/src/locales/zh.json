@@ -218,5 +218,14 @@
     "empty": "暂无书签",
     "added": "已保存书签：{{name}}",
     "limit": "书签数量已达上限（{{max}}）"
+  },
+  "mapExport": {
+    "title": "地图出图",
+    "exportPng": "导出 PNG…",
+    "copy": "复制到剪贴板",
+    "saved": "已导出：{{path}}",
+    "copied": "已复制到剪贴板",
+    "failed": "出图失败",
+    "noMap": "地图尚未就绪"
   }
 }

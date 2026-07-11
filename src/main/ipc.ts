@@ -22,6 +22,10 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     await writeFile(filePath, content, 'utf-8')
   })
 
+  ipcMain.handle('fs:writeFileBinary', async (_event, filePath: string, data: ArrayBuffer) => {
+    await writeFile(filePath, Buffer.from(data))
+  })
+
   ipcMain.handle('dialog:openFile', async (_event, filters: Electron.FileFilter[]) => {
     const result = await dialog.showOpenDialog(win, {
       properties: ['openFile'],
