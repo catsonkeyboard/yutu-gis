@@ -397,8 +397,9 @@ Do not tighten `img-src` or `connect-src` — tiles will stop loading.
 | GeoTIFF/COG | `python/services/geotiff_sources.py`、`utils/importGeoTiff.ts` | `POST /tiles/geotiff` 注册（sha1 幂等）+ 动态瓦片 `GET /tiles/geotiff/{id}/{z}/{x}/{y}.png`；WarpedVRT→3857、2–98 百分位拉伸、渲染全局锁；统一导入流程接 `.tif/.tiff` |
 | 雷达时间滑块 | `monitorStore.radarFrames/radarIndex/radarPlaying`、`MapCanvas/RadarTimelineBar.tsx` | `/monitor/rainviewer` 返回 `frames[]`（past+nowcast，旧字段保留）；MonitorLayer 每帧一个 source，切帧只改 opacity |
 | 卷帘对比 | `swipeStore`、`MapCanvas/SwipeOverlay.tsx`、`Toolbar/SwipeDropdown.tsx` | 副地图 + CSS clip-path；主图 renderLayers 跳过卷帘层；相机单向同步；绘制/测量时禁用 |
+| SQL 工作台 | `python/services/sql.py`（DuckDB + spatial 扩展）、`components/SqlWorkbench/SqlPanel.tsx`、`sqlPanelStore` | 底部面板（与属性表互斥）；图层经 ST_Read 注册为表（几何列 `geom` GEOMETRY，中文表名可用）；仅允许 SELECT/WITH/SHOW/DESCRIBE；结果几何列经 ST_AsGeoJSON 返回，可一键转图层；spatial 扩展首次使用需联网下载，失败时降级为纯属性查询（`/sql/status`） |
 
-远期未做：AI 助手（自然语言 GIS）、SQL 工作台 —— 见总览文档"远期项"。
+远期未做：AI 助手（自然语言 GIS）—— 见总览文档"远期项"。
 
 ---
 
