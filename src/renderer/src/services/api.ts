@@ -206,6 +206,15 @@ export async function sqlQueryGeojson(sql: string): Promise<GeoJSON.FeatureColle
   return postJson('/sql/query/geojson', { sql })
 }
 
+/** Field calculator: add a computed column (DuckDB expression) to a layer. */
+export async function sqlCalculateField(
+  geojson: GeoJSON.FeatureCollection,
+  expression: string,
+  field: string
+): Promise<GeoJSON.FeatureCollection> {
+  return postJson('/sql/calculate', { geojson, expression, field })
+}
+
 /** Export the full (uncapped) query result to a CSV file on disk. */
 export async function sqlExportCsv(sql: string, path: string): Promise<{ path: string; rows: number }> {
   return postJson('/sql/export', { sql, path })

@@ -272,5 +272,15 @@
     "history": "查询历史",
     "exportCsv": "导出 CSV",
     "csvExported": "已导出 {{rows}} 行（完整结果）"
+  },
+  "fieldCalc": {
+    "title": "字段计算器",
+    "fieldName": "新字段名",
+    "fieldPlaceholder": "如 密度、area_km2",
+    "expression": "表达式（DuckDB SQL）",
+    "hint": "可引用现有字段（加双引号）与空间函数，如 ST_Area(geom)、round(\"pop\"/10000, 2)",
+    "run": "计算",
+    "required": "请填写字段名和表达式",
+    "done": "已添加字段：{{field}}"
   }
 }

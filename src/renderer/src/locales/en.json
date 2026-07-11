@@ -272,5 +272,15 @@
     "history": "History",
     "exportCsv": "Export CSV",
     "csvExported": "Exported {{rows}} rows (full result)"
+  },
+  "fieldCalc": {
+    "title": "Field Calculator",
+    "fieldName": "New field name",
+    "fieldPlaceholder": "e.g. density, area_km2",
+    "expression": "Expression (DuckDB SQL)",
+    "hint": "Reference existing fields (double-quoted) and spatial functions, e.g. ST_Area(geom), round(\"pop\"/10000, 2)",
+    "run": "Calculate",
+    "required": "Field name and expression are required",
+    "done": "Field added: {{field}}"
   }
 }

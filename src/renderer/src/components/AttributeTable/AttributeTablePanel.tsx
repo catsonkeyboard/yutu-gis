@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { Button, Empty, Input, Popover, Radio, Select, Space, Table, Tooltip, Typography, message } from 'antd'
 import type { TableProps } from 'antd'
-import { CloseOutlined, FilterOutlined, InfoCircleOutlined, SaveOutlined } from '@ant-design/icons'
+import { CalculatorOutlined, CloseOutlined, FilterOutlined, InfoCircleOutlined, SaveOutlined } from '@ant-design/icons'
 import { nanoid } from 'nanoid'
 import { useTranslation } from 'react-i18next'
 import { useLayerStore } from '../../stores/layerStore'
@@ -18,6 +18,7 @@ import {
   type FilterOp,
 } from './tableUtils'
 import ChartsTab from './ChartsTab'
+import FieldCalculatorModal from './FieldCalculatorModal'
 
 const { Text } = Typography
 
@@ -71,6 +72,7 @@ export default function AttributeTablePanel(): ReactElement {
   const { height, filter, setOpen, setHeight, setFilter } = useAttributeTableStore()
 
   const [activeTab, setActiveTab] = useState<'table' | 'charts'>('table')
+  const [calcOpen, setCalcOpen] = useState(false)
   const [filterField, setFilterField] = useState<string | undefined>(undefined)
   const [filterOp, setFilterOp] = useState<FilterOp>('eq')
   const [filterValue, setFilterValue] = useState('')
@@ -316,6 +318,9 @@ export default function AttributeTablePanel(): ReactElement {
                 onClick={handleSaveFiltered}
               />
             </Tooltip>
+            <Tooltip title={t('fieldCalc.title')}>
+              <Button size="small" icon={<CalculatorOutlined />} onClick={() => setCalcOpen(true)} />
+            </Tooltip>
           </Space>
         )}
         <Button
@@ -363,6 +368,11 @@ export default function AttributeTablePanel(): ReactElement {
           />
         </div>
       )}
+      <FieldCalculatorModal
+        open={calcOpen}
+        layerId={selectedLayerId}
+        onClose={() => setCalcOpen(false)}
+      />
     </div>
   )
 }

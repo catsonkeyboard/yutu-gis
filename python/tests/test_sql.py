@@ -189,3 +189,40 @@ class TestExportQuery:
     def test_rejects_non_select(self, tmp_path):
         with pytest.raises(ValueError):
             sql_service.export_query('DROP TABLE x', str(tmp_path / 'x.csv'))
+
+
+class TestCalculateField:
+    DATA = None
+
+    def _data(self):
+        return fc(
+            point_geom(0, 0, {'name': 'a', 'pop': 100}),
+            point_geom(1, 1, {'name': 'b', 'pop': 250}),
+        )
+
+    def test_adds_computed_field_preserving_order_and_props(self):
+        out = sql_service.calculate_field(self._data(), '"pop" * 2', 'pop2')
+        assert len(out['features']) == 2
+        assert out['features'][0]['properties'] == {'name': 'a', 'pop': 100, 'pop2': 200}
+        assert out['features'][1]['properties']['pop2'] == 500
+        assert out['features'][0]['geometry']['type'] == 'Point'
+        # OGC_FID artifact must not leak into properties
+        assert 'OGC_FID' not in out['features'][0]['properties']
+
+    @pytest.mark.skipif(not sql_service.spatial_enabled(), reason='spatial extension unavailable')
+    def test_spatial_expression(self):
+        out = sql_service.calculate_field(fc(SQUARE), 'ST_Area(geom)', 'area')
+        assert out['features'][0]['properties']['area'] == pytest.approx(1.0)
+
+    def test_bad_expression_raises(self):
+        with pytest.raises(Exception):
+            sql_service.calculate_field(self._data(), 'nonexistent_func(1', 'x')
+
+    def test_duplicate_field_name_rejected(self):
+        with pytest.raises(ValueError):
+            sql_service.calculate_field(self._data(), '1', 'pop')
+
+    def test_temp_table_is_cleaned_up(self):
+        before = len(sql_service.list_tables())
+        sql_service.calculate_field(self._data(), '1', 'one')
+        assert len(sql_service.list_tables()) == before

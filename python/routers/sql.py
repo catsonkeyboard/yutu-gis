@@ -60,6 +60,23 @@ async def query(req: QueryRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+class CalculateRequest(BaseModel):
+    geojson: dict
+    expression: str
+    field: str
+
+
+@router.post("/calculate")
+async def calculate_field(req: CalculateRequest):
+    """Field calculator: add a computed column and return the new FeatureCollection."""
+    try:
+        return sql_service.calculate_field(req.geojson, req.expression, req.field)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 class ExportQueryRequest(BaseModel):
     sql: str
     path: str
