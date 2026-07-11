@@ -127,5 +127,46 @@
     "filteredPrefix": "筛选",
     "savedFiltered": "已保存图层：{{name}}（{{count}} 个要素）",
     "stats": "字段统计"
+  },
+  "analysis": {
+    "title": "矢量分析",
+    "operation": "分析运算",
+    "primaryLayer": "输入图层",
+    "secondaryLayer": "叠加图层",
+    "selectPrimary": "请选择输入图层",
+    "selectSecondary": "请选择叠加图层",
+    "distance": "缓冲距离",
+    "tolerance": "简化容差",
+    "dissolveField": "融合字段（留空则整层融合）",
+    "dissolveAll": "整层融合",
+    "predicate": "空间关系",
+    "run": "执行分析",
+    "done": "分析完成：{{name}}（{{count}} 个要素）",
+    "failed": "分析失败",
+    "emptyResult": "结果为空，未创建图层",
+    "skipped": "已跳过 {{count}} 个无效要素",
+    "largeWarnTitle": "数据量较大",
+    "largeWarn": "共 {{count}} 个要素，分析可能耗时较长，是否继续？",
+    "groupGeometry": "几何处理",
+    "groupOverlay": "叠加分析",
+    "groupSelect": "空间选择",
+    "op": {
+      "buffer": "缓冲区",
+      "centroid": "质心",
+      "convex_hull": "凸包",
+      "simplify": "简化",
+      "dissolve": "融合",
+      "clip": "裁剪",
+      "intersection": "相交",
+      "difference": "擦除",
+      "union": "合并",
+      "select_by_location": "按位置选择"
+    },
+    "predicates": {
+      "intersects": "相交",
+      "within": "位于内部",
+      "contains": "包含",
+      "disjoint": "不相交"
+    }
   }
 }

@@ -127,5 +127,46 @@
     "filteredPrefix": "Filtered",
     "savedFiltered": "Saved layer: {{name}} ({{count}} features)",
     "stats": "Field statistics"
+  },
+  "analysis": {
+    "title": "Vector Analysis",
+    "operation": "Operation",
+    "primaryLayer": "Input layer",
+    "secondaryLayer": "Overlay layer",
+    "selectPrimary": "Select input layer",
+    "selectSecondary": "Select overlay layer",
+    "distance": "Buffer distance",
+    "tolerance": "Simplify tolerance",
+    "dissolveField": "Dissolve field (empty = all)",
+    "dissolveAll": "Dissolve all",
+    "predicate": "Spatial predicate",
+    "run": "Run",
+    "done": "Done: {{name}} ({{count}} features)",
+    "failed": "Analysis failed",
+    "emptyResult": "Empty result, no layer created",
+    "skipped": "Skipped {{count}} invalid feature(s)",
+    "largeWarnTitle": "Large dataset",
+    "largeWarn": "{{count}} features in total, this may take a while. Continue?",
+    "groupGeometry": "Geometry",
+    "groupOverlay": "Overlay",
+    "groupSelect": "Selection",
+    "op": {
+      "buffer": "Buffer",
+      "centroid": "Centroid",
+      "convex_hull": "Convex hull",
+      "simplify": "Simplify",
+      "dissolve": "Dissolve",
+      "clip": "Clip",
+      "intersection": "Intersection",
+      "difference": "Difference",
+      "union": "Union",
+      "select_by_location": "Select by location"
+    },
+    "predicates": {
+      "intersects": "Intersects",
+      "within": "Within",
+      "contains": "Contains",
+      "disjoint": "Disjoint"
+    }
   }
 }

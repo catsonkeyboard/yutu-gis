@@ -17,6 +17,7 @@ import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
 import MonitorLayer, { bringMonitorLayersToTop } from './MonitorLayer'
 import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
 import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
+import AnalysisPanel from '../Analysis/AnalysisPanel'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
 
@@ -321,6 +322,7 @@ export default function MapCanvas({ onSave }: Props) {
       />
       <TilesDownloadPanel map={mapInstance} />
       <OsmExtractPanel map={mapInstance} />
+      <AnalysisPanel />
       <DrawHintBanner onSave={onSave} />
       <BasemapSwitcher />
     </div>

@@ -16,6 +16,7 @@ import {
   DownloadOutlined,
   ThunderboltOutlined,
   TableOutlined,
+  ExperimentOutlined,
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
@@ -28,6 +29,7 @@ import { useFlightStore } from '../../stores/flightStore'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
 import { useAttributeTableStore } from '../../stores/attributeTableStore'
+import { useAnalysisPanelStore } from '../../stores/analysisPanelStore'
 
 interface Props {
   onImport?: () => void
@@ -51,6 +53,8 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
   const setOsmPanelOpen = useOsmPanelStore((s) => s.setOpen)
   const attrTableOpen = useAttributeTableStore((s) => s.open)
   const setAttrTableOpen = useAttributeTableStore((s) => s.setOpen)
+  const analysisOpen = useAnalysisPanelStore((s) => s.open)
+  const setAnalysisOpen = useAnalysisPanelStore((s) => s.setOpen)
 
   const handleDraw = (mode: DrawMode) => {
     onDrawModeChange?.(drawMode === mode ? 'off' : mode)
@@ -80,7 +84,10 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
           type={tilesPanelOpen ? 'primary' : 'text'}
           size="small"
           onClick={() => {
-            if (!tilesPanelOpen) setOsmPanelOpen(false)
+            if (!tilesPanelOpen) {
+              setOsmPanelOpen(false)
+              setAnalysisOpen(false)
+            }
             setTilesPanelOpen(!tilesPanelOpen)
           }}
         />
@@ -91,8 +98,25 @@ export default function Toolbar({ onImport, onExport, onSettings, onWFS, onDrawM
           type={osmPanelOpen ? 'primary' : 'text'}
           size="small"
           onClick={() => {
-            if (!osmPanelOpen) setTilesPanelOpen(false)
+            if (!osmPanelOpen) {
+              setTilesPanelOpen(false)
+              setAnalysisOpen(false)
+            }
             setOsmPanelOpen(!osmPanelOpen)
+          }}
+        />
+      </Tooltip>
+      <Tooltip title={t('analysis.title')}>
+        <Button
+          icon={<ExperimentOutlined />}
+          type={analysisOpen ? 'primary' : 'text'}
+          size="small"
+          onClick={() => {
+            if (!analysisOpen) {
+              setTilesPanelOpen(false)
+              setOsmPanelOpen(false)
+            }
+            setAnalysisOpen(!analysisOpen)
           }}
         />
       </Tooltip>

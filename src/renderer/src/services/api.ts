@@ -129,6 +129,38 @@ export async function osmExtract(south: number, west: number, north: number, eas
 }
 
 // ---------------------------------------------------------------------------
+// Vector analysis
+// ---------------------------------------------------------------------------
+
+export type AnalysisOp =
+  | 'buffer'
+  | 'clip'
+  | 'intersection'
+  | 'difference'
+  | 'union'
+  | 'dissolve'
+  | 'convex_hull'
+  | 'centroid'
+  | 'simplify'
+  | 'select_by_location'
+
+export interface AnalysisParams {
+  distance?: number
+  tolerance?: number
+  field?: string
+  predicate?: 'intersects' | 'within' | 'contains' | 'disjoint'
+}
+
+export async function runAnalysis(
+  op: AnalysisOp,
+  primary: GeoJSON.FeatureCollection,
+  secondary: GeoJSON.FeatureCollection | null,
+  params: AnalysisParams
+): Promise<GeoJSON.FeatureCollection & { skipped?: number }> {
+  return postJson('/analysis/run', { op, primary, secondary, params })
+}
+
+// ---------------------------------------------------------------------------
 // Data monitoring (weather / earthquakes / typhoons)
 // ---------------------------------------------------------------------------
 
