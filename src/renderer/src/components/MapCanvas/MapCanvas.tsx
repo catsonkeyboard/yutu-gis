@@ -155,6 +155,27 @@ export default function MapCanvas({ onSave }: Props) {
             'circle-stroke-width': 1,
           },
         })
+        // Attribute label (independent of the symbology mode)
+        if (layer.style?.labelField) {
+          map.addLayer({
+            id: `user-${layer.id}-label`,
+            type: 'symbol',
+            source: sourceId,
+            layout: {
+              'text-field': ['to-string', ['get', layer.style.labelField]],
+              'text-font': ['Noto Sans Regular'],
+              'text-size': layer.style.labelSize ?? 12,
+              'text-anchor': 'top',
+              'text-offset': [0, 0.6],
+            },
+            paint: {
+              'text-color': layer.style.labelColor ?? '#333333',
+              'text-halo-color': '#ffffff',
+              'text-halo-width': 1.2,
+              'text-opacity': layer.opacity,
+            },
+          })
+        }
       })
 
     // Ensure vehicle/flight/monitor overlay layers stay on top of user data layers

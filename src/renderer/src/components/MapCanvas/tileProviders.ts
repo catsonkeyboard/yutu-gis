@@ -13,6 +13,10 @@ export interface ApiKeys {
   amap: string
 }
 
+// Glyph server for symbol/text layers (labels, cluster counts). CJK is
+// rendered locally by MapLibre's localIdeographFontFamily and never hits it.
+const GLYPHS_URL = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+
 export function getTileStyle(provider: MapProvider, apiKeys: ApiKeys): StyleSpecification {
   const styles: Record<MapProvider, StyleSpecification> = {
     osm: {
@@ -94,7 +98,7 @@ export function getTileStyle(provider: MapProvider, apiKeys: ApiKeys): StyleSpec
       layers: [{ id: 'amap', type: 'raster', source: 'amap' }],
     },
   }
-  return styles[provider]
+  return { ...styles[provider], glyphs: GLYPHS_URL }
 }
 
 /** Plain-text data attribution for a provider (baked into exported images). */
