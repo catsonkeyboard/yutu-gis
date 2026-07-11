@@ -263,6 +263,9 @@
     "openFile": "Open file",
     "openFileHint": "Query a local GPKG/SHP/GeoJSON/CSV/Parquet file as a lazy view (not loaded onto the map)",
     "fileRegistered": "File view registered: {{table}}",
-    "fileTag": "FILE"
+    "fileTag": "FILE",
+    "history": "History",
+    "exportCsv": "Export CSV",
+    "csvExported": "Exported {{rows}} rows (full result)"
   }
 }

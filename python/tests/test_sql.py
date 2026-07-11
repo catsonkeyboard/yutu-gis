@@ -174,3 +174,18 @@ class TestRegisterFile:
         p.write_text('hi')
         with pytest.raises(ValueError):
             sql_service.register_file(str(p))
+
+
+class TestExportQuery:
+    def test_exports_full_result_to_csv(self, tmp_path):
+        sql_service.register_layer('pts', fc(*[point_geom(i, i, {'i': i}) for i in range(15)]))
+        out = str(tmp_path / 'result.csv')
+        info = sql_service.export_query('SELECT i FROM pts ORDER BY i', out)
+        assert info['rows'] == 15
+        lines = open(out, encoding='utf-8').read().strip().splitlines()
+        assert lines[0] == 'i'
+        assert len(lines) == 16  # header + 15 rows
+
+    def test_rejects_non_select(self, tmp_path):
+        with pytest.raises(ValueError):
+            sql_service.export_query('DROP TABLE x', str(tmp_path / 'x.csv'))
