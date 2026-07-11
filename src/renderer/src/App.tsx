@@ -59,6 +59,7 @@ export default function App() {
   const { features, setMode, clear, drawMode } = useDrawStore()
   const attrTableOpen = useAttributeTableStore((s) => s.open)
   const sqlPanelOpen = useSqlPanelStore((s) => s.open)
+  const [recentProjects, setRecentProjects] = useState<string[]>([])
   const setLanguage = useSettingsStore((s) => s.setLanguage)
   const setApiKeys = useSettingsStore((s) => s.setApiKeys)
   const setDownloadDir = useSettingsStore((s) => s.setDownloadDir)
@@ -82,6 +83,7 @@ export default function App() {
         })
         setDownloadDir(cfg.download.dir)
         useBookmarkStore.getState().setAll(((cfg as { bookmarks?: Bookmark[] }).bookmarks ?? []))
+        setRecentProjects((cfg as { recentProjects?: string[] }).recentProjects ?? [])
         i18n.changeLanguage(cfg.language)
       })
       .catch(console.error)
@@ -307,6 +309,22 @@ export default function App() {
     }
   }
 
+  const addRecentProject = (path: string) => {
+    setRecentProjects((prev) => {
+      const next = [path, ...prev.filter((p) => p !== path)].slice(0, 5)
+      window.electronAPI.updateConfig({ recentProjects: next }).catch(console.error)
+      return next
+    })
+  }
+
+  const removeRecentProject = (path: string) => {
+    setRecentProjects((prev) => {
+      const next = prev.filter((p) => p !== path)
+      window.electronAPI.updateConfig({ recentProjects: next }).catch(console.error)
+      return next
+    })
+  }
+
   const handleSaveProject = async () => {
     const filePath = await window.electronAPI.saveFileDialog([
       { name: 'YutuGIS 工程', extensions: ['yutugis'] }
@@ -314,17 +332,14 @@ export default function App() {
     if (!filePath) return
     try {
       await window.electronAPI.writeFile(filePath, JSON.stringify(serializeProject()))
+      addRecentProject(filePath)
       message.success(`已保存工程：${filePath.split('/').pop()}`)
     } catch (e) {
       message.error(`保存工程失败：${(e as Error).message}`)
     }
   }
 
-  const handleOpenProject = async () => {
-    const filePath = await window.electronAPI.openFileDialog([
-      { name: 'YutuGIS 工程', extensions: ['yutugis'] }
-    ])
-    if (!filePath) return
+  const openProjectFromPath = async (filePath: string) => {
     if (useLayerStore.getState().layers.length > 0) {
       const ok = await new Promise<boolean>((resolve) => {
         Modal.confirm({
@@ -343,10 +358,20 @@ export default function App() {
       const json = JSON.parse(new TextDecoder().decode(buffer))
       const { warnings } = await loadProject(json)
       warnings.forEach((w) => message.warning(w))
+      addRecentProject(filePath)
       message.success('工程已打开')
     } catch (e) {
+      removeRecentProject(filePath) // stale entry (moved/deleted file)
       message.error(`打开工程失败：${(e as Error).message}`)
     }
+  }
+
+  const handleOpenProject = async () => {
+    const filePath = await window.electronAPI.openFileDialog([
+      { name: 'YutuGIS 工程', extensions: ['yutugis'] }
+    ])
+    if (!filePath) return
+    await openProjectFromPath(filePath)
   }
 
   const handleExportLayer = (layerId: string) => {
@@ -370,6 +395,8 @@ export default function App() {
           onImport={handleImport}
           onOpenProject={handleOpenProject}
           onSaveProject={handleSaveProject}
+          recentProjects={recentProjects}
+          onOpenRecent={openProjectFromPath}
           onExport={() => setExportOpen(true)}
           onWFS={() => setWfsOpen(true)}
           onDrawModeChange={handleDrawModeChange}
