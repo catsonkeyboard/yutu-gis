@@ -26,6 +26,8 @@ async def test_import_geojson(tmp_path):
             )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["type"] == "FeatureCollection"
-    assert len(body["features"]) == 1
-    assert body["features"][0]["properties"]["name"] == "Beijing"
+    assert len(body["layers"]) == 1
+    geojson = body["layers"][0]["geojson"]
+    assert geojson["type"] == "FeatureCollection"
+    assert len(geojson["features"]) == 1
+    assert geojson["features"][0]["properties"]["name"] == "Beijing"
