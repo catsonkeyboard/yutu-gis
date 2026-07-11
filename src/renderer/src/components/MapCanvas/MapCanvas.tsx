@@ -18,6 +18,8 @@ import MonitorLayer, { bringMonitorLayersToTop } from './MonitorLayer'
 import TilesDownloadPanel from '../TilesDownload/TilesDownloadPanel'
 import OsmExtractPanel from '../OsmExtract/OsmExtractPanel'
 import AnalysisPanel from '../Analysis/AnalysisPanel'
+import StylePanel from '../StylePanel/StylePanel'
+import { buildPaint } from '../StylePanel/styleUtils'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
 
@@ -114,26 +116,29 @@ export default function MapCanvas({ onSave }: Props) {
           ? convertToGcj02(layer.source as GeoJSON.FeatureCollection)
           : (layer.source as GeoJSON.FeatureCollection)
         map.addSource(sourceId, { type: 'geojson', data })
+        // Custom symbology (StylePanel) takes precedence over the default
+        // blue/orange-selection rendering
+        const custom = layer.style ? buildPaint(layer.style, layer.opacity) : null
         map.addLayer({
           id: `user-${layer.id}-fill`,
           type: 'fill',
           source: sourceId,
           filter: ['==', '$type', 'Polygon'],
-          paint: { 'fill-color': color, 'fill-opacity': layer.opacity * 0.4 },
+          paint: (custom?.fill as never) ?? { 'fill-color': color, 'fill-opacity': layer.opacity * 0.4 },
         })
         map.addLayer({
           id: `user-${layer.id}-line`,
           type: 'line',
           source: sourceId,
           filter: ['any', ['==', '$type', 'LineString'], ['==', '$type', 'Polygon']],
-          paint: { 'line-color': color, 'line-width': 1.5, 'line-opacity': layer.opacity },
+          paint: (custom?.line as never) ?? { 'line-color': color, 'line-width': 1.5, 'line-opacity': layer.opacity },
         })
         map.addLayer({
           id: `user-${layer.id}-point`,
           type: 'circle',
           source: sourceId,
           filter: ['==', '$type', 'Point'],
-          paint: {
+          paint: (custom?.circle as never) ?? {
             'circle-color': color,
             'circle-radius': 5,
             'circle-opacity': layer.opacity,
@@ -270,6 +275,7 @@ export default function MapCanvas({ onSave }: Props) {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
     layersRef.current.forEach((layer) => {
+      if (layer.style) return // custom symbology is never overridden by selection color
       const isSelected = layer.id === selectedLayerId
       const color = isSelected ? SELECTED_COLOR : DEFAULT_COLOR
       const fillId = `user-${layer.id}-fill`
@@ -323,6 +329,7 @@ export default function MapCanvas({ onSave }: Props) {
       <TilesDownloadPanel map={mapInstance} />
       <OsmExtractPanel map={mapInstance} />
       <AnalysisPanel />
+      <StylePanel />
       <DrawHintBanner onSave={onSave} />
       <BasemapSwitcher />
     </div>
