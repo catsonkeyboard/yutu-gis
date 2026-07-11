@@ -201,5 +201,13 @@
     "hint": "Click to add · double-click to finish · right-click to undo",
     "clear": "Clear",
     "exit": "Exit"
+  },
+  "bookmark": {
+    "title": "Bookmarks",
+    "namePlaceholder": "Bookmark name (auto if empty)",
+    "save": "Save view",
+    "empty": "No bookmarks",
+    "added": "Bookmark saved: {{name}}",
+    "limit": "Bookmark limit reached ({{max}})"
   }
 }

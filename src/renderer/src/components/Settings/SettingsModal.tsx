@@ -34,7 +34,8 @@ export default function SettingsModal({ open, onClose }: Props) {
     })
     setDownloadDir(values.downloadDir ?? '')
     await i18n.changeLanguage(values.language)
-    await window.electronAPI.saveConfig({
+    // Partial update — keys not managed here (e.g. bookmarks) survive
+    await window.electronAPI.updateConfig({
       language: values.language,
       googleMap: { apiKey: values.googleKey ?? '' },
       amap: { apiKey: values.amapKey ?? '' },

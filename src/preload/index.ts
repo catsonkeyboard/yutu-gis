@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; download: { dir: string } }
+type BookmarkEntry = { id: string; name: string; center: [number, number]; zoom: number; provider: string; createdAt: number }
+type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; download: { dir: string }; bookmarks?: BookmarkEntry[] }
 type VehicleServerConfig = { host: string; port: number; protocol: 'udp' | 'tcp' }
 type VehiclePacket = { time: number; devNo: string; direct: number; speed: number; lat: number; lon: number }
 type OpenSkyBounds = { lamin: number; lomin: number; lamax: number; lomax: number }
@@ -19,6 +20,9 @@ const electronAPI = {
 
   saveConfig: (config: AppConfig): Promise<void> =>
     ipcRenderer.invoke('config:save', config),
+
+  updateConfig: (partial: Partial<AppConfig>): Promise<AppConfig> =>
+    ipcRenderer.invoke('config:update', partial),
 
   readFile: (filePath: string): Promise<Buffer> =>
     ipcRenderer.invoke('fs:readFile', filePath),

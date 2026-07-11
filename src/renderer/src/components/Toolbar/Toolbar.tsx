@@ -23,6 +23,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
 import LocationSearchModal from './LocationSearchModal'
+import BookmarkDropdown from './BookmarkDropdown'
 import MonitorDropdown from './MonitorDropdown'
 import VehicleTrackingModal from '../VehicleTracking/VehicleTrackingModal'
 import FlightTrackingModal from '../FlightTracking/FlightTrackingModal'
@@ -201,6 +202,7 @@ export default function Toolbar({
         />
       </Tooltip>
       <LocationSearchModal open={locationSearchOpen} onClose={() => setLocationSearchOpen(false)} />
+      <BookmarkDropdown />
       <Divider type="vertical" />
       <Tooltip title="车辆定位数据接入">
         <Badge dot={vehicleConnected} offset={[-2, 2]} status="success">

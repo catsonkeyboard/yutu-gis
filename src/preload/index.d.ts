@@ -1,4 +1,12 @@
-type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; openWeather: { apiKey: string }; firms: { apiKey: string }; waqi: { apiKey: string }; download: { dir: string } }
+type BookmarkEntry = {
+  id: string
+  name: string
+  center: [number, number]
+  zoom: number
+  provider: string
+  createdAt: number
+}
+type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; openWeather: { apiKey: string }; firms: { apiKey: string }; waqi: { apiKey: string }; download: { dir: string }; bookmarks: BookmarkEntry[] }
 type VehicleServerConfig = { host: string; port: number; protocol: 'udp' | 'tcp' }
 type VehiclePacket = {
   time: number
@@ -59,6 +67,7 @@ export interface ElectronAPI {
   onMenuAction: (callback: (action: string) => void) => () => void
   loadConfig: () => Promise<AppConfig>
   saveConfig: (config: AppConfig) => Promise<void>
+  updateConfig: (partial: Partial<AppConfig>) => Promise<AppConfig>
   // Vehicle tracking
   startVehicleServer: (config: VehicleServerConfig) => Promise<void>
   stopVehicleServer: () => Promise<void>
