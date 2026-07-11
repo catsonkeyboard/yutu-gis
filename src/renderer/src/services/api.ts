@@ -129,6 +129,28 @@ export async function osmExtract(south: number, west: number, north: number, eas
 }
 
 // ---------------------------------------------------------------------------
+// Layer export (SHP / GPKG / KML / CSV — GeoJSON is written by the renderer)
+// ---------------------------------------------------------------------------
+
+export type ExportFormat = 'geojson' | 'shp' | 'gpkg' | 'kml' | 'csv'
+
+/** Export a layer server-side into `dir`. Returns the written file paths. */
+export async function exportLayer(
+  geojson: GeoJSON.FeatureCollection,
+  format: Exclude<ExportFormat, 'geojson'>,
+  dir: string,
+  name: string
+): Promise<string[]> {
+  const data = await postJson<{ files: string[] }>('/data/export', {
+    geojson,
+    format,
+    path: dir,
+    name,
+  })
+  return data.files
+}
+
+// ---------------------------------------------------------------------------
 // Vector analysis
 // ---------------------------------------------------------------------------
 

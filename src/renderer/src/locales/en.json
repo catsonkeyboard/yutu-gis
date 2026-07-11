@@ -108,7 +108,9 @@
     "selectDir": "Choose Export Directory",
     "success": "Exported {{count}} layer(s)",
     "selectAll": "Select All",
-    "errorFile": "Export failed: {{name}} — {{error}}"
+    "errorFile": "Export failed: {{name}} — {{error}}",
+    "format": "Format",
+    "shpHint": "Mixed geometry types are split into separate point/line/polygon .shp files"
   },
   "common": {
     "cancel": "Cancel"
