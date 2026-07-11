@@ -1,7 +1,7 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { getPythonPort } from './python'
-import { loadConfig, saveConfig, type AppConfig } from './config'
+import { loadConfig, saveConfig, updateConfig, type AppConfig } from './config'
 import { startVehicleServer, stopVehicleServer, type VehicleServerConfig } from './vehicleServer'
 import {
   fetchOpenSkyToken, fetchOpenSkyStates,
@@ -48,6 +48,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle('config:load', () => loadConfig())
   ipcMain.handle('config:save', (_event, config: AppConfig) => saveConfig(config))
+  ipcMain.handle('config:update', (_event, partial: Partial<AppConfig>) => updateConfig(partial))
 
   ipcMain.handle('vehicle:start', (_event, config: VehicleServerConfig) => {
     startVehicleServer(win, config)

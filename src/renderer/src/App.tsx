@@ -23,6 +23,7 @@ import AttributeTablePanel from './components/AttributeTable/AttributeTablePanel
 import { useAttributeTableStore } from './stores/attributeTableStore'
 import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
+import { useBookmarkStore, type Bookmark } from './stores/bookmarkStore'
 
 const { Header, Sider, Content, Footer } = Layout
 
@@ -76,6 +77,7 @@ export default function App() {
           waqi: cfg.waqi?.apiKey ?? '',
         })
         setDownloadDir(cfg.download.dir)
+        useBookmarkStore.getState().setAll(((cfg as { bookmarks?: Bookmark[] }).bookmarks ?? []))
         i18n.changeLanguage(cfg.language)
       })
       .catch(console.error)

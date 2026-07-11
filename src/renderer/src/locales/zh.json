@@ -201,5 +201,13 @@
     "hint": "单击加点 · 双击结束 · 右键撤销",
     "clear": "清除",
     "exit": "退出"
+  },
+  "bookmark": {
+    "title": "空间书签",
+    "namePlaceholder": "书签名称（留空自动命名）",
+    "save": "保存视图",
+    "empty": "暂无书签",
+    "added": "已保存书签：{{name}}",
+    "limit": "书签数量已达上限（{{max}}）"
   }
 }
