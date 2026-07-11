@@ -130,7 +130,16 @@
     "saveFiltered": "Save filtered as layer",
     "filteredPrefix": "Filtered",
     "savedFiltered": "Saved layer: {{name}} ({{count}} features)",
-    "stats": "Field statistics"
+    "stats": "Field statistics",
+    "tabTable": "Table",
+    "tabCharts": "Charts",
+    "chartHistogram": "Histogram",
+    "chartBar": "Bar",
+    "chartPie": "Pie",
+    "chartBins": "Bins",
+    "chartOther": "Other",
+    "chartSamples": "{{count}} samples",
+    "chartNoData": "No usable data in this field"
   },
   "analysis": {
     "title": "Vector Analysis",

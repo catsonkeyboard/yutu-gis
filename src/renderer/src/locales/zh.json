@@ -130,7 +130,16 @@
     "saveFiltered": "筛选结果另存为图层",
     "filteredPrefix": "筛选",
     "savedFiltered": "已保存图层：{{name}}（{{count}} 个要素）",
-    "stats": "字段统计"
+    "stats": "字段统计",
+    "tabTable": "表格",
+    "tabCharts": "图表",
+    "chartHistogram": "直方图",
+    "chartBar": "柱状图",
+    "chartPie": "饼图",
+    "chartBins": "分箱",
+    "chartOther": "其它",
+    "chartSamples": "样本 {{count}}",
+    "chartNoData": "该字段没有可用数据"
   },
   "analysis": {
     "title": "矢量分析",
