@@ -18,7 +18,9 @@ import {
   CaretRightOutlined,
   CloseOutlined,
   DownOutlined,
+  ExportOutlined,
   FileAddOutlined,
+  HistoryOutlined,
   PlusOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
@@ -29,6 +31,7 @@ import { useLayerStore } from '../../stores/layerStore'
 import { useMapStore } from '../../stores/mapStore'
 import {
   parseApiError,
+  sqlExportCsv,
   sqlListTables,
   sqlQuery,
   sqlQueryGeojson,
@@ -66,7 +69,7 @@ function sampleQueries(tables: SqlTableInfo[], t: (k: string) => string) {
 
 export default function SqlPanel(): ReactElement {
   const { t } = useTranslation()
-  const { height, sql, setOpen, setHeight, setSql } = useSqlPanelStore()
+  const { height, sql, history, setOpen, setHeight, setSql, pushHistory } = useSqlPanelStore()
   const addLayer = useLayerStore((s) => s.addLayer)
   const setSelectedLayer = useLayerStore((s) => s.setSelectedLayer)
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
@@ -146,12 +149,27 @@ export default function SqlPanel(): ReactElement {
       const res = await sqlQuery(sql)
       setResult(res)
       setElapsed(performance.now() - started)
+      pushHistory(sql)
     } catch (e) {
       setResult(null)
       setElapsed(null)
       message.error(parseApiError(e))
     } finally {
       setRunning(false)
+    }
+  }
+
+  const handleExportCsv = async () => {
+    const filePath = await window.electronAPI.saveFileDialog(
+      [{ name: 'CSV', extensions: ['csv'] }],
+      'query-result.csv'
+    )
+    if (!filePath) return
+    try {
+      const info = await sqlExportCsv(sql, filePath)
+      message.success(t('sql.csvExported', { rows: info.rows }))
+    } catch (e) {
+      message.error(parseApiError(e))
     }
   }
 
@@ -307,6 +325,25 @@ export default function SqlPanel(): ReactElement {
               {t('sql.samples')} <DownOutlined />
             </Button>
           </Dropdown>
+          <Dropdown
+            disabled={!history.length}
+            menu={{
+              items: history.map((h, i) => ({
+                key: String(i),
+                label: (
+                  <span style={{ fontSize: 12, fontFamily: 'Menlo, Consolas, monospace' }}>
+                    {h.split('\n')[0].slice(0, 60)}
+                  </span>
+                ),
+              })),
+              onClick: ({ key }) => setSql(history[Number(key)]),
+            }}
+            trigger={['click']}
+          >
+            <Tooltip title={t('sql.history')}>
+              <Button size="small" icon={<HistoryOutlined />} />
+            </Tooltip>
+          </Dropdown>
           <Button
             size="small"
             type="primary"
@@ -391,16 +428,22 @@ export default function SqlPanel(): ReactElement {
                 {elapsed !== null && ` · ${elapsed.toFixed(0)} ms`}
               </Text>
             )}
-            {resultHasGeometry && (
-              <Button
-                size="small"
-                icon={<PlusOutlined />}
-                loading={addingLayer}
-                onClick={handleAddAsLayer}
-                style={{ marginLeft: 'auto' }}
-              >
-                {t('sql.addAsLayer')}
-              </Button>
+            {result && (
+              <Space size={4} style={{ marginLeft: 'auto' }}>
+                <Button size="small" icon={<ExportOutlined />} onClick={handleExportCsv}>
+                  {t('sql.exportCsv')}
+                </Button>
+                {resultHasGeometry && (
+                  <Button
+                    size="small"
+                    icon={<PlusOutlined />}
+                    loading={addingLayer}
+                    onClick={handleAddAsLayer}
+                  >
+                    {t('sql.addAsLayer')}
+                  </Button>
+                )}
+              </Space>
             )}
           </div>
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>

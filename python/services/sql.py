@@ -280,6 +280,16 @@ def run_query(sql: str, limit: int = DISPLAY_LIMIT_DEFAULT) -> dict:
         return {'columns': columns, 'rows': rows, 'row_count': len(rows), 'truncated': truncated}
 
 
+def export_query(sql: str, path: str) -> dict:
+    """Export the FULL query result to a CSV file (display is capped, this is not)."""
+    stmt = _validate(sql)
+    path_literal = "'" + str(Path(path)).replace("'", "''") + "'"
+    with _lock:
+        con = _connection()
+        row = con.execute(f'COPY ({stmt}) TO {path_literal} (FORMAT CSV, HEADER)').fetchone()
+        return {'path': str(Path(path)), 'rows': int(row[0]) if row else 0}
+
+
 def query_as_geojson(sql: str, cap: int = GEOJSON_CAP) -> dict:
     stmt = _validate(sql)
     with _lock:

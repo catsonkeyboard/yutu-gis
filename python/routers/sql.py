@@ -60,6 +60,22 @@ async def query(req: QueryRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+class ExportQueryRequest(BaseModel):
+    sql: str
+    path: str
+
+
+@router.post("/export")
+async def export_query(req: ExportQueryRequest):
+    """Export the full (uncapped) query result to a CSV file."""
+    try:
+        return sql_service.export_query(req.sql, req.path)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/query/geojson")
 async def query_geojson(req: QueryRequest):
     try:

@@ -263,6 +263,9 @@
     "openFile": "打开文件",
     "openFileHint": "把本地 GPKG/SHP/GeoJSON/CSV/Parquet 文件注册为惰性视图直接查询（不加载到地图）",
     "fileRegistered": "已注册文件视图：{{table}}",
-    "fileTag": "文件"
+    "fileTag": "文件",
+    "history": "查询历史",
+    "exportCsv": "导出 CSV",
+    "csvExported": "已导出 {{rows}} 行（完整结果）"
   }
 }
