@@ -236,5 +236,26 @@
     "on": "On",
     "off": "Off",
     "blocked": "Unavailable while drawing/measuring"
+  },
+  "sql": {
+    "title": "SQL Workbench",
+    "sync": "Sync layers",
+    "synced": "Synced {{count}} layer(s) as tables",
+    "syncFailed": "Sync failed",
+    "samples": "Samples",
+    "run": "Run",
+    "sampleStats": "Feature count",
+    "sampleArea": "Order by area (ST_Area)",
+    "sampleJoin": "Spatial join (ST_Intersects)",
+    "placeholder": "Type a SELECT statement, Cmd/Ctrl+Enter to run; click table/column names to insert",
+    "spatialOn": "Spatial extension on",
+    "spatialOff": "Spatial extension unavailable (attributes only)",
+    "noTables": "No tables — sync layers first",
+    "noResult": "Run a query to see results",
+    "rowCount": "{{count}} rows",
+    "truncated": "showing first 1000 rows",
+    "addAsLayer": "Add result as layer",
+    "layerAdded": "Layer added: {{name}} ({{count}} features)",
+    "emptyGeojson": "No usable geometry in the result"
   }
 }
