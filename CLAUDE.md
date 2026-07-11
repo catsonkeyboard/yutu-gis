@@ -399,6 +399,11 @@ Do not tighten `img-src` or `connect-src` — tiles will stop loading.
 | 卷帘对比 | `swipeStore`、`MapCanvas/SwipeOverlay.tsx`、`Toolbar/SwipeDropdown.tsx` | 副地图 + CSS clip-path；主图 renderLayers 跳过卷帘层；相机单向同步；绘制/测量时禁用 |
 | SQL 工作台 | `python/services/sql.py`（DuckDB + spatial 扩展）、`components/SqlWorkbench/SqlPanel.tsx`、`sqlPanelStore` | 底部面板（与属性表互斥）；图层经 ST_Read 注册为表（几何列 `geom` GEOMETRY，中文表名可用）；仅允许 SELECT/WITH/SHOW/DESCRIBE；结果几何列经 ST_AsGeoJSON 返回，可一键转图层；spatial 扩展首次使用需联网下载，失败时降级为纯属性查询（`/sql/status`）；`POST /sql/files` 把本地 GPKG/SHP/GeoJSON/CSV/Parquet 注册为**惰性视图**直查（不加载到地图、不计行数），面板"打开文件"入口 |
 
+| 图层标注 | `LayerStyle.labelField/labelSize/labelColor`、renderLayers symbol 层 | 底图样式已统一加 `glyphs`（demotiles Noto Sans；CJK 走 localIdeographFontFamily 本地渲染）——去掉 glyphs 会导致所有 symbol 文字（标注/聚类计数）消失 |
+| 点聚类/热力图 | `LayerStyle.mode: 'cluster'/'heatmap'`（clusterRadius/heatRadius） | cluster 源会丢弃非点要素；点击聚类气泡 `getClusterExpansionZoom` 放大展开；卷帘副地图不支持这两种模式 |
+| 字段计算器 | `python/services/sql.py: calculate_field`、`AttributeTable/FieldCalculatorModal.tsx` | `POST /sql/calculate`：DuckDB 标量表达式（含空间函数）算新列，整体替换图层源（`layerStore.setSource`）；OGC_FID 不进属性 |
+| 其他快赢 | — | 图层双击重命名；SQL 查询历史（会话内 20 条）+ 结果全量导出 CSV（`POST /sql/export` COPY TO）；最近工程（config `recentProjects`，工具栏打开按钮下拉） |
+
 远期未做：AI 助手（自然语言 GIS）—— 见总览文档"远期项"。
 
 ---
