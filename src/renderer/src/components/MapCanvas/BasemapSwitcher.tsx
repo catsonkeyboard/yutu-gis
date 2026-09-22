@@ -1,4 +1,4 @@
-import { Select } from 'antd'
+import { HTMLSelect } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useMapStore } from '../../stores/mapStore'
 import type { MapProvider } from './tileProviders'
@@ -16,6 +16,11 @@ export default function BasemapSwitcher() {
   const { t } = useTranslation()
   const { provider, setProvider } = useMapStore()
 
+  const options = PROVIDERS.map((p) => ({
+    value: p,
+    label: t(`map.providers.${p}`),
+  }))
+
   return (
     <div
       style={{
@@ -25,15 +30,14 @@ export default function BasemapSwitcher() {
         zIndex: 10,
       }}
     >
-      <Select
+      <HTMLSelect
         value={provider}
-        onChange={(v) => setProvider(v as MapProvider)}
-        style={{ width: 150 }}
-        size="small"
-        options={PROVIDERS.map((p) => ({
-          value: p,
-          label: t(`map.providers.${p}`),
-        }))}
+        onChange={(e) => setProvider(e.target.value as MapProvider)}
+        options={options}
+        style={{
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+          borderRadius: 3,
+        }}
       />
     </div>
   )

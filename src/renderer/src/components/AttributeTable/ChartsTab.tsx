@@ -1,12 +1,16 @@
 import { useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { Empty, InputNumber, Radio, Select, Space, Typography } from 'antd'
+import {
+  Classes,
+  HTMLSelect,
+  NonIdealState,
+  NumericInput,
+  SegmentedControl,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { histogramBins, topCounts } from './chartUtils'
 import type { ColumnInfo } from './tableUtils'
 import { COLOR_RAMPS } from '../StylePanel/colorRamps'
-
-const { Text } = Typography
 
 type ChartType = 'histogram' | 'bar' | 'pie'
 
@@ -81,48 +85,37 @@ export default function ChartsTab({ features, columns, height }: Props): ReactEl
               </g>
             )
           })}
-          <text x={2} y={chartHeight - 3} fontSize={10} fill="#8f959e">
+          <text x={4} y={chartHeight - 4} fontSize={10} fill="#8f959e">
             {fmtNum(bins[0].x0)}
           </text>
-          <text x={chartWidth - 2} y={chartHeight - 3} fontSize={10} fill="#8f959e" textAnchor="end">
+          <text x={chartWidth - 4} y={chartHeight - 4} fontSize={10} textAnchor="end" fill="#8f959e">
             {fmtNum(bins[bins.length - 1].x1)}
           </text>
         </svg>
       )
     }
 
-    const values = features.map((f) => f.properties?.[effectiveField])
     if (chartType === 'bar') {
-      const { items, otherCount } = topCounts(values, 20)
+      const vals = features.map((f) => f.properties?.[effectiveField])
+      const { items } = topCounts(vals, 12)
       if (!items.length) return null
-      const all = otherCount > 0 ? [...items, { label: t('attrTable.chartOther'), count: otherCount }] : items
-      const maxCount = Math.max(...all.map((i) => i.count))
-      const barW = chartWidth / all.length
+      const max = Math.max(...items.map((c) => c.count))
+      const rowH = Math.min(22, (chartHeight - 8) / items.length)
       return (
-        <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
-          {all.map((item, i) => {
-            const h = maxCount ? (item.count / maxCount) * (chartHeight - 40) : 0
+        <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+          {items.map((c, i) => {
+            const barW = max ? (c.count / max) * (chartWidth - 220) : 0
+            const y = i * rowH + 4
             return (
-              <g key={i}>
-                <rect
-                  x={i * barW + 2}
-                  y={chartHeight - 28 - h}
-                  width={Math.max(1, barW - 4)}
-                  height={h}
-                  fill={BAR_COLOR}
-                  opacity={0.85}
-                >
-                  <title>{`${item.label}: ${item.count}`}</title>
+              <g key={c.label}>
+                <text x={110} y={y + rowH - 6} fontSize={11} textAnchor="end" fill="#1f2329">
+                  {c.label.slice(0, 14)}
+                </text>
+                <rect x={120} y={y + 2} width={barW} height={rowH - 4} fill={BAR_COLOR} opacity={0.85}>
+                  <title>{`${c.label}: ${c.count}`}</title>
                 </rect>
-                <text
-                  x={i * barW + barW / 2}
-                  y={chartHeight - 14}
-                  fontSize={9}
-                  fill="#646a73"
-                  textAnchor="end"
-                  transform={`rotate(-30 ${i * barW + barW / 2} ${chartHeight - 14})`}
-                >
-                  {item.label.length > 10 ? item.label.slice(0, 10) + '…' : item.label}
+                <text x={126 + barW} y={y + rowH - 6} fontSize={10} fill="#8f959e">
+                  {c.count}
                 </text>
               </g>
             )
@@ -131,93 +124,105 @@ export default function ChartsTab({ features, columns, height }: Props): ReactEl
       )
     }
 
-    // pie
-    const { items, otherCount } = topCounts(values, 10)
-    if (!items.length) return null
-    const all = otherCount > 0 ? [...items, { label: t('attrTable.chartOther'), count: otherCount }] : items
-    const total = all.reduce((s, i) => s + i.count, 0)
-    const cx = chartHeight / 2
+    // Pie chart (top 7 + "其他")
+    const vals = features.map((f) => f.properties?.[effectiveField])
+    const { items, otherCount } = topCounts(vals, 7)
+    const allItems = otherCount > 0 ? [...items, { label: '其他', count: otherCount }] : items
+    if (!allItems.length) return null
+    const total = allItems.reduce((s, c) => s + c.count, 0)
+    if (!total) return null
+
+    const cx = chartWidth / 3
     const cy = chartHeight / 2
-    const r = chartHeight / 2 - 10
-    let angle = -Math.PI / 2
-    const slices = all.map((item, i) => {
-      const sweep = (item.count / total) * Math.PI * 2
-      const x1 = cx + r * Math.cos(angle)
-      const y1 = cy + r * Math.sin(angle)
-      angle += sweep
-      const x2 = cx + r * Math.cos(angle)
-      const y2 = cy + r * Math.sin(angle)
-      const large = sweep > Math.PI ? 1 : 0
-      const d =
-        total === item.count
-          ? `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy} A ${r} ${r} 0 1 1 ${cx - r} ${cy}`
-          : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`
-      return { d, color: PIE_COLORS[i % PIE_COLORS.length], item }
+    const r = Math.min(chartHeight / 2 - 12, 100)
+
+    let currentAngle = -Math.PI / 2
+    const slices = allItems.map((c, i) => {
+      const angle = (c.count / total) * Math.PI * 2
+      const startAngle = currentAngle
+      const endAngle = currentAngle + angle
+      currentAngle = endAngle
+
+      const x1 = cx + r * Math.cos(startAngle)
+      const y1 = cy + r * Math.sin(startAngle)
+      const x2 = cx + r * Math.cos(endAngle)
+      const y2 = cy + r * Math.sin(endAngle)
+      const largeArc = angle > Math.PI ? 1 : 0
+      const pathData =
+        allItems.length === 1
+          ? `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy}`
+          : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`
+
+      const color = PIE_COLORS[i % PIE_COLORS.length]
+      return { ...c, pathData, color, percent: ((c.count / total) * 100).toFixed(1) }
     })
+
     return (
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-        <svg width={chartHeight} height={chartHeight}>
-          {slices.map((s, i) => (
-            <path key={i} d={s.d} fill={s.color} stroke="#fff" strokeWidth={1}>
-              <title>{`${s.item.label}: ${s.item.count} (${((s.item.count / total) * 100).toFixed(1)}%)`}</title>
-            </path>
-          ))}
-        </svg>
-        <div style={{ fontSize: 11, maxHeight: chartHeight, overflowY: 'auto' }}>
-          {slices.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '1px 0' }}>
-              <span style={{ width: 10, height: 10, background: s.color, borderRadius: 2, flexShrink: 0 }} />
-              <span style={{ color: '#1f2329' }}>{s.item.label}</span>
-              <span style={{ color: '#8f959e' }}>{s.item.count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+        {slices.map((s) => (
+          <path key={s.label} d={s.pathData} fill={s.color} opacity={0.88}>
+            <title>{`${s.label}: ${s.count} (${s.percent}%)`}</title>
+          </path>
+        ))}
+        {slices.map((s, i) => {
+          const ly = 24 + i * 18
+          const lx = cx + r + 40
+          return (
+            <g key={s.label}>
+              <rect x={lx} y={ly - 9} width={10} height={10} fill={s.color} />
+              <text x={lx + 16} y={ly} fontSize={11} fill="#1f2329">
+                {s.label.slice(0, 16)} — {s.count} ({s.percent}%)
+              </text>
+            </g>
+          )
+        })}
+      </svg>
     )
-  }, [effectiveField, features, chartType, binCount, chartHeight, t])
+  }, [effectiveField, features, chartType, binCount, chartHeight, chartWidth])
 
   return (
-    <div ref={containerRef} style={{ padding: '4px 12px', height: '100%', overflow: 'auto' }}>
-      <Space size={8} wrap style={{ marginBottom: 6 }}>
-        <Radio.Group
-          size="small"
-          optionType="button"
+    <div ref={containerRef} style={{ padding: '6px 12px', height: '100%', overflow: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+        <SegmentedControl
+          small
           value={chartType}
-          onChange={(e) => setChartType(e.target.value)}
+          onValueChange={(val) => setChartType(val as ChartType)}
           options={[
             { value: 'histogram', label: t('attrTable.chartHistogram') },
             { value: 'bar', label: t('attrTable.chartBar') },
             { value: 'pie', label: t('attrTable.chartPie') },
           ]}
         />
-        <Select
-          size="small"
+        <HTMLSelect
           style={{ width: 160 }}
-          value={effectiveField}
-          onChange={setField}
+          value={effectiveField ?? ''}
+          onChange={(e) => setField(e.target.value || undefined)}
           options={fieldOptions}
-          placeholder={t('attrTable.field')}
-          showSearch
         />
         {chartType === 'histogram' && (
-          <span style={{ fontSize: 12 }}>
-            {t('attrTable.chartBins')}{' '}
-            <InputNumber
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+            <span>{t('attrTable.chartBins')}</span>
+            <NumericInput
               size="small"
               min={5}
               max={50}
               value={binCount}
-              onChange={(v) => setBinCount(v ?? 20)}
-              style={{ width: 60 }}
+              onValueChange={(v) => setBinCount(v || 20)}
+              style={{ width: 56 }}
             />
-          </span>
+          </div>
         )}
-        <Text type="secondary" style={{ fontSize: 11 }}>
+        <span className={Classes.TEXT_MUTED} style={{ fontSize: 11 }}>
           {t('attrTable.chartSamples', { count: features.length })}
-        </Text>
-      </Space>
+        </span>
+      </div>
       {chart ?? (
-        <Empty description={t('attrTable.chartNoData')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <div style={{ padding: '24px 0' }}>
+          <NonIdealState
+            icon="chart"
+            title={t('attrTable.chartNoData')}
+          />
+        </div>
       )}
     </div>
   )

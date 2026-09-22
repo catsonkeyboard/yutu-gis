@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import maplibregl from 'maplibre-gl'
-import { Button, Space, Typography } from 'antd'
+import { Button, ButtonGroup, Classes, Intent } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useMeasureStore } from '../../stores/measureStore'
 import { useMapStore } from '../../stores/mapStore'
 import { wgs84ToGcj02, gcj02ToWgs84 } from '../../utils/coordTransform'
 import { pathLength, sphericalArea, formatDistance, formatArea } from '../../utils/geodesy'
-
-const { Text } = Typography
 
 const SRC = 'measure-src'
 const COLOR = '#fa8c16'
@@ -186,37 +184,43 @@ export default function MeasureLayer({ map }: Props): ReactElement | null {
         left: '50%',
         transform: 'translateX(-50%)',
         background: '#fff',
-        borderRadius: 6,
+        borderRadius: 4,
         boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
         zIndex: 640,
-        padding: '6px 12px',
+        padding: '5px 10px',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
+        border: '1px solid var(--color-border, #d9dce0)',
+        fontSize: 12,
       }}
     >
-      <Text strong style={{ fontSize: 12, color: COLOR }}>
+      <span style={{ fontWeight: 600, color: COLOR }}>
         {mode === 'distance' ? t('measure.distanceMode') : t('measure.areaMode')}
-      </Text>
-      <Text style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', minWidth: 70 }}>
+      </span>
+      <span style={{ fontVariantNumeric: 'tabular-nums', minWidth: 70, fontWeight: 500 }}>
         {liveValue ??
           (lastCompleted
             ? lastCompleted.kind === 'distance'
               ? formatDistance(lastCompleted.value)
               : formatArea(lastCompleted.value)
             : '—')}
-      </Text>
-      <Text type="secondary" style={{ fontSize: 11 }}>
+      </span>
+      <span className={Classes.TEXT_MUTED} style={{ fontSize: 11 }}>
         {t('measure.hint')}
-      </Text>
-      <Space size={4}>
-        <Button size="small" onClick={clearAll} disabled={!completed.length && !vertices.length}>
-          {t('measure.clear')}
-        </Button>
-        <Button size="small" type="primary" onClick={() => setMode('off')}>
-          {t('measure.exit')}
-        </Button>
-      </Space>
+      </span>
+      <ButtonGroup size="small">
+        <Button
+          onClick={clearAll}
+          disabled={!completed.length && !vertices.length}
+          text={t('measure.clear')}
+        />
+        <Button
+          intent={Intent.PRIMARY}
+          onClick={() => setMode('off')}
+          text={t('measure.exit')}
+        />
+      </ButtonGroup>
     </div>
   )
 }

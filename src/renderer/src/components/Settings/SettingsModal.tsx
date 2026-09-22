@@ -1,143 +1,213 @@
-import { Modal, Form, Input, Select, Divider, Typography, Button, Space } from 'antd'
-import { FolderOpenOutlined } from '@ant-design/icons'
+import { useState, useEffect } from 'react'
+import type { ReactElement } from 'react'
+import {
+  Button,
+  ControlGroup,
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  Divider,
+  FormGroup,
+  HTMLSelect,
+  InputGroup,
+  Intent,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../stores/settingsStore'
 import i18n from '../../i18n'
-
-const { Text } = Typography
 
 interface Props {
   open: boolean
   onClose: () => void
 }
 
-export default function SettingsModal({ open, onClose }: Props) {
+export default function SettingsModal({ open, onClose }: Props): ReactElement {
   const { t } = useTranslation()
   const { language, apiKeys, downloadDir, setLanguage, setApiKeys, setDownloadDir } =
     useSettingsStore()
-  const [form] = Form.useForm()
+
+  const [lang, setLang] = useState(language)
+  const [dlDir, setDlDir] = useState(downloadDir)
+  const [googleKey, setGoogleKey] = useState(apiKeys.google)
+  const [amapKey, setAmapKey] = useState(apiKeys.amap)
+  const [openWeatherKey, setOpenWeatherKey] = useState(apiKeys.openweather)
+  const [firmsKey, setFirmsKey] = useState(apiKeys.firms)
+  const [waqiKey, setWaqiKey] = useState(apiKeys.waqi)
+  const [showKeys, setShowKeys] = useState(false)
+
+  // Sync state whenever modal opens
+  useEffect(() => {
+    if (open) {
+      setLang(language)
+      setDlDir(downloadDir)
+      setGoogleKey(apiKeys.google)
+      setAmapKey(apiKeys.amap)
+      setOpenWeatherKey(apiKeys.openweather)
+      setFirmsKey(apiKeys.firms)
+      setWaqiKey(apiKeys.waqi)
+    }
+  }, [open, language, downloadDir, apiKeys])
 
   const handlePickDownloadDir = async () => {
-    const dir = await window.electronAPI.openDirectoryDialog(form.getFieldValue('downloadDir'))
-    if (dir) form.setFieldValue('downloadDir', dir)
+    const dir = await window.electronAPI.openDirectoryDialog(dlDir)
+    if (dir) setDlDir(dir)
   }
 
-  const handleOk = async () => {
-    const values = await form.validateFields()
-    setLanguage(values.language)
+  const handleSave = async () => {
+    setLanguage(lang)
     setApiKeys({
-      google: values.googleKey ?? '',
-      amap: values.amapKey ?? '',
-      openweather: values.openWeatherKey ?? '',
-      firms: values.firmsKey ?? '',
-      waqi: values.waqiKey ?? '',
+      google: googleKey,
+      amap: amapKey,
+      openweather: openWeatherKey,
+      firms: firmsKey,
+      waqi: waqiKey,
     })
-    setDownloadDir(values.downloadDir ?? '')
-    await i18n.changeLanguage(values.language)
+    setDownloadDir(dlDir)
+    await i18n.changeLanguage(lang)
     // Partial update — keys not managed here (e.g. bookmarks) survive
     await window.electronAPI.updateConfig({
-      language: values.language,
-      googleMap: { apiKey: values.googleKey ?? '' },
-      amap: { apiKey: values.amapKey ?? '' },
-      openWeather: { apiKey: values.openWeatherKey ?? '' },
-      firms: { apiKey: values.firmsKey ?? '' },
-      waqi: { apiKey: values.waqiKey ?? '' },
-      download: { dir: values.downloadDir ?? '' },
+      language: lang,
+      googleMap: { apiKey: googleKey },
+      amap: { apiKey: amapKey },
+      openWeather: { apiKey: openWeatherKey },
+      firms: { apiKey: firmsKey },
+      waqi: { apiKey: waqiKey },
+      download: { dir: dlDir },
     })
     onClose()
   }
 
   return (
-    <Modal
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
       title={t('settings.title')}
-      open={open}
-      onOk={handleOk}
-      onCancel={onClose}
-      okText={t('settings.save')}
-      width={480}
-      destroyOnClose
+      icon="cog"
+      style={{ width: 480 }}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          language,
-          googleKey: apiKeys.google,
-          amapKey: apiKeys.amap,
-          openWeatherKey: apiKeys.openweather,
-          firmsKey: apiKeys.firms,
-          waqiKey: apiKeys.waqi,
-          downloadDir,
-        }}
-        style={{ marginTop: 16 }}
-      >
-        <Form.Item name="language" label={t('settings.language')}>
-          <Select
+      <DialogBody>
+        <FormGroup label={t('settings.language')}>
+          <HTMLSelect
+            value={lang}
+            onChange={(e) => setLang(e.target.value as 'zh' | 'en')}
             options={[
               { value: 'zh', label: '中文' },
               { value: 'en', label: 'English' },
             ]}
-            style={{ width: 200 }}
+            style={{ width: 180 }}
           />
-        </Form.Item>
+        </FormGroup>
 
-        <Form.Item label={t('settings.downloadDir')} extra={t('settings.downloadDirHint')}>
-          <Space.Compact style={{ width: '100%' }}>
-            <Form.Item name="downloadDir" noStyle>
-              <Input readOnly placeholder="~/Downloads" />
-            </Form.Item>
-            <Button icon={<FolderOpenOutlined />} onClick={handlePickDownloadDir}>
-              {t('settings.browse')}
-            </Button>
-          </Space.Compact>
-        </Form.Item>
+        <FormGroup
+          label={t('settings.downloadDir')}
+          helperText={t('settings.downloadDirHint')}
+        >
+          <ControlGroup fill>
+            <InputGroup
+              readOnly
+              value={dlDir}
+              placeholder="~/Downloads"
+            />
+            <Button
+              icon="folder-open"
+              text={t('settings.browse')}
+              onClick={handlePickDownloadDir}
+            />
+          </ControlGroup>
+        </FormGroup>
 
-        <Divider style={{ margin: '12px 0' }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>
+        <Divider style={{ margin: '16px 0 12px' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary, #8f959e)' }}>
             {t('settings.apiKeys')}
-          </Text>
-        </Divider>
+          </span>
+          <Button
+            small
+            minimal
+            icon={showKeys ? 'eye-off' : 'eye-open'}
+            text={showKeys ? '隐藏密钥' : '显示密钥'}
+            onClick={() => setShowKeys(!showKeys)}
+          />
+        </div>
 
-        <Form.Item
-          name="googleKey"
+        <FormGroup
           label={t('settings.googleKey')}
-          extra="用于 Google Maps 街道图和影像图"
+          helperText="用于 Google Maps 街道图和影像图"
         >
-          <Input.Password placeholder="AIzaSy..." autoComplete="off" />
-        </Form.Item>
+          <InputGroup
+            type={showKeys ? 'text' : 'password'}
+            placeholder="AIzaSy..."
+            value={googleKey}
+            onChange={(e) => setGoogleKey(e.target.value)}
+            autoComplete="off"
+          />
+        </FormGroup>
 
-        <Form.Item
-          name="amapKey"
+        <FormGroup
           label={t('settings.amapKey')}
-          extra="用于高德地图（当前使用公共服务，无需 Key）"
+          helperText="用于高德地图（当前使用公共服务，无需 Key）"
         >
-          <Input.Password placeholder="your-amap-key" autoComplete="off" />
-        </Form.Item>
+          <InputGroup
+            type={showKeys ? 'text' : 'password'}
+            placeholder="your-amap-key"
+            value={amapKey}
+            onChange={(e) => setAmapKey(e.target.value)}
+            autoComplete="off"
+          />
+        </FormGroup>
 
-        <Form.Item
-          name="openWeatherKey"
+        <FormGroup
           label={t('settings.openWeatherKey')}
-          extra={t('settings.openWeatherKeyHint')}
+          helperText={t('settings.openWeatherKeyHint')}
         >
-          <Input.Password placeholder="OpenWeatherMap API Key" autoComplete="off" />
-        </Form.Item>
+          <InputGroup
+            type={showKeys ? 'text' : 'password'}
+            placeholder="OpenWeatherMap API Key"
+            value={openWeatherKey}
+            onChange={(e) => setOpenWeatherKey(e.target.value)}
+            autoComplete="off"
+          />
+        </FormGroup>
 
-        <Form.Item
-          name="firmsKey"
+        <FormGroup
           label={t('settings.firmsKey')}
-          extra={t('settings.firmsKeyHint')}
+          helperText={t('settings.firmsKeyHint')}
         >
-          <Input.Password placeholder="NASA FIRMS MAP_KEY" autoComplete="off" />
-        </Form.Item>
+          <InputGroup
+            type={showKeys ? 'text' : 'password'}
+            placeholder="NASA FIRMS MAP_KEY"
+            value={firmsKey}
+            onChange={(e) => setFirmsKey(e.target.value)}
+            autoComplete="off"
+          />
+        </FormGroup>
 
-        <Form.Item
-          name="waqiKey"
+        <FormGroup
           label={t('settings.waqiKey')}
-          extra={t('settings.waqiKeyHint')}
+          helperText={t('settings.waqiKeyHint')}
         >
-          <Input.Password placeholder="WAQI token" autoComplete="off" />
-        </Form.Item>
-      </Form>
-    </Modal>
+          <InputGroup
+            type={showKeys ? 'text' : 'password'}
+            placeholder="WAQI token"
+            value={waqiKey}
+            onChange={(e) => setWaqiKey(e.target.value)}
+            autoComplete="off"
+          />
+        </FormGroup>
+      </DialogBody>
+      <DialogFooter
+        actions={
+          <>
+            <Button onClick={onClose} text={t('common.cancel')} />
+            <Button
+              intent={Intent.PRIMARY}
+              onClick={handleSave}
+              text={t('settings.save')}
+            />
+          </>
+        }
+      />
+    </Dialog>
   )
 }

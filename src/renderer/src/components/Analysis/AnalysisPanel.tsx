@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
-import { Button, InputNumber, Modal, Select, Space, Typography, message } from 'antd'
-import { CloseOutlined, ExperimentOutlined } from '@ant-design/icons'
+import {
+  Alert,
+  Button,
+  Classes,
+  Divider,
+  HTMLSelect,
+  Icon,
+  Intent,
+  NumericInput,
+} from '@blueprintjs/core'
 import { nanoid } from 'nanoid'
 import { useTranslation } from 'react-i18next'
 import { useAnalysisPanelStore } from '../../stores/analysisPanelStore'
@@ -10,8 +18,7 @@ import { useMapStore } from '../../stores/mapStore'
 import { runAnalysis, parseApiError, type AnalysisOp, type AnalysisParams } from '../../services/api'
 import { getGeoJSONBounds } from '../../utils/geo'
 import { deriveColumns } from '../AttributeTable/tableUtils'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 const LARGE_FEATURE_WARN = 50000
 
@@ -50,68 +57,59 @@ export default function AnalysisPanel(): ReactElement | null {
   const [field, setField] = useState<string | undefined>(undefined)
   const [predicate, setPredicate] = useState<AnalysisParams['predicate']>('intersects')
   const [running, setRunning] = useState(false)
+  const [warnAlertOpen, setWarnAlertOpen] = useState(false)
+  const [warnFeatureCount, setWarnFeatureCount] = useState(0)
+  const [pendingExecution, setPendingExecution] = useState<(() => Promise<void>) | null>(null)
 
   const vectorLayers = useMemo(() => layers.filter((l) => l.type === 'geojson'), [layers])
-  const layerOptions = vectorLayers.map((l) => ({ value: l.id, label: l.name }))
+  const layerOptions = [
+    { value: '', label: t('analysis.selectPrimary') },
+    ...vectorLayers.map((l) => ({ value: l.id, label: l.name })),
+  ]
+  const secondaryLayerOptions = [
+    { value: '', label: t('analysis.selectSecondary') },
+    ...vectorLayers.filter((l) => l.id !== primaryId).map((l) => ({ value: l.id, label: l.name })),
+  ]
   const def = OPS[op]
 
   const primaryLayer = vectorLayers.find((l) => l.id === primaryId)
   const fieldOptions = useMemo(() => {
-    if (!primaryLayer) return []
+    if (!primaryLayer) return [{ value: '', label: t('analysis.dissolveAll') }]
     const fc = primaryLayer.source as GeoJSON.FeatureCollection
-    return deriveColumns(fc.features).columns.map((c) => ({ value: c.key, label: c.key }))
-  }, [primaryLayer])
+    return [
+      { value: '', label: t('analysis.dissolveAll') },
+      ...deriveColumns(fc.features).columns.map((c) => ({ value: c.key, label: c.key })),
+    ]
+  }, [primaryLayer, t])
 
   const opOptions = [
-    {
-      label: t('analysis.groupGeometry'),
-      options: (['buffer', 'centroid', 'convex_hull', 'simplify', 'dissolve'] as const).map((v) => ({
-        value: v,
-        label: t(`analysis.op.${v}`),
-      })),
-    },
-    {
-      label: t('analysis.groupOverlay'),
-      options: (['clip', 'intersection', 'difference', 'union'] as const).map((v) => ({
-        value: v,
-        label: t(`analysis.op.${v}`),
-      })),
-    },
-    {
-      label: t('analysis.groupSelect'),
-      options: [{ value: 'select_by_location' as const, label: t('analysis.op.select_by_location') }],
-    },
+    { value: 'buffer', label: t('analysis.op.buffer') },
+    { value: 'centroid', label: t('analysis.op.centroid') },
+    { value: 'convex_hull', label: t('analysis.op.convex_hull') },
+    { value: 'simplify', label: t('analysis.op.simplify') },
+    { value: 'dissolve', label: t('analysis.op.dissolve') },
+    { value: 'clip', label: t('analysis.op.clip') },
+    { value: 'intersection', label: t('analysis.op.intersection') },
+    { value: 'difference', label: t('analysis.op.difference') },
+    { value: 'union', label: t('analysis.op.union') },
+    { value: 'select_by_location', label: t('analysis.op.select_by_location') },
   ]
 
   if (!open) return null
 
-  const labelStyle: React.CSSProperties = { fontSize: 12, color: '#646a73', marginBottom: 4 }
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#646a73',
+    margin: '6px 0 3px',
+  }
 
-  const execute = async () => {
+  const doRun = async () => {
     const primary = vectorLayers.find((l) => l.id === primaryId)
-    if (!primary) {
-      message.warning(t('analysis.selectPrimary'))
-      return
-    }
+    if (!primary) return
     const secondary = def.needsSecondary ? vectorLayers.find((l) => l.id === secondaryId) : undefined
-    if (def.needsSecondary && !secondary) {
-      message.warning(t('analysis.selectSecondary'))
-      return
-    }
     const primaryFc = primary.source as GeoJSON.FeatureCollection
     const secondaryFc = (secondary?.source as GeoJSON.FeatureCollection) ?? null
-    const total = primaryFc.features.length + (secondaryFc?.features.length ?? 0)
-    if (total > LARGE_FEATURE_WARN) {
-      const ok = await new Promise<boolean>((resolve) => {
-        Modal.confirm({
-          title: t('analysis.largeWarnTitle'),
-          content: t('analysis.largeWarn', { count: total }),
-          onOk: () => resolve(true),
-          onCancel: () => resolve(false),
-        })
-      })
-      if (!ok) return
-    }
 
     const params: AnalysisParams = {}
     if (def.param === 'distance') params.distance = distance
@@ -151,6 +149,31 @@ export default function AnalysisPanel(): ReactElement | null {
     }
   }
 
+  const execute = async () => {
+    const primary = vectorLayers.find((l) => l.id === primaryId)
+    if (!primary) {
+      message.warning(t('analysis.selectPrimary'))
+      return
+    }
+    const secondary = def.needsSecondary ? vectorLayers.find((l) => l.id === secondaryId) : undefined
+    if (def.needsSecondary && !secondary) {
+      message.warning(t('analysis.selectSecondary'))
+      return
+    }
+    const primaryFc = primary.source as GeoJSON.FeatureCollection
+    const secondaryFc = (secondary?.source as GeoJSON.FeatureCollection) ?? null
+    const total = primaryFc.features.length + (secondaryFc?.features.length ?? 0)
+
+    if (total > LARGE_FEATURE_WARN) {
+      setWarnFeatureCount(total)
+      setPendingExecution(() => doRun)
+      setWarnAlertOpen(true)
+      return
+    }
+
+    await doRun()
+  }
+
   return (
     <div
       style={{
@@ -161,85 +184,82 @@ export default function AnalysisPanel(): ReactElement | null {
         maxHeight: 'calc(100% - 24px)',
         overflowY: 'auto',
         background: '#fff',
-        borderRadius: 8,
+        borderRadius: 4,
         boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
         zIndex: 600,
         padding: '10px 14px 14px',
+        border: '1px solid var(--color-border, #d9dce0)',
+        fontSize: 12,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <Text strong style={{ flex: 1, fontSize: 13 }}>
-          <ExperimentOutlined style={{ marginRight: 6 }} />
-          {t('analysis.title')}
-        </Text>
-        <Button size="small" type="text" icon={<CloseOutlined />} onClick={() => setOpen(false)} />
+        <div style={{ flex: 1, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon icon="lab-test" size={14} />
+          <span>{t('analysis.title')}</span>
+        </div>
+        <Button size="small" variant="minimal" icon="cross" onClick={() => setOpen(false)} />
       </div>
 
       <div style={labelStyle}>{t('analysis.operation')}</div>
-      <Select
-        style={{ width: '100%', marginBottom: 8 }}
+      <HTMLSelect
+        fill
         value={op}
-        onChange={(v) => setOp(v)}
+        onChange={(e) => setOp(e.target.value as AnalysisOp)}
         options={opOptions}
-        size="small"
+        style={{ marginBottom: 6 }}
       />
 
       <div style={labelStyle}>{t('analysis.primaryLayer')}</div>
-      <Select
-        style={{ width: '100%', marginBottom: 8 }}
-        value={primaryId}
-        onChange={(v) => {
-          setPrimaryId(v)
+      <HTMLSelect
+        fill
+        value={primaryId ?? ''}
+        onChange={(e) => {
+          setPrimaryId(e.target.value || undefined)
           setField(undefined)
         }}
         options={layerOptions}
-        placeholder={t('analysis.selectPrimary')}
-        size="small"
-        showSearch
-        optionFilterProp="label"
+        style={{ marginBottom: 6 }}
       />
 
       {def.needsSecondary && (
         <>
           <div style={labelStyle}>{t('analysis.secondaryLayer')}</div>
-          <Select
-            style={{ width: '100%', marginBottom: 8 }}
-            value={secondaryId}
-            onChange={setSecondaryId}
-            options={layerOptions.filter((o) => o.value !== primaryId)}
-            placeholder={t('analysis.selectSecondary')}
-            size="small"
-            showSearch
-            optionFilterProp="label"
+          <HTMLSelect
+            fill
+            value={secondaryId ?? ''}
+            onChange={(e) => setSecondaryId(e.target.value || undefined)}
+            options={secondaryLayerOptions}
+            style={{ marginBottom: 6 }}
           />
         </>
       )}
 
       {def.param === 'distance' && (
         <>
-          <div style={labelStyle}>{t('analysis.distance')}</div>
-          <InputNumber
-            style={{ width: '100%', marginBottom: 8 }}
-            value={distance}
-            onChange={(v) => setDistance(v ?? 0)}
-            step={100}
+          <div style={labelStyle}>{t('analysis.distance')} (米 / m)</div>
+          <NumericInput
+            fill
             size="small"
-            addonAfter="m"
+            value={distance}
+            onValueChange={(v) => setDistance(v || 0)}
+            stepSize={100}
+            min={1}
+            style={{ marginBottom: 6 }}
           />
         </>
       )}
 
       {def.param === 'tolerance' && (
         <>
-          <div style={labelStyle}>{t('analysis.tolerance')}</div>
-          <InputNumber
-            style={{ width: '100%', marginBottom: 8 }}
-            value={tolerance}
-            onChange={(v) => setTolerance(v ?? 0)}
-            min={0}
-            step={10}
+          <div style={labelStyle}>{t('analysis.tolerance')} (米 / m)</div>
+          <NumericInput
+            fill
             size="small"
-            addonAfter="m"
+            value={tolerance}
+            onValueChange={(v) => setTolerance(v || 0)}
+            min={0}
+            stepSize={10}
+            style={{ marginBottom: 6 }}
           />
         </>
       )}
@@ -247,15 +267,12 @@ export default function AnalysisPanel(): ReactElement | null {
       {def.param === 'field' && (
         <>
           <div style={labelStyle}>{t('analysis.dissolveField')}</div>
-          <Select
-            style={{ width: '100%', marginBottom: 8 }}
-            value={field}
-            onChange={setField}
+          <HTMLSelect
+            fill
+            value={field ?? ''}
+            onChange={(e) => setField(e.target.value || undefined)}
             options={fieldOptions}
-            placeholder={t('analysis.dissolveAll')}
-            size="small"
-            allowClear
-            showSearch
+            style={{ marginBottom: 6 }}
           />
         </>
       )}
@@ -263,24 +280,51 @@ export default function AnalysisPanel(): ReactElement | null {
       {def.param === 'predicate' && (
         <>
           <div style={labelStyle}>{t('analysis.predicate')}</div>
-          <Select
-            style={{ width: '100%', marginBottom: 8 }}
+          <HTMLSelect
+            fill
             value={predicate}
-            onChange={setPredicate}
-            size="small"
+            onChange={(e) => setPredicate(e.target.value as AnalysisParams['predicate'])}
             options={(['intersects', 'within', 'contains', 'disjoint'] as const).map((p) => ({
               value: p,
               label: t(`analysis.predicates.${p}`),
             }))}
+            style={{ marginBottom: 6 }}
           />
         </>
       )}
 
-      <Space style={{ width: '100%', justifyContent: 'flex-end', marginTop: 4 }}>
-        <Button type="primary" size="small" loading={running} onClick={execute}>
-          {t('analysis.run')}
-        </Button>
-      </Space>
+      <Divider style={{ margin: '10px 0 8px' }} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          intent={Intent.PRIMARY}
+          size="small"
+          loading={running}
+          onClick={execute}
+          text={t('analysis.run')}
+        />
+      </div>
+
+      <Alert
+        isOpen={warnAlertOpen}
+        confirmButtonText="继续执行"
+        cancelButtonText="取消"
+        intent={Intent.WARNING}
+        icon="warning-sign"
+        onCancel={() => {
+          setWarnAlertOpen(false)
+          setPendingExecution(null)
+        }}
+        onConfirm={() => {
+          setWarnAlertOpen(false)
+          if (pendingExecution) {
+            pendingExecution()
+            setPendingExecution(null)
+          }
+        }}
+      >
+        <p style={{ fontWeight: 600, marginBottom: 4 }}>{t('analysis.largeWarnTitle')}</p>
+        <p className={Classes.TEXT_MUTED}>{t('analysis.largeWarn', { count: warnFeatureCount })}</p>
+      </Alert>
     </div>
   )
 }

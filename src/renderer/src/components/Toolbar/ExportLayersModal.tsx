@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react'
-import { Modal, Checkbox, Button, Space, Typography, Radio, message } from 'antd'
+import type { ReactElement } from 'react'
+import {
+  Button,
+  Checkbox,
+  Classes,
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  FormGroup,
+  Intent,
+  SegmentedControl,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 import { useLayerStore, type Layer } from '../../stores/layerStore'
 import { exportLayer as exportLayerApi, parseApiError, type ExportFormat } from '../../services/api'
+import { message } from '../../utils/toaster'
 
 interface Props {
   open: boolean
@@ -17,7 +29,6 @@ function sanitizeName(name: string): string {
 }
 
 function uniqueFileNames(layers: Layer[]): Map<string, string> {
-  // Returns Map<layerId, fileName> with deduplication
   const seen = new Map<string, number>()
   const result = new Map<string, string>()
   for (const layer of layers) {
@@ -37,7 +48,7 @@ const FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'csv', label: 'CSV' },
 ]
 
-export default function ExportLayersModal({ open, onClose, initialLayerId }: Props) {
+export default function ExportLayersModal({ open, onClose, initialLayerId }: Props): ReactElement {
   const { t } = useTranslation()
   const layers = useLayerStore(useShallow((s) => s.layers.filter((l) => l.type === 'geojson')))
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
@@ -51,8 +62,7 @@ export default function ExportLayersModal({ open, onClose, initialLayerId }: Pro
         initialLayerId ? new Set([initialLayerId]) : new Set(layers.map((l) => l.id))
       )
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialLayerId])
+  }, [open, initialLayerId, layers])
 
   const toggleAll = (checked: boolean) => {
     setCheckedIds(checked ? new Set(layers.map((l) => l.id)) : new Set())
@@ -61,7 +71,8 @@ export default function ExportLayersModal({ open, onClose, initialLayerId }: Pro
   const toggle = (id: string, checked: boolean) => {
     setCheckedIds((prev) => {
       const next = new Set(prev)
-      checked ? next.add(id) : next.delete(id)
+      if (checked) next.add(id)
+      else next.delete(id)
       return next
     })
   }
@@ -106,66 +117,84 @@ export default function ExportLayersModal({ open, onClose, initialLayerId }: Pro
   const indeterminate = checkedIds.size > 0 && checkedIds.size < layers.length
 
   return (
-    <Modal
+    <Dialog
+      isOpen={open}
+      onClose={exporting ? undefined : onClose}
       title={t('export.modalTitle')}
-      open={open}
-      onCancel={onClose}
-      closable={!exporting}
-      maskClosable={false}
-      footer={
-        <Space>
-          <Button onClick={onClose} disabled={exporting}>{t('common.cancel')}</Button>
-          <Button
-            type="primary"
-            disabled={checkedIds.size === 0}
-            loading={exporting}
-            onClick={handleExport}
-          >
-            {t('export.selectDir')}
-          </Button>
-        </Space>
-      }
-      width={420}
+      icon="export"
+      style={{ width: 440 }}
     >
-      {layers.length === 0 ? (
-        <Typography.Text type="secondary">{t('export.noLayers')}</Typography.Text>
-      ) : (
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div>
-            <Typography.Text type="secondary" style={{ fontSize: 12, marginRight: 8 }}>
-              {t('export.format')}
-            </Typography.Text>
-            <Radio.Group
-              size="small"
-              optionType="button"
-              value={format}
-              onChange={(e) => setFormat(e.target.value)}
-              options={FORMATS}
-            />
+      <DialogBody>
+        {layers.length === 0 ? (
+          <div className={Classes.TEXT_MUTED} style={{ textAlign: 'center', padding: '24px 0' }}>
+            {t('export.noLayers')}
           </div>
-          {format === 'shp' && (
-            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-              {t('export.shpHint')}
-            </Typography.Text>
-          )}
-          <Checkbox
-            indeterminate={indeterminate}
-            checked={allChecked}
-            onChange={(e) => toggleAll(e.target.checked)}
-          >
-            {t('export.selectAll')}
-          </Checkbox>
-          {layers.map((layer) => (
-            <Checkbox
-              key={layer.id}
-              checked={checkedIds.has(layer.id)}
-              onChange={(e) => toggle(layer.id, e.target.checked)}
-            >
-              {layer.name}
-            </Checkbox>
-          ))}
-        </Space>
-      )}
-    </Modal>
+        ) : (
+          <div>
+            <FormGroup label={t('export.format')}>
+              <SegmentedControl
+                small
+                value={format}
+                onValueChange={(val) => setFormat(val as ExportFormat)}
+                options={FORMATS}
+              />
+              {format === 'shp' && (
+                <div style={{ fontSize: 11, color: '#8f959e', marginTop: 4 }}>
+                  {t('export.shpHint')}
+                </div>
+              )}
+            </FormGroup>
+
+            <FormGroup label={t('export.selectLayers') || '选择导出图层'}>
+              <div
+                style={{
+                  border: '1px solid #d9dce0',
+                  borderRadius: 3,
+                  padding: '8px 10px',
+                  maxHeight: 200,
+                  overflowY: 'auto',
+                }}
+              >
+                <div style={{ paddingBottom: 6, borderBottom: '1px solid #f0f0f0', marginBottom: 6 }}>
+                  <Checkbox
+                    indeterminate={indeterminate}
+                    checked={allChecked}
+                    onChange={(e) => toggleAll((e.target as HTMLInputElement).checked)}
+                    style={{ margin: 0, fontWeight: 600 }}
+                  >
+                    {t('export.selectAll')} ({checkedIds.size}/{layers.length})
+                  </Checkbox>
+                </div>
+                {layers.map((layer) => (
+                  <div key={layer.id} style={{ padding: '2px 0' }}>
+                    <Checkbox
+                      checked={checkedIds.has(layer.id)}
+                      onChange={(e) => toggle(layer.id, (e.target as HTMLInputElement).checked)}
+                      style={{ margin: 0 }}
+                    >
+                      {layer.name}
+                    </Checkbox>
+                  </div>
+                ))}
+              </div>
+            </FormGroup>
+          </div>
+        )}
+      </DialogBody>
+      <DialogFooter
+        actions={
+          <>
+            <Button onClick={onClose} disabled={exporting} text={t('common.cancel')} />
+            <Button
+              intent={Intent.PRIMARY}
+              disabled={checkedIds.size === 0}
+              loading={exporting}
+              onClick={handleExport}
+              text={t('export.selectDir')}
+            />
+          </>
+        }
+      />
+    </Dialog>
   )
 }

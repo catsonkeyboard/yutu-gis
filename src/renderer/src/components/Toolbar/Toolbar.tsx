@@ -1,26 +1,15 @@
 import { useState } from 'react'
-import { Button, Space, Divider, Tooltip, Badge, Dropdown } from 'antd'
 import {
-  FolderOpenOutlined,
-  SaveOutlined,
-  ImportOutlined,
-  ExportOutlined,
-  SettingOutlined,
-  ApiOutlined,
-  EnvironmentOutlined,
-  LineOutlined,
-  BorderOutlined,
-  SearchOutlined,
-  CarOutlined,
-  CloudOutlined,
-  DownloadOutlined,
-  ThunderboltOutlined,
-  TableOutlined,
-  ExperimentOutlined,
-  ColumnWidthOutlined,
-  ExpandOutlined,
-  ConsoleSqlOutlined,
-} from '@ant-design/icons'
+  Button,
+  ButtonGroup,
+  Intent,
+  Menu,
+  MenuDivider,
+  MenuItem,
+  Navbar,
+  Popover,
+  Tooltip,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
 import LocationSearchModal from './LocationSearchModal'
@@ -93,196 +82,285 @@ export default function Toolbar({
     setMeasureMode(measureMode === mode ? 'off' : mode)
   }
 
+  const projectMenu = (
+    <Menu>
+      <MenuItem
+        icon="folder-open"
+        text={t('toolbar.openProject') + '…'}
+        onClick={onOpenProject}
+      />
+      {recentProjects.length > 0 && <MenuDivider title="最近工程" />}
+      {recentProjects.map((p) => (
+        <MenuItem
+          key={p}
+          icon="document"
+          text={p.split('/').pop() ?? p}
+          labelElement={<span style={{ fontSize: 11, opacity: 0.6 }}>{p}</span>}
+          onClick={() => onOpenRecent?.(p)}
+        />
+      ))}
+    </Menu>
+  )
+
   return (
-    <Space style={{ padding: '0 8px', height: '100%' }} size={4}>
-      <Dropdown
-        menu={{
-          items: [
-            { key: '__open', label: t('toolbar.openProject') + '…' },
-            ...(recentProjects.length
-              ? [
-                  { type: 'divider' as const },
-                  ...recentProjects.map((p) => ({
-                    key: p,
-                    label: (
-                      <Tooltip title={p} placement="right">
-                        <span style={{ fontSize: 12 }}>{p.split('/').pop()}</span>
-                      </Tooltip>
-                    ),
-                  })),
-                ]
-              : []),
-          ],
-          onClick: ({ key }) => {
-            if (key === '__open') onOpenProject?.()
-            else onOpenRecent?.(key)
-          },
-        }}
-        trigger={['click']}
-      >
-        <Tooltip title={t('toolbar.openProject')}>
-          <Button icon={<FolderOpenOutlined />} type="text" size="small" />
+    <Navbar
+      style={{
+        height: 38,
+        minHeight: 38,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 8px',
+        boxShadow: 'none',
+        borderBottom: '1px solid var(--color-border, #d9dce0)',
+        backgroundColor: '#ffffff',
+      }}
+    >
+      <Navbar.Group style={{ height: '100%', gap: 2 }}>
+        {/* Project Group */}
+        <ButtonGroup variant="minimal">
+          <Popover content={projectMenu} placement="bottom-start">
+            <Tooltip content={t('toolbar.openProject')} placement="bottom">
+              <Button icon="folder-open" size="small" />
+            </Tooltip>
+          </Popover>
+          <Tooltip content={t('toolbar.saveProject')} placement="bottom">
+            <Button icon="floppy-disk" size="small" onClick={onSaveProject} />
+          </Tooltip>
+        </ButtonGroup>
+
+        <Navbar.Divider />
+
+        {/* Data & Tools Group */}
+        <ButtonGroup variant="minimal">
+          <Tooltip content={t('toolbar.import')} placement="bottom">
+            <Button icon="import" size="small" onClick={onImport} />
+          </Tooltip>
+          <Tooltip content={t('toolbar.export')} placement="bottom">
+            <Button icon="export" size="small" onClick={onExport} />
+          </Tooltip>
+          <Tooltip content="连接 WFS / OGC API" placement="bottom">
+            <Button icon="globe-network" size="small" onClick={onWFS} />
+          </Tooltip>
+          <Tooltip content="下载地图瓦片" placement="bottom">
+            <Button
+              icon="cloud-download"
+              size="small"
+              active={tilesPanelOpen}
+              intent={tilesPanelOpen ? Intent.PRIMARY : undefined}
+              onClick={() => {
+                if (!tilesPanelOpen) {
+                  setOsmPanelOpen(false)
+                  setAnalysisOpen(false)
+                }
+                setTilesPanelOpen(!tilesPanelOpen)
+              }}
+            />
+          </Tooltip>
+          <Tooltip content={t('osm.menuItem')} placement="bottom">
+            <Button
+              icon="flash"
+              size="small"
+              active={osmPanelOpen}
+              intent={osmPanelOpen ? Intent.PRIMARY : undefined}
+              onClick={() => {
+                if (!osmPanelOpen) {
+                  setTilesPanelOpen(false)
+                  setAnalysisOpen(false)
+                }
+                setOsmPanelOpen(!osmPanelOpen)
+              }}
+            />
+          </Tooltip>
+          <Tooltip content={t('analysis.title')} placement="bottom">
+            <Button
+              icon="lab-test"
+              size="small"
+              active={analysisOpen}
+              intent={analysisOpen ? Intent.PRIMARY : undefined}
+              onClick={() => {
+                if (!analysisOpen) {
+                  setTilesPanelOpen(false)
+                  setOsmPanelOpen(false)
+                }
+                setAnalysisOpen(!analysisOpen)
+              }}
+            />
+          </Tooltip>
+          <Tooltip content={t('attrTable.title')} placement="bottom">
+            <Button
+              icon="th"
+              size="small"
+              active={attrTableOpen}
+              intent={attrTableOpen ? Intent.PRIMARY : undefined}
+              onClick={() => {
+                if (!attrTableOpen) setSqlOpen(false)
+                setAttrTableOpen(!attrTableOpen)
+              }}
+            />
+          </Tooltip>
+          <Tooltip content={t('sql.title')} placement="bottom">
+            <Button
+              icon="database"
+              size="small"
+              active={sqlOpen}
+              intent={sqlOpen ? Intent.PRIMARY : undefined}
+              onClick={() => {
+                if (!sqlOpen) setAttrTableOpen(false)
+                setSqlOpen(!sqlOpen)
+              }}
+            />
+          </Tooltip>
+        </ButtonGroup>
+
+        <Navbar.Divider />
+
+        {/* Draw & Measure Group */}
+        <ButtonGroup variant="minimal">
+          <Tooltip content={t('toolbar.drawPoint')} placement="bottom">
+            <Button
+              icon="map-marker"
+              size="small"
+              active={drawMode === 'point'}
+              intent={drawMode === 'point' ? Intent.PRIMARY : undefined}
+              onClick={() => handleDraw('point')}
+            />
+          </Tooltip>
+          <Tooltip content={t('toolbar.drawLine')} placement="bottom">
+            <Button
+              icon="path"
+              size="small"
+              active={drawMode === 'line'}
+              intent={drawMode === 'line' ? Intent.PRIMARY : undefined}
+              onClick={() => handleDraw('line')}
+            />
+          </Tooltip>
+          <Tooltip content={t('toolbar.drawPolygon')} placement="bottom">
+            <Button
+              icon="polygon-filter"
+              size="small"
+              active={drawMode === 'polygon'}
+              intent={drawMode === 'polygon' ? Intent.PRIMARY : undefined}
+              onClick={() => handleDraw('polygon')}
+            />
+          </Tooltip>
+          <Tooltip content={t('toolbar.measure')} placement="bottom">
+            <Button
+              icon="arrows-horizontal"
+              size="small"
+              active={measureMode === 'distance'}
+              intent={measureMode === 'distance' ? Intent.PRIMARY : undefined}
+              onClick={() => handleMeasure('distance')}
+            />
+          </Tooltip>
+          <Tooltip content={t('toolbar.measureArea')} placement="bottom">
+            <Button
+              icon="maximize"
+              size="small"
+              active={measureMode === 'area'}
+              intent={measureMode === 'area' ? Intent.PRIMARY : undefined}
+              onClick={() => handleMeasure('area')}
+            />
+          </Tooltip>
+        </ButtonGroup>
+
+        <Navbar.Divider />
+
+        {/* Inspection & Utilities Group */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Tooltip content="位置搜索" placement="bottom">
+            <Button
+              icon="search"
+              variant="minimal"
+              size="small"
+              onClick={() => setLocationSearchOpen(true)}
+            />
+          </Tooltip>
+          <LocationSearchModal
+            open={locationSearchOpen}
+            onClose={() => setLocationSearchOpen(false)}
+          />
+
+          <BookmarkDropdown />
+          <MapExportDropdown />
+          <SwipeDropdown />
+        </div>
+
+        <Navbar.Divider />
+
+        {/* Live Tracking & Monitoring */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Tooltip content="车辆定位数据接入" placement="bottom">
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Button
+                icon="drive-time"
+                variant="minimal"
+                size="small"
+                active={vehicleConnected}
+                intent={vehicleConnected ? Intent.PRIMARY : undefined}
+                onClick={() => setVehicleTrackingOpen(true)}
+              />
+              {vehicleConnected && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: '#15b374',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+            </span>
+          </Tooltip>
+          <VehicleTrackingModal
+            open={vehicleTrackingOpen}
+            onClose={() => setVehicleTrackingOpen(false)}
+          />
+
+          <Tooltip content="飞机定位 — OpenSky Network" placement="bottom">
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Button
+                icon="airplane"
+                variant="minimal"
+                size="small"
+                active={flightActive}
+                intent={flightActive ? Intent.PRIMARY : undefined}
+                onClick={() => setFlightTrackingOpen(true)}
+              />
+              {flightActive && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: '#15b374',
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+            </span>
+          </Tooltip>
+          <FlightTrackingModal
+            open={flightTrackingOpen}
+            onClose={() => setFlightTrackingOpen(false)}
+          />
+
+          <MonitorDropdown onSettings={onSettings} />
+        </div>
+
+        <Navbar.Divider />
+
+        {/* Settings */}
+        <Tooltip content={t('settings.title')} placement="bottom">
+          <Button icon="cog" variant="minimal" size="small" onClick={onSettings} />
         </Tooltip>
-      </Dropdown>
-      <Tooltip title={t('toolbar.saveProject')}>
-        <Button icon={<SaveOutlined />} type="text" size="small" onClick={onSaveProject} />
-      </Tooltip>
-      <Divider type="vertical" />
-      <Tooltip title={t('toolbar.import')}>
-        <Button icon={<ImportOutlined />} type="text" size="small" onClick={onImport} />
-      </Tooltip>
-      <Tooltip title={t('toolbar.export')}>
-        <Button icon={<ExportOutlined />} type="text" size="small" onClick={onExport} />
-      </Tooltip>
-      <Tooltip title="连接 WFS / OGC API">
-        <Button icon={<ApiOutlined />} type="text" size="small" onClick={onWFS} />
-      </Tooltip>
-      <Tooltip title="下载地图瓦片">
-        <Button
-          icon={<DownloadOutlined />}
-          type={tilesPanelOpen ? 'primary' : 'text'}
-          size="small"
-          onClick={() => {
-            if (!tilesPanelOpen) {
-              setOsmPanelOpen(false)
-              setAnalysisOpen(false)
-            }
-            setTilesPanelOpen(!tilesPanelOpen)
-          }}
-        />
-      </Tooltip>
-      <Tooltip title={t('osm.menuItem')}>
-        <Button
-          icon={<ThunderboltOutlined />}
-          type={osmPanelOpen ? 'primary' : 'text'}
-          size="small"
-          onClick={() => {
-            if (!osmPanelOpen) {
-              setTilesPanelOpen(false)
-              setAnalysisOpen(false)
-            }
-            setOsmPanelOpen(!osmPanelOpen)
-          }}
-        />
-      </Tooltip>
-      <Tooltip title={t('analysis.title')}>
-        <Button
-          icon={<ExperimentOutlined />}
-          type={analysisOpen ? 'primary' : 'text'}
-          size="small"
-          onClick={() => {
-            if (!analysisOpen) {
-              setTilesPanelOpen(false)
-              setOsmPanelOpen(false)
-            }
-            setAnalysisOpen(!analysisOpen)
-          }}
-        />
-      </Tooltip>
-      <Tooltip title={t('attrTable.title')}>
-        <Button
-          icon={<TableOutlined />}
-          type={attrTableOpen ? 'primary' : 'text'}
-          size="small"
-          onClick={() => {
-            if (!attrTableOpen) setSqlOpen(false) // both live at the bottom
-            setAttrTableOpen(!attrTableOpen)
-          }}
-        />
-      </Tooltip>
-      <Tooltip title={t('sql.title')}>
-        <Button
-          icon={<ConsoleSqlOutlined />}
-          type={sqlOpen ? 'primary' : 'text'}
-          size="small"
-          onClick={() => {
-            if (!sqlOpen) setAttrTableOpen(false)
-            setSqlOpen(!sqlOpen)
-          }}
-        />
-      </Tooltip>
-      <Divider type="vertical" />
-      <Tooltip title={t('toolbar.drawPoint')}>
-        <Button
-          icon={<EnvironmentOutlined />}
-          type={drawMode === 'point' ? 'primary' : 'text'}
-          size="small"
-          onClick={() => handleDraw('point')}
-        />
-      </Tooltip>
-      <Tooltip title={t('toolbar.drawLine')}>
-        <Button
-          icon={<LineOutlined />}
-          type={drawMode === 'line' ? 'primary' : 'text'}
-          size="small"
-          onClick={() => handleDraw('line')}
-        />
-      </Tooltip>
-      <Tooltip title={t('toolbar.drawPolygon')}>
-        <Button
-          icon={<BorderOutlined />}
-          type={drawMode === 'polygon' ? 'primary' : 'text'}
-          size="small"
-          onClick={() => handleDraw('polygon')}
-        />
-      </Tooltip>
-      <Tooltip title={t('toolbar.measure')}>
-        <Button
-          icon={<ColumnWidthOutlined />}
-          type={measureMode === 'distance' ? 'primary' : 'text'}
-          size="small"
-          onClick={() => handleMeasure('distance')}
-        />
-      </Tooltip>
-      <Tooltip title={t('toolbar.measureArea')}>
-        <Button
-          icon={<ExpandOutlined />}
-          type={measureMode === 'area' ? 'primary' : 'text'}
-          size="small"
-          onClick={() => handleMeasure('area')}
-        />
-      </Tooltip>
-      <Divider type="vertical" />
-      <Tooltip title="位置搜索">
-        <Button
-          icon={<SearchOutlined />}
-          type="text"
-          size="small"
-          onClick={() => setLocationSearchOpen(true)}
-        />
-      </Tooltip>
-      <LocationSearchModal open={locationSearchOpen} onClose={() => setLocationSearchOpen(false)} />
-      <BookmarkDropdown />
-      <MapExportDropdown />
-      <SwipeDropdown />
-      <Divider type="vertical" />
-      <Tooltip title="车辆定位数据接入">
-        <Badge dot={vehicleConnected} offset={[-2, 2]} status="success">
-          <Button
-            icon={<CarOutlined />}
-            type={vehicleConnected ? 'primary' : 'text'}
-            size="small"
-            onClick={() => setVehicleTrackingOpen(true)}
-          />
-        </Badge>
-      </Tooltip>
-      <VehicleTrackingModal open={vehicleTrackingOpen} onClose={() => setVehicleTrackingOpen(false)} />
-      <Tooltip title="飞机定位 — OpenSky Network">
-        <Badge dot={flightActive} offset={[-2, 2]} status="success">
-          <Button
-            icon={<CloudOutlined />}
-            type={flightActive ? 'primary' : 'text'}
-            size="small"
-            onClick={() => setFlightTrackingOpen(true)}
-          />
-        </Badge>
-      </Tooltip>
-      <FlightTrackingModal open={flightTrackingOpen} onClose={() => setFlightTrackingOpen(false)} />
-      <MonitorDropdown onSettings={onSettings} />
-      <Divider type="vertical" />
-      <Tooltip title={t('settings.title')}>
-        <Button icon={<SettingOutlined />} type="text" size="small" onClick={onSettings} />
-      </Tooltip>
-    </Space>
+      </Navbar.Group>
+    </Navbar>
   )
 }

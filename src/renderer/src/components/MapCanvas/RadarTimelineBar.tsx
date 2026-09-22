@@ -1,10 +1,7 @@
 import type { ReactElement } from 'react'
-import { Button, Slider, Tag, Typography } from 'antd'
-import { PauseOutlined, CaretRightOutlined } from '@ant-design/icons'
+import { Button, Slider, Tag } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useMonitorStore } from '../../stores/monitorStore'
-
-const { Text } = Typography
 
 /** Floating playback bar for the precipitation radar timeline. */
 export default function RadarTimelineBar(): ReactElement | null {
@@ -36,41 +33,43 @@ export default function RadarTimelineBar(): ReactElement | null {
         transform: 'translateX(-50%)',
         width: 380,
         background: '#fff',
-        borderRadius: 6,
+        borderRadius: 4,
         boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
         zIndex: 620,
-        padding: '4px 14px',
+        padding: '5px 12px',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
+        border: '1px solid var(--color-border, #d9dce0)',
+        fontSize: 12,
       }}
     >
       <Button
         size="small"
-        type="text"
-        icon={playing ? <PauseOutlined /> : <CaretRightOutlined />}
+        variant="minimal"
+        icon={playing ? 'pause' : 'play'}
         onClick={() => setRadarPlaying(!playing)}
         disabled={frames.length < 2}
       />
-      <Slider
-        style={{ flex: 1, margin: '4px 0' }}
-        min={0}
-        max={frames.length - 1}
-        value={Math.min(index, frames.length - 1)}
-        onChange={(v) => {
-          setRadarPlaying(false)
-          setRadarIndex(v)
-        }}
-        tooltip={{ open: false }}
-      />
-      <Text style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+      <div style={{ flex: 1, padding: '0 8px' }}>
+        <Slider
+          min={0}
+          max={frames.length - 1}
+          stepSize={1}
+          value={Math.min(index, frames.length - 1)}
+          onChange={(v) => {
+            setRadarPlaying(false)
+            setRadarIndex(v)
+          }}
+          labelRenderer={false}
+        />
+      </div>
+      <Tag minimal style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
         {timeLabel}
-      </Text>
-      {frame?.nowcast && (
-        <Tag color="orange" style={{ fontSize: 10, marginInlineEnd: 0, lineHeight: '16px' }}>
-          {t('monitor.forecast')}
-        </Tag>
-      )}
+      </Tag>
+      <span style={{ fontSize: 11, color: '#646a73', whiteSpace: 'nowrap' }}>
+        {t('monitor.radar')}
+      </span>
     </div>
   )
 }

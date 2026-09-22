@@ -2,27 +2,67 @@ import { useMemo } from 'react'
 import type { ReactElement } from 'react'
 import {
   Button,
-  ColorPicker,
+  ButtonGroup,
+  Classes,
+  ControlGroup,
   Divider,
-  InputNumber,
-  Radio,
-  Select,
+  HTMLSelect,
+  Icon,
+  NumericInput,
+  SegmentedControl,
   Slider,
-  Space,
-  Typography,
-  message,
-} from 'antd'
-import { BgColorsOutlined, CloseOutlined } from '@ant-design/icons'
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useLayerStore, type LayerStyle } from '../../stores/layerStore'
 import { useStylePanelStore } from '../../stores/stylePanelStore'
 import { deriveColumns } from '../AttributeTable/tableUtils'
-import { COLOR_RAMPS, RAMP_NAMES, sampleRamp } from './colorRamps'
+import { RAMP_NAMES, sampleRamp } from './colorRamps'
 import { DEFAULT_STYLE, computeBreaks, scanNumericValues, scanUniqueValues } from './styleUtils'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 const CATEGORY_CAP = 30
+
+function ColorSwatch({
+  value,
+  onChange,
+}: {
+  value?: string
+  onChange: (val: string) => void
+}) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        width: 22,
+        height: 22,
+        borderRadius: 3,
+        border: '1px solid var(--color-border, #d9dce0)',
+        backgroundColor: value || '#1a6fb5',
+        cursor: 'pointer',
+        overflow: 'hidden',
+        verticalAlign: 'middle',
+        flexShrink: 0,
+      }}
+    >
+      <input
+        type="color"
+        value={value || '#1a6fb5'}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          opacity: 0,
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          cursor: 'pointer',
+        }}
+      />
+    </span>
+  )
+}
 
 export default function StylePanel(): ReactElement | null {
   const { t } = useTranslation()
@@ -36,12 +76,15 @@ export default function StylePanel(): ReactElement | null {
 
   const style: LayerStyle = layer?.style ?? DEFAULT_STYLE
 
-  const { columns } = useMemo(
-    () => deriveColumns(fc?.features ?? []),
-    [fc]
-  )
-  const numericFields = columns.filter((c) => c.numeric).map((c) => ({ value: c.key, label: c.key }))
-  const allFields = columns.map((c) => ({ value: c.key, label: c.key }))
+  const { columns } = useMemo(() => deriveColumns(fc?.features ?? []), [fc])
+  const numericFields = [
+    { value: '', label: t('style.selectNumericField') },
+    ...columns.filter((c) => c.numeric).map((c) => ({ value: c.key, label: c.key })),
+  ]
+  const allFields = [
+    { value: '', label: t('style.selectField') },
+    ...columns.map((c) => ({ value: c.key, label: c.key })),
+  ]
 
   if (!open || !layer || !fc) return null
 
@@ -87,26 +130,19 @@ export default function StylePanel(): ReactElement | null {
     })
   }
 
-  const labelStyle: React.CSSProperties = { fontSize: 12, color: '#646a73', margin: '6px 0 4px' }
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#646a73',
+    margin: '6px 0 4px',
+  }
   const gradClasses = (style.breaks?.length ?? 5) || 5
   const gradMethodDefault: 'equal' | 'quantile' = 'equal'
   const ramp = style.rampName ?? 'Blues'
 
   const rampOptions = RAMP_NAMES.map((name) => ({
     value: name,
-    label: (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div
-          style={{
-            width: 72,
-            height: 10,
-            borderRadius: 2,
-            background: `linear-gradient(to right, ${COLOR_RAMPS[name].join(',')})`,
-          }}
-        />
-        <span style={{ fontSize: 12 }}>{name}</span>
-      </div>
-    ),
+    label: name,
   }))
 
   return (
@@ -119,27 +155,27 @@ export default function StylePanel(): ReactElement | null {
         maxHeight: 'calc(100% - 24px)',
         overflowY: 'auto',
         background: '#fff',
-        borderRadius: 8,
+        borderRadius: 4,
         boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
         zIndex: 620,
         padding: '10px 14px 14px',
+        border: '1px solid var(--color-border, #d9dce0)',
+        fontSize: 12,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-        <Text strong style={{ flex: 1, fontSize: 13 }} ellipsis>
-          <BgColorsOutlined style={{ marginRight: 6 }} />
-          {t('style.title')} — {layer.name}
-        </Text>
-        <Button size="small" type="text" icon={<CloseOutlined />} onClick={close} />
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ flex: 1, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <Icon icon="tint" size={14} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {t('style.title')} — {layer.name}
+          </span>
+        </div>
+        <Button size="small" variant="minimal" icon="cross" onClick={close} />
       </div>
 
-      <Radio.Group
-        size="small"
-        value={style.mode}
-        onChange={(e) => update({ mode: e.target.value })}
-        optionType="button"
-        buttonStyle="solid"
-        style={{ marginBottom: 4 }}
+      <SegmentedControl
+        small
+        fill
         options={[
           { value: 'single', label: t('style.modeSingle') },
           { value: 'categorized', label: t('style.modeCategorized') },
@@ -147,75 +183,79 @@ export default function StylePanel(): ReactElement | null {
           { value: 'cluster', label: t('style.modeCluster') },
           { value: 'heatmap', label: t('style.modeHeatmap') },
         ]}
+        value={style.mode}
+        onValueChange={(val) => update({ mode: val as LayerStyle['mode'] })}
       />
+
       {(style.mode === 'cluster' || style.mode === 'heatmap') && (
-        <div style={{ fontSize: 11, color: '#8f959e', marginTop: 2 }}>
+        <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, marginTop: 4 }}>
           {t('style.pointsOnlyHint')}
         </div>
       )}
 
       {/* Base symbol */}
       <div style={labelStyle}>{t('style.baseSymbol')}</div>
-      <Space wrap size={8}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         {style.mode === 'single' && (
-          <span style={{ fontSize: 12 }}>
-            {t('style.fillColor')}{' '}
-            <ColorPicker
-              size="small"
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>{t('style.fillColor')}</span>
+            <ColorSwatch
               value={style.fillColor}
-              onChange={(c) => update({ fillColor: c.toHexString() })}
+              onChange={(c) => update({ fillColor: c })}
             />
-          </span>
+          </div>
         )}
         {style.mode === 'single' && (
-          <span style={{ fontSize: 12 }}>
-            {t('style.strokeColor')}{' '}
-            <ColorPicker
-              size="small"
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>{t('style.strokeColor')}</span>
+            <ColorSwatch
               value={style.strokeColor}
-              onChange={(c) => update({ strokeColor: c.toHexString() })}
+              onChange={(c) => update({ strokeColor: c })}
             />
-          </span>
+          </div>
         )}
-        <span style={{ fontSize: 12 }}>
-          {t('style.strokeWidth')}{' '}
-          <InputNumber
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>{t('style.strokeWidth')}</span>
+          <NumericInput
             size="small"
             min={0}
             max={10}
-            step={0.5}
+            stepSize={0.5}
             value={style.strokeWidth}
-            onChange={(v) => update({ strokeWidth: v ?? 1.5 })}
-            style={{ width: 64 }}
+            onValueChange={(v) => update({ strokeWidth: v || 1.5 })}
+            style={{ width: 56 }}
           />
-        </span>
-        <span style={{ fontSize: 12 }}>
-          {t('style.pointRadius')}{' '}
-          <InputNumber
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>{t('style.pointRadius')}</span>
+          <NumericInput
             size="small"
             min={1}
             max={30}
+            stepSize={1}
             value={style.pointRadius}
-            onChange={(v) => update({ pointRadius: v ?? 5 })}
-            style={{ width: 64 }}
+            onValueChange={(v) => update({ pointRadius: v || 5 })}
+            style={{ width: 56 }}
           />
-        </span>
-      </Space>
+        </div>
+      </div>
 
-      <div style={labelStyle}>{t('style.fillOpacity')}</div>
+      <div style={labelStyle}>{t('style.fillOpacity')} ({(style.fillOpacity * 100).toFixed(0)}%)</div>
       <Slider
         min={0}
         max={1}
-        step={0.05}
+        stepSize={0.05}
+        labelStepSize={0.25}
         value={style.fillOpacity}
         onChange={(v) => update({ fillOpacity: v })}
       />
 
-      <div style={labelStyle}>{t('style.layerOpacity')}</div>
+      <div style={labelStyle}>{t('style.layerOpacity')} ({(layer.opacity * 100).toFixed(0)}%)</div>
       <Slider
         min={0}
         max={1}
-        step={0.05}
+        stepSize={0.05}
+        labelStepSize={0.25}
         value={layer.opacity}
         onChange={(v) => setOpacity(layer.id, v)}
       />
@@ -227,7 +267,7 @@ export default function StylePanel(): ReactElement | null {
           <Slider
             min={20}
             max={120}
-            step={5}
+            stepSize={5}
             value={style.clusterRadius ?? 50}
             onChange={(v) => update({ clusterRadius: v })}
           />
@@ -239,7 +279,7 @@ export default function StylePanel(): ReactElement | null {
           <Slider
             min={5}
             max={60}
-            step={1}
+            stepSize={1}
             value={style.heatRadius ?? 20}
             onChange={(v) => update({ heatRadius: v })}
           />
@@ -249,44 +289,39 @@ export default function StylePanel(): ReactElement | null {
       {/* Categorized */}
       {style.mode === 'categorized' && (
         <>
-          <Divider style={{ margin: '8px 0' }} />
+          <Divider style={{ margin: '10px 0 6px' }} />
           <div style={labelStyle}>{t('style.field')}</div>
-          <Space.Compact style={{ width: '100%' }}>
-            <Select
-              size="small"
-              style={{ flex: 1 }}
-              value={style.field}
-              onChange={(field) => generateCategories(field, ramp)}
+          <ControlGroup fill style={{ marginBottom: 6 }}>
+            <HTMLSelect
+              value={style.field ?? ''}
+              onChange={(e) => generateCategories(e.target.value, ramp)}
               options={allFields}
-              placeholder={t('style.selectField')}
-              showSearch
             />
-            <Select
-              size="small"
-              style={{ width: 110 }}
+            <HTMLSelect
+              style={{ width: 100 }}
               value={ramp}
-              onChange={(name) => {
+              onChange={(e) => {
+                const name = e.target.value
                 if (style.field) generateCategories(style.field, name)
                 else update({ rampName: name })
               }}
               options={rampOptions}
             />
-          </Space.Compact>
-          <div style={{ marginTop: 6, maxHeight: 220, overflowY: 'auto' }}>
+          </ControlGroup>
+          <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {(style.categories ?? []).map((c, i) => (
               <div key={c.value} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
-                <ColorPicker
-                  size="small"
+                <ColorSwatch
                   value={c.color}
                   onChange={(color) => {
                     const categories = [...(style.categories ?? [])]
-                    categories[i] = { ...categories[i], color: color.toHexString() }
+                    categories[i] = { ...categories[i], color }
                     update({ categories })
                   }}
                 />
-                <Text style={{ fontSize: 12 }} ellipsis>
+                <span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {c.value}
-                </Text>
+                </span>
               </div>
             ))}
           </div>
@@ -296,57 +331,51 @@ export default function StylePanel(): ReactElement | null {
       {/* Graduated */}
       {style.mode === 'graduated' && (
         <>
-          <Divider style={{ margin: '8px 0' }} />
+          <Divider style={{ margin: '10px 0 6px' }} />
           <div style={labelStyle}>{t('style.field')}</div>
-          <Select
-            size="small"
-            style={{ width: '100%' }}
-            value={style.field}
-            onChange={(field) => generateBreaks(field, gradClasses, gradMethodDefault, ramp)}
+          <HTMLSelect
+            fill
+            value={style.field ?? ''}
+            onChange={(e) => generateBreaks(e.target.value, gradClasses, gradMethodDefault, ramp)}
             options={numericFields}
-            placeholder={t('style.selectNumericField')}
-            showSearch
           />
-          <Space style={{ marginTop: 6 }} size={8}>
-            <span style={{ fontSize: 12 }}>
-              {t('style.classes')}{' '}
-              <InputNumber
-                size="small"
-                min={3}
-                max={9}
-                value={gradClasses}
-                onChange={(v) => {
-                  if (style.field) generateBreaks(style.field, v ?? 5, gradMethodDefault, ramp)
-                }}
-                style={{ width: 56 }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <span style={{ fontSize: 12 }}>{t('style.classes')}</span>
+            <NumericInput
+              size="small"
+              min={3}
+              max={9}
+              stepSize={1}
+              value={gradClasses}
+              onValueChange={(v) => {
+                if (style.field) generateBreaks(style.field, v || 5, gradMethodDefault, ramp)
+              }}
+              style={{ width: 50 }}
+            />
+            <ButtonGroup variant="minimal" size="small">
+              <Button
+                text={t('style.equal')}
+                onClick={() => style.field && generateBreaks(style.field, gradClasses, 'equal', ramp)}
               />
-            </span>
-            <Button
-              size="small"
-              onClick={() => style.field && generateBreaks(style.field, gradClasses, 'equal', ramp)}
-            >
-              {t('style.equal')}
-            </Button>
-            <Button
-              size="small"
-              onClick={() => style.field && generateBreaks(style.field, gradClasses, 'quantile', ramp)}
-            >
-              {t('style.quantile')}
-            </Button>
-          </Space>
+              <Button
+                text={t('style.quantile')}
+                onClick={() => style.field && generateBreaks(style.field, gradClasses, 'quantile', ramp)}
+              />
+            </ButtonGroup>
+          </div>
           <div style={{ marginTop: 6 }}>
-            <Select
-              size="small"
-              style={{ width: '100%' }}
+            <HTMLSelect
+              fill
               value={ramp}
-              onChange={(name) => {
+              onChange={(e) => {
+                const name = e.target.value
                 if (style.field) generateBreaks(style.field, gradClasses, gradMethodDefault, name)
                 else update({ rampName: name })
               }}
               options={rampOptions}
             />
           </div>
-          <div style={{ marginTop: 6, maxHeight: 200, overflowY: 'auto' }}>
+          <div style={{ marginTop: 6, maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {(style.breaks ?? []).map((b, i) => {
               const prev = i === 0 ? null : style.breaks![i - 1].max
               const label =
@@ -357,16 +386,15 @@ export default function StylePanel(): ReactElement | null {
                     : `${Number(prev!.toFixed(4))} – ${Number(b.max.toFixed(4))}`
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
-                  <ColorPicker
-                    size="small"
+                  <ColorSwatch
                     value={b.color}
                     onChange={(color) => {
                       const breaks = [...(style.breaks ?? [])]
-                      breaks[i] = { ...breaks[i], color: color.toHexString() }
+                      breaks[i] = { ...breaks[i], color }
                       update({ breaks })
                     }}
                   />
-                  <Text style={{ fontSize: 12 }}>{label}</Text>
+                  <span style={{ fontSize: 12 }}>{label}</span>
                 </div>
               )
             })}
@@ -375,47 +403,40 @@ export default function StylePanel(): ReactElement | null {
       )}
 
       {/* Labels — independent of the symbology mode */}
-      <Divider style={{ margin: '8px 0' }} />
+      <Divider style={{ margin: '10px 0 6px' }} />
       <div style={labelStyle}>{t('style.labelSection')}</div>
-      <Space size={8} wrap>
-        <Select
-          size="small"
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <HTMLSelect
           style={{ width: 140 }}
-          value={style.labelField}
-          onChange={(v) => update({ labelField: v })}
+          value={style.labelField ?? ''}
+          onChange={(e) => update({ labelField: e.target.value || undefined })}
           options={allFields}
-          placeholder={t('style.labelField')}
-          allowClear
-          showSearch
         />
         {style.labelField && (
           <>
-            <span style={{ fontSize: 12 }}>
-              {t('style.labelSize')}{' '}
-              <InputNumber
-                size="small"
-                min={8}
-                max={32}
-                value={style.labelSize ?? 12}
-                onChange={(v) => update({ labelSize: v ?? 12 })}
-                style={{ width: 56 }}
-              />
-            </span>
-            <ColorPicker
+            <span style={{ fontSize: 12 }}>{t('style.labelSize')}</span>
+            <NumericInput
               size="small"
+              min={8}
+              max={32}
+              value={style.labelSize ?? 12}
+              onValueChange={(v) => update({ labelSize: v || 12 })}
+              style={{ width: 50 }}
+            />
+            <ColorSwatch
               value={style.labelColor ?? '#333333'}
-              onChange={(c) => update({ labelColor: c.toHexString() })}
+              onChange={(c) => update({ labelColor: c })}
             />
           </>
         )}
-      </Space>
+      </div>
 
-      <Divider style={{ margin: '8px 0' }} />
-      <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-        <Button size="small" onClick={() => setStyle(layer.id, undefined)}>
+      <Divider style={{ margin: '10px 0 8px' }} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button size="small" variant="minimal" onClick={() => setStyle(layer.id, undefined)}>
           {t('style.reset')}
         </Button>
-      </Space>
+      </div>
     </div>
   )
 }
