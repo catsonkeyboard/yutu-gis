@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { Button, Empty, Input, Popover, Radio, Select, Space, Table, Tooltip, Typography, message } from 'antd'
-import type { TableProps } from 'antd'
-import { CalculatorOutlined, CloseOutlined, FilterOutlined, InfoCircleOutlined, SaveOutlined } from '@ant-design/icons'
+import {
+  Button,
+  Classes,
+  HTMLSelect,
+  InputGroup,
+  NonIdealState,
+  SegmentedControl,
+  Tooltip,
+} from '@blueprintjs/core'
+import { Cell, Column, SelectionModes, Table2, type Region } from '@blueprintjs/table'
 import { nanoid } from 'nanoid'
 import { useTranslation } from 'react-i18next'
 import { useLayerStore } from '../../stores/layerStore'
@@ -13,14 +20,11 @@ import {
   applyFilter,
   deriveColumns,
   displayValue,
-  fieldStats,
-  type ColumnInfo,
   type FilterOp,
 } from './tableUtils'
 import ChartsTab from './ChartsTab'
 import FieldCalculatorModal from './FieldCalculatorModal'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 const FILTER_OPS: { value: FilterOp; label: string }[] = [
   { value: 'eq', label: '=' },
@@ -40,26 +44,6 @@ interface Row {
   feature: GeoJSON.Feature
 }
 
-function ColumnStats({ features, col }: { features: GeoJSON.Feature[]; col: ColumnInfo }): ReactElement {
-  const stats = useMemo(() => fieldStats(features, col.key, col.numeric), [features, col])
-  const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(4))
-  return (
-    <div style={{ fontSize: 12, lineHeight: 1.9 }}>
-      <div>非空值：{stats.count}</div>
-      {'sum' in stats ? (
-        <>
-          <div>最小值：{fmt(stats.min)}</div>
-          <div>最大值：{fmt(stats.max)}</div>
-          <div>平均值：{fmt(stats.mean)}</div>
-          <div>总和：{fmt(stats.sum)}</div>
-        </>
-      ) : (
-        <div>唯一值：{stats.unique}</div>
-      )}
-    </div>
-  )
-}
-
 export default function AttributeTablePanel(): ReactElement {
   const { t } = useTranslation()
   const layers = useLayerStore((s) => s.layers)
@@ -77,8 +61,6 @@ export default function AttributeTablePanel(): ReactElement {
   const [filterOp, setFilterOp] = useState<FilterOp>('eq')
   const [filterValue, setFilterValue] = useState('')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tableRef = useRef<any>(null)
   const resizeStartY = useRef(0)
   const resizeStartHeight = useRef(0)
 
@@ -127,12 +109,6 @@ export default function AttributeTablePanel(): ReactElement {
     return idx >= 0 ? idx : undefined
   }, [rows, selectedFeatureProps])
 
-  // Scroll to row selected from map click
-  useEffect(() => {
-    if (selectedRowKey === undefined) return
-    tableRef.current?.scrollTo?.({ index: selectedRowKey })
-  }, [selectedRowKey])
-
   const applyCurrentFilter = () => {
     if (!filterField) {
       setFilter(null)
@@ -177,156 +153,153 @@ export default function AttributeTablePanel(): ReactElement {
     window.addEventListener('mouseup', onUp)
   }
 
-  const tableColumns: TableProps<Row>['columns'] = useMemo(() => {
-    const cols: NonNullable<TableProps<Row>['columns']> = [
-      {
-        title: '#',
-        dataIndex: 'key',
-        width: 56,
-        fixed: 'left',
-        render: (v: number) => <Text type="secondary" style={{ fontSize: 11 }}>{v + 1}</Text>,
-      },
-    ]
-    for (const c of colInfos) {
-      cols.push({
-        title: (
-          <Space size={4}>
-            <span style={{ color: c.internal ? '#aaa' : undefined }}>{c.key}</span>
-            <Popover
-              content={<ColumnStats features={filtered} col={c} />}
-              title={t('attrTable.stats')}
-              trigger="click"
-            >
-              <InfoCircleOutlined
-                style={{ color: '#b0b6be', fontSize: 11, cursor: 'pointer' }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Popover>
-          </Space>
-        ),
-        dataIndex: ['props', c.key],
-        width: 140,
-        ellipsis: true,
-        align: c.numeric ? 'right' : 'left',
-        sorter: c.numeric
-          ? (a: Row, b: Row) => (Number(a.props[c.key]) || 0) - (Number(b.props[c.key]) || 0)
-          : (a: Row, b: Row) => displayValue(a.props[c.key]).localeCompare(displayValue(b.props[c.key])),
-        render: (v: unknown) => (
-          <span style={{ fontSize: 12, color: c.internal ? '#aaa' : undefined }}>{displayValue(v)}</span>
-        ),
-      })
-    }
-    return cols
-  }, [colInfos, filtered, t])
-
   const needsValueInput = filterOp !== 'empty' && filterOp !== 'notEmpty'
+
+  const handleSelection = (regions: Region[]) => {
+    const region = regions[0]
+    if (!region || !region.rows) return
+    const rowIndex = region.rows[0]
+    const row = rows[rowIndex]
+    if (!row) return
+    setSelectedFeatureProps(row.props)
+    const bounds = getFeatureBounds(row.feature)
+    if (bounds) requestFitBounds(bounds)
+  }
 
   return (
     <div
       style={{
         height,
         flexShrink: 0,
-        borderTop: '1px solid #d9dce0',
+        borderTop: '1px solid var(--color-border, #d9dce0)',
         background: '#fff',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
+        userSelect: 'none',
       }}
     >
       <div
         onMouseDown={handleResizeStart}
-        style={{ position: 'absolute', top: -2, left: 0, right: 0, height: 5, cursor: 'row-resize', zIndex: 20 }}
+        style={{
+          position: 'absolute',
+          top: -2,
+          left: 0,
+          right: 0,
+          height: 5,
+          cursor: 'row-resize',
+          zIndex: 20,
+        }}
       />
+
       {/* Header */}
       <div
         style={{
           padding: '4px 8px',
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: '1px solid var(--color-border, #e5e7eb)',
           display: 'flex',
           alignItems: 'center',
           gap: 8,
           flexShrink: 0,
+          backgroundColor: 'var(--color-bg-panel, #f5f6f8)',
+          fontSize: 12,
         }}
       >
-        <Text strong style={{ fontSize: 13, flexShrink: 0 }}>
+        <span style={{ fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
           {t('attrTable.title')}
-        </Text>
+        </span>
+
         {isVector && (
-          <Radio.Group
-            size="small"
-            optionType="button"
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-            options={[
-              { value: 'table', label: t('attrTable.tabTable') },
-              { value: 'charts', label: t('attrTable.tabCharts') },
-            ]}
-            style={{ flexShrink: 0 }}
-          />
+          <div style={{ flexShrink: 0 }}>
+            <SegmentedControl
+              small
+              value={activeTab}
+              onValueChange={(val) => setActiveTab(val as 'table' | 'charts')}
+              options={[
+                { value: 'table', label: t('attrTable.tabTable') },
+                { value: 'charts', label: t('attrTable.tabCharts') },
+              ]}
+            />
+          </div>
         )}
+
         {selectedLayer && (
-          <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>
+          <span className={Classes.TEXT_MUTED} style={{ fontSize: 11, flexShrink: 0 }}>
             {selectedLayer.name} ·{' '}
             {filter
               ? t('attrTable.countFiltered', { shown: filtered.length, total: allFeatures.length })
               : t('attrTable.count', { total: allFeatures.length })}
             {truncated && ` · ${t('attrTable.tooManyColumns')}`}
-          </Text>
+          </span>
         )}
+
         {isVector && (
-          <Space size={4} style={{ marginLeft: 'auto', flexShrink: 0 }}>
-            <Select
-              size="small"
-              placeholder={t('attrTable.field')}
-              style={{ width: 130 }}
-              value={filterField}
-              onChange={setFilterField}
-              options={colInfos.map((c) => ({ value: c.key, label: c.key }))}
-              showSearch
-              allowClear
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <HTMLSelect
+              value={filterField ?? ''}
+              onChange={(e) => setFilterField(e.target.value || undefined)}
+              options={[
+                { value: '', label: t('attrTable.field') },
+                ...colInfos.map((c) => ({ value: c.key, label: c.key })),
+              ]}
+              style={{ width: 120 }}
             />
-            <Select
-              size="small"
-              style={{ width: 84 }}
+            <HTMLSelect
               value={filterOp}
-              onChange={setFilterOp}
+              onChange={(e) => setFilterOp(e.target.value as FilterOp)}
               options={FILTER_OPS}
+              style={{ width: 72 }}
             />
             {needsValueInput && (
-              <Input
-                size="small"
-                style={{ width: 120 }}
+              <InputGroup
+                small
                 value={filterValue}
                 onChange={(e) => setFilterValue(e.target.value)}
-                onPressEnter={applyCurrentFilter}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') applyCurrentFilter()
+                }}
                 placeholder={t('attrTable.value')}
+                style={{ width: 110 }}
               />
             )}
-            <Button size="small" icon={<FilterOutlined />} onClick={applyCurrentFilter} disabled={!filterField}>
-              {t('attrTable.applyFilter')}
-            </Button>
+            <Button
+              size="small"
+              icon="filter"
+              onClick={applyCurrentFilter}
+              disabled={!filterField}
+              text={t('attrTable.applyFilter')}
+            />
             {filter && (
-              <Button size="small" onClick={clearFilter}>
-                {t('attrTable.clearFilter')}
-              </Button>
-            )}
-            <Tooltip title={t('attrTable.saveFiltered')}>
               <Button
                 size="small"
-                icon={<SaveOutlined />}
+                onClick={clearFilter}
+                text={t('attrTable.clearFilter')}
+              />
+            )}
+            <Tooltip content={t('attrTable.saveFiltered')} placement="top">
+              <Button
+                size="small"
+                variant="minimal"
+                icon="floppy-disk"
                 disabled={!filter || filtered.length === 0}
                 onClick={handleSaveFiltered}
               />
             </Tooltip>
-            <Tooltip title={t('fieldCalc.title')}>
-              <Button size="small" icon={<CalculatorOutlined />} onClick={() => setCalcOpen(true)} />
+            <Tooltip content={t('fieldCalc.title')} placement="top">
+              <Button
+                size="small"
+                variant="minimal"
+                icon="calculator"
+                onClick={() => setCalcOpen(true)}
+              />
             </Tooltip>
-          </Space>
+          </div>
         )}
+
         <Button
           size="small"
-          type="text"
-          icon={<CloseOutlined />}
+          variant="minimal"
+          icon="cross"
           onClick={() => setOpen(false)}
           style={{ flexShrink: 0, marginLeft: isVector ? 0 : 'auto' }}
         />
@@ -334,40 +307,80 @@ export default function AttributeTablePanel(): ReactElement {
 
       {/* Body */}
       {!isVector ? (
-        <Empty
-          description={t('attrTable.selectVectorLayer')}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          style={{ marginTop: 24 }}
-        />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <NonIdealState
+            icon="th"
+            title={t('attrTable.selectVectorLayer')}
+            description="请在图层面板中选中一个矢量图层"
+          />
+        </div>
       ) : activeTab === 'charts' ? (
         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <ChartsTab features={filtered} columns={colInfos} height={height} />
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          <Table<Row>
-            ref={tableRef}
-            size="small"
-            virtual
-            columns={tableColumns}
-            dataSource={rows}
-            pagination={false}
-            scroll={{ y: height - 76, x: 56 + colInfos.length * 140 }}
-            rowKey="key"
-            onRow={(row) => ({
-              style: {
-                cursor: 'pointer',
-                background: row.key === selectedRowKey ? '#e4edf6' : undefined,
-              },
-              onClick: () => {
-                setSelectedFeatureProps(row.props)
-                const bounds = getFeatureBounds(row.feature)
-                if (bounds) requestFitBounds(bounds)
-              },
-            })}
-          />
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+          <Table2
+            numRows={rows.length}
+            enableRowHeader={true}
+            enableColumnResizing={true}
+            enableRowResizing={false}
+            selectionModes={SelectionModes.ROWS_AND_CELLS}
+            onSelection={handleSelection}
+            defaultRowHeight={26}
+          >
+            {[
+              <Column
+                key="__num__"
+                name="#"
+                cellRenderer={(rowIndex) => (
+                  <Cell style={{ fontSize: 11, textAlign: 'center' }}>{rowIndex + 1}</Cell>
+                )}
+              />,
+              ...colInfos.map((c) => (
+                <Column
+                  key={c.key}
+                  name={c.key}
+                  cellRenderer={(rowIndex) => {
+                    const val = rows[rowIndex]?.props[c.key]
+                    const isRowSelected = rowIndex === selectedRowKey
+                    return (
+                      <Cell
+                        style={{
+                          fontSize: 12,
+                          backgroundColor: isRowSelected ? '#e4edf6' : undefined,
+                          color: c.internal ? '#aaa' : undefined,
+                          textAlign: c.numeric ? 'right' : 'left',
+                        }}
+                      >
+                        <div
+                          onDoubleClick={() => {
+                            const r = rows[rowIndex]
+                            if (!r) return
+                            setSelectedFeatureProps(r.props)
+                            const b = getFeatureBounds(r.feature)
+                            if (b) requestFitBounds(b)
+                          }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {displayValue(val)}
+                        </div>
+                      </Cell>
+                    )
+                  }}
+                />
+              )),
+            ]}
+          </Table2>
         </div>
       )}
+
       <FieldCalculatorModal
         open={calcOpen}
         layerId={selectedLayerId}

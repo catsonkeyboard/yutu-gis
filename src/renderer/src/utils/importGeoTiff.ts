@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { message } from 'antd'
+import { message } from './toaster'
 import { useLayerStore } from '../stores/layerStore'
 import { useMapStore } from '../stores/mapStore'
 import { registerGeoTiff, getGeoTiffUrlTemplate, parseApiError } from '../services/api'

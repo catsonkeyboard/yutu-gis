@@ -1,11 +1,11 @@
 import type { ReactElement } from 'react'
-import { Button, Dropdown, Tooltip, message } from 'antd'
-import { CameraOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons'
+import { Button, Menu, MenuItem, Popover, Tooltip } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { getMap } from '../../services/mapRef'
 import { composeMapPng } from '../../utils/mapExport'
 import { getAttribution } from '../MapCanvas/tileProviders'
 import { useMapStore } from '../../stores/mapStore'
+import { message } from '../../utils/toaster'
 
 export default function MapExportDropdown(): ReactElement {
   const { t } = useTranslation()
@@ -47,23 +47,18 @@ export default function MapExportDropdown(): ReactElement {
     }
   }
 
+  const menu = (
+    <Menu>
+      <MenuItem icon="download" text={t('mapExport.exportPng')} onClick={handleExportPng} />
+      <MenuItem icon="clipboard" text={t('mapExport.copy')} onClick={handleCopy} />
+    </Menu>
+  )
+
   return (
-    <Dropdown
-      menu={{
-        items: [
-          { key: 'png', icon: <DownloadOutlined />, label: t('mapExport.exportPng') },
-          { key: 'copy', icon: <CopyOutlined />, label: t('mapExport.copy') },
-        ],
-        onClick: ({ key }) => {
-          if (key === 'png') handleExportPng()
-          else handleCopy()
-        },
-      }}
-      trigger={['click']}
-    >
-      <Tooltip title={t('mapExport.title')}>
-        <Button icon={<CameraOutlined />} type="text" size="small" />
+    <Popover content={menu} placement="bottom-start">
+      <Tooltip content={t('mapExport.title')} placement="bottom">
+        <Button icon="camera" variant="minimal" size="small" />
       </Tooltip>
-    </Dropdown>
+    </Popover>
   )
 }

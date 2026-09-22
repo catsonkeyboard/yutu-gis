@@ -1,12 +1,19 @@
 import { useMemo, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { Table, Tag, Typography, Empty, Divider } from 'antd'
-import type { TableProps } from 'antd'
+import {
+  Button,
+  ButtonGroup,
+  Classes,
+  Divider,
+  HTMLTable,
+  Intent,
+  NonIdealState,
+  Tag,
+} from '@blueprintjs/core'
 import { useLayerStore } from '../../stores/layerStore'
 import { useMapStore } from '../../stores/mapStore'
 import { getFeatureBounds, matchesSelectedProps } from '../../utils/geo'
 
-const { Text } = Typography
 const PAGE_SIZE = 50
 
 interface FeatureRow {
@@ -45,7 +52,7 @@ export default function FeaturePanel(): ReactElement {
       label: (f.properties?._feature_label as string) ?? `要素 ${i + 1}`,
       geomType: f.geometry.type,
       props: (f.properties ?? {}) as Record<string, unknown>,
-      feature: f
+      feature: f,
     }))
   }, [selectedLayer])
 
@@ -65,16 +72,15 @@ export default function FeaturePanel(): ReactElement {
     if (selectedRowKey === undefined) return
     const targetPage = Math.floor(selectedRowKey / PAGE_SIZE) + 1
     setTablePage(targetPage)
-    // Double rAF: first waits for React state flush, second waits for DOM paint
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (!tableContainerRef.current) return
-        const rows = tableContainerRef.current.querySelectorAll<HTMLElement>('tr.ant-table-row')
+        const rows = tableContainerRef.current.querySelectorAll<HTMLElement>('tr.yutu-feature-row')
         const indexOnPage = selectedRowKey - (targetPage - 1) * PAGE_SIZE
         rows[indexOnPage]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
       })
     })
-  }, [selectedRowKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedRowKey])
 
   const handleRowClick = (row: FeatureRow) => {
     setSelectedFeatureProps(row.props)
@@ -86,114 +92,191 @@ export default function FeaturePanel(): ReactElement {
     if (!selectedFeatureProps) return []
     return Object.entries(selectedFeatureProps).map(([k, v]) => ({
       key: k,
-      value: v === null || v === undefined ? '' : String(v)
+      value: v === null || v === undefined ? '' : String(v),
     }))
   }, [selectedFeatureProps])
 
-  const featureCols: TableProps<FeatureRow>['columns'] = [
-    { title: '要素名称', dataIndex: 'label', ellipsis: true },
-    {
-      title: '类型',
-      dataIndex: 'geomType',
-      width: 80,
-      render: (v: string) => {
-        const color = v === 'Polygon' ? 'blue' : v === 'LineString' ? 'green' : 'orange'
-        return (
-          <Tag color={color} style={{ fontSize: 11 }}>
-            {v}
-          </Tag>
-        )
-      }
-    }
-  ]
+  const totalPages = Math.ceil(featureRows.length / PAGE_SIZE)
+  const currentFeatures = featureRows.slice((tablePage - 1) * PAGE_SIZE, tablePage * PAGE_SIZE)
 
-  const propCols: TableProps<PropRow>['columns'] = [
-    {
-      title: '属性',
-      dataIndex: 'key',
-      width: '40%',
-      ellipsis: true,
-      render: (v: string) => (
-        <Text style={{ fontSize: 12, color: v.startsWith('_') ? '#aaa' : undefined }}>{v}</Text>
-      )
-    },
-    {
-      title: '值',
-      dataIndex: 'value',
-      ellipsis: true,
-      render: (v: string) => <Text style={{ fontSize: 12 }}>{v}</Text>
-    }
-  ]
+  const getGeomIntent = (geomType: string) => {
+    if (geomType.includes('Polygon')) return Intent.PRIMARY
+    if (geomType.includes('Line')) return Intent.SUCCESS
+    return Intent.WARNING
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <div
         style={{
-          padding: '8px 8px 4px',
-          borderBottom: '1px solid #d9dce0',
+          padding: '8px 10px',
+          borderBottom: '1px solid var(--color-border, #d9dce0)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexShrink: 0
+          flexShrink: 0,
+          background: 'var(--color-bg-panel, #f5f6f8)',
         }}
       >
-        <Text strong style={{ fontSize: 13 }}>
-          要素属性
-        </Text>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>要素属性</span>
         {selectedLayer && (
-          <Text type="secondary" style={{ fontSize: 11 }}>
+          <span className={Classes.TEXT_MUTED} style={{ fontSize: 11 }}>
             {featureRows.length} 个要素
-          </Text>
+          </span>
         )}
       </div>
 
       {!selectedLayer ? (
-        <Empty
-          description="请选择图层"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          style={{ marginTop: 32 }}
-        />
+        <div style={{ padding: '40px 16px', flex: 1, display: 'flex', alignItems: 'center' }}>
+          <NonIdealState
+            icon="select"
+            title="请选择图层"
+            description="在左侧图层面板选中一个矢量图层以查看要素"
+            iconSize={32}
+          />
+        </div>
       ) : (
         <>
-          {/* Feature list */}
-          <div ref={tableContainerRef} style={{ flex: '0 0 45%', overflow: 'auto', minHeight: 0 }}>
-            <Table
-              size="small"
-              columns={featureCols}
-              dataSource={featureRows}
-              pagination={
-                featureRows.length > PAGE_SIZE
-                  ? {
-                      pageSize: PAGE_SIZE,
-                      size: 'small',
-                      current: tablePage,
-                      onChange: setTablePage
-                    }
-                  : false
-              }
-              onRow={(row) => ({
-                style: {
-                  cursor: 'pointer',
-                  background: row.key === selectedRowKey ? '#e4edf6' : undefined
-                },
-                onClick: () => handleRowClick(row)
-              })}
-            />
+          {/* Upper Section: Feature List */}
+          <div
+            ref={tableContainerRef}
+            style={{
+              flex: '0 0 45%',
+              overflowY: 'auto',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <HTMLTable compact interactive style={{ width: '100%', fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '6px 8px' }}>要素名称</th>
+                  <th style={{ width: 80, padding: '6px 8px' }}>类型</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentFeatures.map((row) => {
+                  const isSelected = row.key === selectedRowKey
+                  return (
+                    <tr
+                      key={row.key}
+                      className="yutu-feature-row"
+                      onClick={() => handleRowClick(row)}
+                      style={{
+                        cursor: 'pointer',
+                        backgroundColor: isSelected ? 'var(--color-bg-selected, #e4edf6)' : undefined,
+                        fontWeight: isSelected ? 600 : 400,
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: '5px 8px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: 160,
+                        }}
+                      >
+                        {row.label}
+                      </td>
+                      <td style={{ padding: '5px 8px' }}>
+                        <Tag
+                          minimal
+                          round
+                          intent={getGeomIntent(row.geomType)}
+                          style={{ fontSize: 10, minHeight: 16, height: 16, padding: '0 6px' }}
+                        >
+                          {row.geomType}
+                        </Tag>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </HTMLTable>
+
+            {/* Pagination if needed */}
+            {totalPages > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '4px 8px',
+                  borderTop: '1px solid var(--color-border, #d9dce0)',
+                  marginTop: 'auto',
+                  fontSize: 11,
+                }}
+              >
+                <span className={Classes.TEXT_MUTED}>
+                  {tablePage} / {totalPages}
+                </span>
+                <ButtonGroup variant="minimal">
+                  <Button
+                    icon="chevron-left"
+                    size="small"
+                    disabled={tablePage <= 1}
+                    onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+                  />
+                  <Button
+                    icon="chevron-right"
+                    size="small"
+                    disabled={tablePage >= totalPages}
+                    onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
+                  />
+                </ButtonGroup>
+              </div>
+            )}
           </div>
 
           <Divider style={{ margin: 0, flexShrink: 0 }} />
 
-          {/* Properties */}
-          <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {/* Lower Section: Properties Table */}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             {!selectedFeatureProps ? (
               <div
-                style={{ padding: '24px 8px', textAlign: 'center', color: '#8f959e', fontSize: 12 }}
+                className={Classes.TEXT_MUTED}
+                style={{ padding: '24px 8px', textAlign: 'center', fontSize: 12 }}
               >
                 点击地图或列表中的要素查看属性
               </div>
             ) : (
-              <Table size="small" columns={propCols} dataSource={propRows} pagination={false} />
+              <HTMLTable compact striped style={{ width: '100%', fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '40%', padding: '6px 8px' }}>属性</th>
+                    <th style={{ padding: '6px 8px' }}>值</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {propRows.map((prop) => (
+                    <tr key={prop.key}>
+                      <td
+                        style={{
+                          padding: '5px 8px',
+                          color: prop.key.startsWith('_') ? '#8f959e' : 'inherit',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: 100,
+                        }}
+                      >
+                        {prop.key}
+                      </td>
+                      <td
+                        style={{
+                          padding: '5px 8px',
+                          wordBreak: 'break-all',
+                        }}
+                      >
+                        {prop.value}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </HTMLTable>
             )}
           </div>
         </>

@@ -1,6 +1,13 @@
 import { useState } from 'react'
-import { Badge, Button, Checkbox, Divider, Popover, Tooltip, Typography, message } from 'antd'
-import { FundOutlined, SettingOutlined } from '@ant-design/icons'
+import {
+  Button,
+  Checkbox,
+  Classes,
+  Divider,
+  Intent,
+  Popover,
+  Tooltip,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import {
   useMonitorStore,
@@ -9,8 +16,7 @@ import {
   type GibsOverlayKey,
 } from '../../stores/monitorStore'
 import { useSettingsStore } from '../../stores/settingsStore'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 const OWM_KEYS: WeatherOverlayKey[] = ['precipitation', 'temp', 'clouds', 'wind', 'pressure']
 const GIBS_KEYS: GibsOverlayKey[] = ['truecolor', 'sst', 'nightlights']
@@ -31,7 +37,13 @@ export default function MonitorDropdown({ onSettings }: Props) {
   const aqiOn = useMonitorStore((s) => s.aqiOn)
   const error = useMonitorStore((s) => s.error)
   const {
-    toggleWeather, toggleGibs, setEarthquakeOn, setTyphoonOn, setFireOn, setGdacsOn, setAqiOn,
+    toggleWeather,
+    toggleGibs,
+    setEarthquakeOn,
+    setTyphoonOn,
+    setFireOn,
+    setGdacsOn,
+    setAqiOn,
   } = useMonitorStore.getState()
   const apiKeys = useSettingsStore((s) => s.apiKeys)
 
@@ -52,71 +64,101 @@ export default function MonitorDropdown({ onSettings }: Props) {
     requireKey(apiKeys.openweather, 'monitor.needKey', () => toggleWeather(key), !weather[key])
 
   const sectionTitle = (text: string) => (
-    <Text type="secondary" style={{ fontSize: 12, display: 'block', margin: '4px 0' }}>
+    <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, fontWeight: 600, margin: '6px 0 4px' }}>
       {text}
-    </Text>
+    </div>
   )
 
   const settingsLink = (
     <Button
-      type="link"
+      variant="minimal"
       size="small"
-      icon={<SettingOutlined />}
-      style={{ fontSize: 11, padding: '0 2px', height: 'auto' }}
-      onClick={() => { setOpen(false); onSettings?.() }}
-    >
-      {t('monitor.goSettings')}
-    </Button>
+      icon="cog"
+      intent={Intent.PRIMARY}
+      style={{ fontSize: 11, padding: '0 4px', minHeight: 18, height: 18 }}
+      onClick={() => {
+        setOpen(false)
+        onSettings?.()
+      }}
+      text={t('monitor.goSettings')}
+    />
   )
 
   const panel = (
-    <div style={{ width: 260, maxHeight: '70vh', overflowY: 'auto' }}>
+    <div style={{ width: 260, maxHeight: '70vh', overflowY: 'auto', padding: 10 }}>
+      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{t('monitor.title')}</div>
+
       {sectionTitle(t('monitor.weather'))}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <Checkbox checked={weather.radar} onChange={() => toggleWeather('radar')}>
-          {t('monitor.radar')}
-        </Checkbox>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Checkbox
+          checked={weather.radar}
+          onChange={() => toggleWeather('radar')}
+          label={t('monitor.radar')}
+          style={{ marginBottom: 4 }}
+        />
         {OWM_KEYS.map((key) => (
-          <Checkbox key={key} checked={weather[key]} onChange={() => handleOwmToggle(key)}>
-            {t(`monitor.${key}`)}
-          </Checkbox>
+          <Checkbox
+            key={key}
+            checked={weather[key]}
+            onChange={() => handleOwmToggle(key)}
+            label={t(`monitor.${key}`)}
+            style={{ marginBottom: 4 }}
+          />
         ))}
-        <Text type="secondary" style={{ fontSize: 11, paddingLeft: 24 }}>
-          {t('monitor.owmHint')}
+        <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, paddingLeft: 22, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>{t('monitor.owmHint')}</span>
           {settingsLink}
-        </Text>
+        </div>
       </div>
 
       <Divider style={{ margin: '8px 0' }} />
       {sectionTitle(t('monitor.satellite'))}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {GIBS_KEYS.map((key) => (
-          <Checkbox key={key} checked={gibs[key]} onChange={() => toggleGibs(key)}>
-            {t(`monitor.gibs.${key}`)}
-          </Checkbox>
+          <Checkbox
+            key={key}
+            checked={gibs[key]}
+            onChange={() => toggleGibs(key)}
+            label={t(`monitor.gibs.${key}`)}
+            style={{ marginBottom: 4 }}
+          />
         ))}
       </div>
 
       <Divider style={{ margin: '8px 0' }} />
       {sectionTitle(t('monitor.hazards'))}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <Checkbox checked={earthquakeOn} onChange={(e) => setEarthquakeOn(e.target.checked)}>
-          {t('monitor.quakeLayer')}
-        </Checkbox>
-        <Checkbox checked={typhoonOn} onChange={(e) => setTyphoonOn(e.target.checked)}>
-          {t('monitor.typhoonLayer')}
-        </Checkbox>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Checkbox
+          checked={earthquakeOn}
+          onChange={(e) => setEarthquakeOn((e.target as HTMLInputElement).checked)}
+          label={t('monitor.quakeLayer')}
+          style={{ marginBottom: 4 }}
+        />
+        <Checkbox
+          checked={typhoonOn}
+          onChange={(e) => setTyphoonOn((e.target as HTMLInputElement).checked)}
+          label={t('monitor.typhoonLayer')}
+          style={{ marginBottom: 4 }}
+        />
         <Checkbox
           checked={fireOn}
           onChange={(e) =>
-            requireKey(apiKeys.firms, 'monitor.needFirmsKey', () => setFireOn(e.target.checked), e.target.checked)
+            requireKey(
+              apiKeys.firms,
+              'monitor.needFirmsKey',
+              () => setFireOn((e.target as HTMLInputElement).checked),
+              (e.target as HTMLInputElement).checked
+            )
           }
-        >
-          {t('monitor.fireLayer')}
-        </Checkbox>
-        <Checkbox checked={gdacsOn} onChange={(e) => setGdacsOn(e.target.checked)}>
-          {t('monitor.gdacsLayer')}
-        </Checkbox>
+          label={t('monitor.fireLayer')}
+          style={{ marginBottom: 4 }}
+        />
+        <Checkbox
+          checked={gdacsOn}
+          onChange={(e) => setGdacsOn((e.target as HTMLInputElement).checked)}
+          label={t('monitor.gdacsLayer')}
+          style={{ marginBottom: 4 }}
+        />
       </div>
 
       <Divider style={{ margin: '8px 0' }} />
@@ -124,18 +166,21 @@ export default function MonitorDropdown({ onSettings }: Props) {
       <Checkbox
         checked={aqiOn}
         onChange={(e) =>
-          requireKey(apiKeys.waqi, 'monitor.needWaqiKey', () => setAqiOn(e.target.checked), e.target.checked)
+          requireKey(
+            apiKeys.waqi,
+            'monitor.needWaqiKey',
+            () => setAqiOn((e.target as HTMLInputElement).checked),
+            (e.target as HTMLInputElement).checked
+          )
         }
-      >
-        {t('monitor.aqiLayer')}
-      </Checkbox>
+        label={t('monitor.aqiLayer')}
+        style={{ marginBottom: 4 }}
+      />
 
       {error && (
         <>
           <Divider style={{ margin: '8px 0' }} />
-          <Text type="danger" style={{ fontSize: 11 }}>
-            {error}
-          </Text>
+          <div style={{ color: '#c5382c', fontSize: 11 }}>{error}</div>
         </>
       )}
     </div>
@@ -144,16 +189,34 @@ export default function MonitorDropdown({ onSettings }: Props) {
   return (
     <Popover
       content={panel}
-      title={t('monitor.title')}
-      trigger="click"
-      placement="bottomLeft"
-      open={open}
-      onOpenChange={setOpen}
+      isOpen={open}
+      onInteraction={(nextOpen) => setOpen(nextOpen)}
+      placement="bottom-start"
     >
-      <Tooltip title={t('monitor.title')}>
-        <Badge dot={active} offset={[-2, 2]} status="processing">
-          <Button icon={<FundOutlined />} type={active ? 'primary' : 'text'} size="small" />
-        </Badge>
+      <Tooltip content={t('monitor.title')} placement="bottom">
+        <span style={{ position: 'relative', display: 'inline-flex' }}>
+          <Button
+            icon="pulse"
+            variant="minimal"
+            size="small"
+            intent={active ? Intent.PRIMARY : undefined}
+            active={active || open}
+          />
+          {active && (
+            <span
+              style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: '#15b374',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+        </span>
       </Tooltip>
     </Popover>
   )

@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import type { ReactElement } from 'react'
-import { Button, Empty, Input, List, Popover, Space, Tooltip, Typography, message } from 'antd'
-import { DeleteOutlined, EnvironmentOutlined, StarOutlined } from '@ant-design/icons'
+import {
+  Button,
+  ControlGroup,
+  Icon,
+  InputGroup,
+  Intent,
+  Popover,
+  Tooltip,
+  Classes,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useBookmarkStore, MAX_BOOKMARKS } from '../../stores/bookmarkStore'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 export default function BookmarkDropdown(): ReactElement {
   const { t } = useTranslation()
@@ -24,61 +31,83 @@ export default function BookmarkDropdown(): ReactElement {
   }
 
   const content = (
-    <div style={{ width: 280 }}>
-      <Space.Compact style={{ width: '100%', marginBottom: 8 }}>
-        <Input
-          size="small"
+    <div style={{ width: 280, padding: 10 }}>
+      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{t('bookmark.title')}</div>
+      <ControlGroup fill style={{ marginBottom: 8 }}>
+        <InputGroup
+          small
           placeholder={t('bookmark.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onPressEnter={handleAdd}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleAdd()
+          }}
         />
-        <Button size="small" type="primary" onClick={handleAdd}>
-          {t('bookmark.save')}
-        </Button>
-      </Space.Compact>
+        <Button
+          small
+          intent={Intent.PRIMARY}
+          text={t('bookmark.save')}
+          onClick={handleAdd}
+        />
+      </ControlGroup>
       {bookmarks.length === 0 ? (
-        <Empty description={t('bookmark.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <div
+          className={Classes.TEXT_MUTED}
+          style={{ fontSize: 12, textAlign: 'center', padding: '16px 0' }}
+        >
+          {t('bookmark.empty')}
+        </div>
       ) : (
-        <List
-          size="small"
-          dataSource={bookmarks}
-          style={{ maxHeight: 260, overflowY: 'auto' }}
-          renderItem={(b) => (
-            <List.Item
-              style={{ padding: '4px 4px', cursor: 'pointer' }}
+        <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {bookmarks.map((b) => (
+            <div
+              key={b.id}
               onClick={() => {
                 jumpTo(b.id)
                 setOpen(false)
               }}
-              actions={[
-                <Button
-                  key="del"
-                  size="small"
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    remove(b.id)
-                  }}
-                />,
-              ]}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '4px 6px',
+                borderRadius: 3,
+                cursor: 'pointer',
+              }}
+              className="bp6-menu-item"
             >
-              <Space size={6} style={{ minWidth: 0 }}>
-                <EnvironmentOutlined style={{ color: '#1a6fb5', flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <Icon icon="map-marker" intent={Intent.PRIMARY} size={14} style={{ flexShrink: 0 }} />
                 <div style={{ minWidth: 0 }}>
-                  <Text style={{ fontSize: 12 }} ellipsis>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
                     {b.name}
-                  </Text>
-                  <div style={{ fontSize: 10, color: '#8f959e' }}>
+                  </div>
+                  <div className={Classes.TEXT_MUTED} style={{ fontSize: 10 }}>
                     z{b.zoom.toFixed(1)} · {b.center[0].toFixed(3)}, {b.center[1].toFixed(3)}
                   </div>
                 </div>
-              </Space>
-            </List.Item>
-          )}
-        />
+              </div>
+              <Button
+                variant="minimal"
+                size="small"
+                intent={Intent.DANGER}
+                icon="trash"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  remove(b.id)
+                }}
+              />
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -86,14 +115,18 @@ export default function BookmarkDropdown(): ReactElement {
   return (
     <Popover
       content={content}
-      title={t('bookmark.title')}
-      trigger="click"
-      open={open}
-      onOpenChange={setOpen}
-      placement="bottomLeft"
+      isOpen={open}
+      onInteraction={(nextOpen) => setOpen(nextOpen)}
+      placement="bottom-start"
     >
-      <Tooltip title={t('bookmark.title')}>
-        <Button icon={<StarOutlined />} type={open ? 'primary' : 'text'} size="small" />
+      <Tooltip content={t('bookmark.title')} placement="bottom">
+        <Button
+          icon="star"
+          variant="minimal"
+          size="small"
+          intent={open ? Intent.PRIMARY : undefined}
+          active={open}
+        />
       </Tooltip>
     </Popover>
   )

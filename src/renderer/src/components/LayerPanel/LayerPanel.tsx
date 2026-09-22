@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { List, Switch, Button, Typography, Empty, Tooltip, Input } from 'antd'
-import { BgColorsOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
+import {
+  Button,
+  Classes,
+  Icon,
+  InputGroup,
+  Intent,
+  NonIdealState,
+  Switch,
+  Tooltip,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useLayerStore } from '../../stores/layerStore'
 import { useMapStore } from '../../stores/mapStore'
 import { useStylePanelStore } from '../../stores/stylePanelStore'
 import { getGeoJSONBounds } from '../../utils/geo'
-
-const { Text } = Typography
 
 interface Props {
   onExportLayer?: (layerId: string) => void
@@ -47,145 +53,185 @@ export default function LayerPanel({ onExportLayer }: Props) {
         const [west, south, east, north] = src.bounds
         requestFitBounds([
           [west, south],
-          [east, north]
+          [east, north],
         ])
       }
     }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', userSelect: 'none' }}>
       <div
         style={{
-          padding: '8px 8px 4px',
-          borderBottom: '1px solid #d9dce0',
+          padding: '8px 10px',
+          borderBottom: '1px solid var(--color-border, #d9dce0)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexShrink: 0,
+          background: 'var(--color-bg-panel, #f5f6f8)',
         }}
       >
-        <Text strong style={{ fontSize: 13 }}>
-          {t('layer.panel')}
-        </Text>
-        <Text type="secondary" style={{ fontSize: 11 }}>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{t('layer.panel')}</span>
+        <span className={Classes.TEXT_MUTED} style={{ fontSize: 11 }}>
           {layers.length}
-        </Text>
+        </span>
       </div>
 
       {layers.length === 0 ? (
-        <Empty
-          description={t('layer.noLayers')}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          style={{ marginTop: 32 }}
-        />
+        <div style={{ padding: '40px 16px', flex: 1, display: 'flex', alignItems: 'center' }}>
+          <NonIdealState
+            icon="layers"
+            title={t('layer.noLayers')}
+            description="导入或绘制要素后将在此显示"
+            iconSize={32}
+          />
+        </div>
       ) : (
-        <List
-          size="small"
-          dataSource={layers}
-          style={{ overflow: 'auto', flex: 1 }}
-          ref={listRef as React.Ref<HTMLDivElement>}
-          renderItem={(layer) => {
+        <div
+          ref={listRef}
+          style={{
+            overflowY: 'auto',
+            flex: 1,
+            padding: '4px 0',
+          }}
+        >
+          {layers.map((layer) => {
             const isSelected = layer.id === selectedLayerId
+            const layerIcon = layer.type === 'raster' ? 'media' : 'polygon-filter'
+
             return (
-              <List.Item
+              <div
+                key={layer.id}
                 data-layer-id={layer.id}
                 onClick={() => handleSelectLayer(layer.id)}
                 style={{
-                  padding: '4px 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '5px 8px',
                   opacity: layer.visible ? 1 : 0.45,
-                  transition: 'opacity 0.15s, background 0.1s',
-                  background: isSelected ? '#e4edf6' : 'transparent',
-                  borderLeft: isSelected ? '2px solid #1a6fb5' : '2px solid transparent',
+                  transition: 'background-color 0.12s ease',
+                  backgroundColor: isSelected ? 'var(--color-bg-selected, #e4edf6)' : 'transparent',
+                  borderLeft: isSelected ? '3px solid var(--color-primary, #1a6fb5)' : '3px solid transparent',
                   cursor: 'pointer',
+                  fontSize: 12,
                 }}
-                actions={[
-                  ...(layer.type === 'geojson'
-                    ? [
-                        <Tooltip key="style" title={t('style.title')}>
-                          <Button
-                            size="small"
-                            type="text"
-                            icon={<BgColorsOutlined />}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openStylePanel(layer.id)
-                            }}
-                          />
-                        </Tooltip>,
-                      ]
-                    : []),
-                  <Tooltip key="vis" title={layer.visible ? '隐藏' : '显示'}>
-                    <Switch
-                      size="small"
-                      checked={layer.visible}
-                      onChange={(_, e) => {
-                        e?.stopPropagation()
-                        toggleVisible(layer.id)
-                      }}
-                    />
-                  </Tooltip>,
-                  <Tooltip key="export" title="导出 GeoJSON">
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<DownloadOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onExportLayer?.(layer.id)
-                      }}
-                    />
-                  </Tooltip>,
-                  <Tooltip key="del" title="删除图层">
-                    <Button
-                      size="small"
-                      type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        removeLayer(layer.id)
-                      }}
-                    />
-                  </Tooltip>,
-                ]}
+                className="bp6-menu-item"
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                  <EyeOutlined style={{ color: isSelected ? '#1a6fb5' : '#646a73', flexShrink: 0 }} />
+                {/* Left: Icon & Layer Name */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    minWidth: 0,
+                    flex: 1,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Icon
+                    icon={layerIcon}
+                    size={14}
+                    intent={isSelected ? Intent.PRIMARY : undefined}
+                    style={{ flexShrink: 0, opacity: 0.8 }}
+                  />
+
                   {editingId === layer.id ? (
-                    <Input
+                    <InputGroup
                       size="small"
                       value={editingName}
                       autoFocus
                       style={{ fontSize: 12, flex: 1, minWidth: 0 }}
                       onChange={(e) => setEditingName(e.target.value)}
-                      onPressEnter={commitRename}
-                      onBlur={commitRename}
                       onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitRename()
                         if (e.key === 'Escape') setEditingId(null)
                       }}
+                      onBlur={commitRename}
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
-                    <Tooltip title={`${layer.name}（双击重命名）`}>
-                      <Text
-                        ellipsis
-                        strong={isSelected}
-                        style={{ fontSize: 12, flex: 1, minWidth: 0, color: isSelected ? '#1a6fb5' : undefined }}
+                    <Tooltip
+                      content={`${layer.name}（双击重命名）`}
+                      placement="bottom-start"
+                      hoverOpenDelay={500}
+                    >
+                      <span
                         onDoubleClick={(e) => {
                           e.stopPropagation()
                           setEditingId(layer.id)
                           setEditingName(layer.name)
                         }}
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isSelected ? 'var(--color-primary, #1a6fb5)' : 'inherit',
+                        }}
                       >
                         {layer.name}
-                      </Text>
+                      </span>
                     </Tooltip>
                   )}
                 </div>
-              </List.Item>
+
+                {/* Right: Actions */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    flexShrink: 0,
+                    marginLeft: 6,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {layer.type === 'geojson' && (
+                    <Tooltip content={t('style.title')} placement="top">
+                      <Button
+                        size="small"
+                        variant="minimal"
+                        icon="tint"
+                        onClick={() => openStylePanel(layer.id)}
+                      />
+                    </Tooltip>
+                  )}
+
+                  <Tooltip content={layer.visible ? '隐藏图层' : '显示图层'} placement="top">
+                    <Switch
+                      style={{ marginBottom: 0, marginRight: 2 }}
+                      checked={layer.visible}
+                      onChange={() => toggleVisible(layer.id)}
+                    />
+                  </Tooltip>
+
+                  <Tooltip content="导出 GeoJSON" placement="top">
+                    <Button
+                      size="small"
+                      variant="minimal"
+                      icon="export"
+                      onClick={() => onExportLayer?.(layer.id)}
+                    />
+                  </Tooltip>
+
+                  <Tooltip content="删除图层" placement="top">
+                    <Button
+                      size="small"
+                      variant="minimal"
+                      intent={Intent.DANGER}
+                      icon="trash"
+                      onClick={() => removeLayer(layer.id)}
+                    />
+                  </Tooltip>
+                </div>
+              </div>
             )
-          }}
-        />
+          })}
+        </div>
       )}
     </div>
   )

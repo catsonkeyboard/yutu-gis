@@ -2,28 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import {
   Button,
-  Dropdown,
-  Empty,
-  Input,
-  Space,
-  Table,
+  Classes,
+  Intent,
+  Menu,
+  MenuItem,
+  NonIdealState,
+  Popover,
   Tag,
   Tooltip,
   Tree,
-  Typography,
-  message,
-} from 'antd'
-import type { TableProps } from 'antd'
-import {
-  CaretRightOutlined,
-  CloseOutlined,
-  DownOutlined,
-  ExportOutlined,
-  FileAddOutlined,
-  HistoryOutlined,
-  PlusOutlined,
-  SyncOutlined,
-} from '@ant-design/icons'
+  type TreeNodeInfo,
+} from '@blueprintjs/core'
+import { Cell, Column, SelectionModes, Table2 } from '@blueprintjs/table'
 import { nanoid } from 'nanoid'
 import { useTranslation } from 'react-i18next'
 import { useSqlPanelStore } from '../../stores/sqlPanelStore'
@@ -42,8 +32,7 @@ import {
   type SqlTableInfo,
 } from '../../services/api'
 import { getGeoJSONBounds } from '../../utils/geo'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 function sampleQueries(tables: SqlTableInfo[], t: (k: string) => string) {
   const first = tables[0]?.table ?? 'my_layer'
@@ -82,6 +71,9 @@ export default function SqlPanel(): ReactElement {
   const [elapsed, setElapsed] = useState<number | null>(null)
   const [addingLayer, setAddingLayer] = useState(false)
 
+  // Track expanded tree nodes
+  const [expandedNodes, setExpandedNodes] = useState<Set<string | number>>(new Set())
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const resizeStartY = useRef(0)
   const resizeStartHeight = useRef(0)
@@ -93,7 +85,9 @@ export default function SqlPanel(): ReactElement {
       for (const layer of vectorLayers) {
         await sqlRegisterTable(layer.name, layer.source as GeoJSON.FeatureCollection, layer.id)
       }
-      setTables(await sqlListTables())
+      const tbls = await sqlListTables()
+      setTables(tbls)
+      setExpandedNodes(new Set(tbls.map((tb) => `t:${tb.table}`)))
       if (vectorLayers.length) message.success(t('sql.synced', { count: vectorLayers.length }))
     } catch (e) {
       message.error(`${t('sql.syncFailed')}：${parseApiError(e)}`)
@@ -122,7 +116,9 @@ export default function SqlPanel(): ReactElement {
     if (!filePath) return
     try {
       const info = await sqlRegisterFile(filePath)
-      setTables(await sqlListTables())
+      const tbls = await sqlListTables()
+      setTables(tbls)
+      setExpandedNodes((prev) => new Set(prev).add(`t:${info.table}`))
       message.success(t('sql.fileRegistered', { table: info.table }))
       if (!sql.trim()) setSql(`SELECT * FROM "${info.table}" LIMIT 100`)
     } catch (e) {
@@ -209,61 +205,67 @@ export default function SqlPanel(): ReactElement {
     window.addEventListener('mouseup', onUp)
   }
 
-  const treeData = useMemo(
+  const treeNodes: TreeNodeInfo[] = useMemo(
     () =>
-      tables.map((tb) => ({
-        title: (
-          <span style={{ fontSize: 12 }} title={tb.path ?? undefined}>
-            {tb.table}{' '}
-            {tb.kind === 'file' ? (
-              <Tag color="geekblue" style={{ fontSize: 9, lineHeight: '14px', marginInlineEnd: 0 }}>
+      tables.map((tb) => {
+        const tableKey = `t:${tb.table}`
+        const isExp = expandedNodes.has(tableKey)
+        return {
+          id: tableKey,
+          icon: 'th',
+          isExpanded: isExp,
+          label: (
+            <span style={{ fontSize: 12 }} title={tb.path ?? undefined}>
+              {tb.table}
+            </span>
+          ),
+          secondaryLabel:
+            tb.kind === 'file' ? (
+              <Tag minimal intent={Intent.PRIMARY} style={{ fontSize: 9, minHeight: 16, padding: '0 4px' }}>
                 {t('sql.fileTag')}
               </Tag>
             ) : (
-              <Text type="secondary" style={{ fontSize: 10 }}>({tb.rows})</Text>
-            )}
-          </span>
-        ),
-        key: `t:${tb.table}`,
-        children: tb.columns.map((c) => ({
-          title: (
-            <span style={{ fontSize: 11 }}>
-              {c.name} <Text type="secondary" style={{ fontSize: 10 }}>{c.type.split('(')[0]}</Text>
-            </span>
-          ),
-          key: `c:${tb.table}:${c.name}`,
-        })),
-      })),
-    [tables]
+              <span style={{ fontSize: 10, color: 'var(--color-text-secondary, #8f959e)' }}>
+                ({tb.rows})
+              </span>
+            ),
+          childNodes: tb.columns.map((c) => ({
+            id: `c:${tb.table}:${c.name}`,
+            icon: c.geometry ? 'polygon-filter' : 'column-layout',
+            label: <span style={{ fontSize: 11 }}>{c.name}</span>,
+            secondaryLabel: (
+              <span style={{ fontSize: 10, color: 'var(--color-text-secondary, #8f959e)' }}>
+                {c.type.split('(')[0]}
+              </span>
+            ),
+          })),
+        }
+      }),
+    [tables, expandedNodes, t]
   )
 
-  const resultHasGeometry = result?.columns.some((c) => c.geometry) ?? false
+  const handleNodeClick = (node: TreeNodeInfo) => {
+    const key = String(node.id)
+    if (key.startsWith('t:')) {
+      insertText(`"${key.slice(2)}"`)
+    } else if (key.startsWith('c:')) {
+      insertText(`"${key.split(':')[2]}"`)
+    }
+  }
 
-  const resultColumns: TableProps<Record<string, unknown>>['columns'] = useMemo(() => {
-    if (!result) return []
-    return result.columns.map((c, i) => ({
-      title: c.name,
-      dataIndex: String(i),
-      width: 150,
-      ellipsis: true,
-      render: (v: unknown) => (
-        <span style={{ fontSize: 12 }}>
-          {v === null || v === undefined ? '' : String(v).slice(0, 200)}
-        </span>
-      ),
-    }))
-  }, [result])
+  const handleNodeExpand = (node: TreeNodeInfo) => {
+    setExpandedNodes((prev) => new Set(prev).add(node.id))
+  }
 
-  const resultRows = useMemo(() => {
-    if (!result) return []
-    return result.rows.map((row, ri) => {
-      const obj: Record<string, unknown> = { __key: ri }
-      row.forEach((v, ci) => {
-        obj[String(ci)] = v
-      })
-      return obj
+  const handleNodeCollapse = (node: TreeNodeInfo) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev)
+      next.delete(node.id)
+      return next
     })
-  }, [result])
+  }
+
+  const resultHasGeometry = result?.columns.some((c) => c.geometry) ?? false
 
   return (
     <div
@@ -292,69 +294,83 @@ export default function SqlPanel(): ReactElement {
           flexShrink: 0,
         }}
       >
-        <Text strong style={{ fontSize: 13 }}>
-          {t('sql.title')}
-        </Text>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{t('sql.title')}</span>
         {spatial !== null && (
-          <Tag color={spatial ? 'green' : 'orange'} style={{ fontSize: 10 }}>
+          <Tag
+            intent={spatial ? Intent.SUCCESS : Intent.WARNING}
+            minimal
+            style={{ fontSize: 10 }}
+          >
             {spatial ? t('sql.spatialOn') : t('sql.spatialOff')}
           </Tag>
         )}
-        <Space size={4} style={{ marginLeft: 'auto' }}>
-          <Tooltip title={t('sql.openFileHint')}>
-            <Button size="small" icon={<FileAddOutlined />} onClick={handleOpenFile}>
-              {t('sql.openFile')}
-            </Button>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Tooltip content={t('sql.openFileHint')}>
+            <Button
+              small
+              icon="document-open"
+              text={t('sql.openFile')}
+              onClick={handleOpenFile}
+            />
           </Tooltip>
-          <Tooltip title={t('sql.sync')}>
-            <Button size="small" icon={<SyncOutlined />} loading={syncing} onClick={syncLayers}>
-              {t('sql.sync')}
-            </Button>
+          <Tooltip content={t('sql.sync')}>
+            <Button
+              small
+              icon="refresh"
+              text={t('sql.sync')}
+              loading={syncing}
+              onClick={syncLayers}
+            />
           </Tooltip>
-          <Dropdown
-            menu={{
-              items: sampleQueries(tables, t).map((s) => ({ key: s.key, label: s.label })),
-              onClick: ({ key }) => {
-                const s = sampleQueries(tables, t).find((q) => q.key === key)
-                if (s) setSql(s.sql)
-              },
-            }}
-            trigger={['click']}
+          <Popover
+            content={
+              <Menu>
+                {sampleQueries(tables, t).map((s) => (
+                  <MenuItem
+                    key={s.key}
+                    text={s.label}
+                    onClick={() => setSql(s.sql)}
+                  />
+                ))}
+              </Menu>
+            }
+            placement="bottom-start"
           >
-            <Button size="small">
-              {t('sql.samples')} <DownOutlined />
-            </Button>
-          </Dropdown>
-          <Dropdown
+            <Button small rightIcon="caret-down" text={t('sql.samples')} />
+          </Popover>
+          <Popover
             disabled={!history.length}
-            menu={{
-              items: history.map((h, i) => ({
-                key: String(i),
-                label: (
-                  <span style={{ fontSize: 12, fontFamily: 'Menlo, Consolas, monospace' }}>
-                    {h.split('\n')[0].slice(0, 60)}
-                  </span>
-                ),
-              })),
-              onClick: ({ key }) => setSql(history[Number(key)]),
-            }}
-            trigger={['click']}
+            content={
+              <Menu style={{ maxHeight: 240, overflowY: 'auto' }}>
+                {history.map((h, i) => (
+                  <MenuItem
+                    key={i}
+                    text={
+                      <span style={{ fontSize: 11, fontFamily: 'Menlo, Consolas, monospace' }}>
+                        {h.split('\n')[0].slice(0, 50)}
+                      </span>
+                    }
+                    onClick={() => setSql(h)}
+                  />
+                ))}
+              </Menu>
+            }
+            placement="bottom-start"
           >
-            <Tooltip title={t('sql.history')}>
-              <Button size="small" icon={<HistoryOutlined />} />
+            <Tooltip content={t('sql.history')}>
+              <Button small icon="history" disabled={!history.length} />
             </Tooltip>
-          </Dropdown>
+          </Popover>
           <Button
-            size="small"
-            type="primary"
-            icon={<CaretRightOutlined />}
+            small
+            intent={Intent.PRIMARY}
+            icon="play"
+            text={t('sql.run')}
             loading={running}
             onClick={execute}
-          >
-            {t('sql.run')}
-          </Button>
-          <Button size="small" type="text" icon={<CloseOutlined />} onClick={() => setOpen(false)} />
-        </Space>
+          />
+          <Button small minimal icon="cross" onClick={() => setOpen(false)} />
+        </div>
       </div>
 
       {/* Body */}
@@ -370,27 +386,28 @@ export default function SqlPanel(): ReactElement {
           }}
         >
           {tables.length === 0 ? (
-            <Empty description={t('sql.noTables')} image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ marginTop: 16 }} />
+            <div style={{ padding: '24px 8px' }}>
+              <NonIdealState
+                icon="database"
+                title={t('sql.noTables')}
+                layout="vertical"
+              />
+            </div>
           ) : (
             <Tree
-              treeData={treeData}
-              selectable
-              onSelect={(keys) => {
-                const key = String(keys[0] ?? '')
-                if (key.startsWith('t:')) insertText(`"${key.slice(2)}"`)
-                else if (key.startsWith('c:')) insertText(`"${key.split(':')[2]}"`)
-              }}
-              blockNode
+              contents={treeNodes}
+              onNodeClick={handleNodeClick}
+              onNodeExpand={handleNodeExpand}
+              onNodeCollapse={handleNodeCollapse}
             />
           )}
         </div>
 
         {/* Editor + results */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <Input.TextArea
-            ref={(node) => {
-              textareaRef.current = node?.resizableTextArea?.textArea ?? null
-            }}
+          <textarea
+            ref={textareaRef}
+            className={Classes.INPUT}
             value={sql}
             onChange={(e) => setSql(e.target.value)}
             onKeyDown={(e) => {
@@ -409,6 +426,7 @@ export default function SqlPanel(): ReactElement {
               border: 'none',
               borderBottom: '1px solid #e5e7eb',
               flexShrink: 0,
+              boxShadow: 'none',
             }}
           />
           <div
@@ -422,47 +440,58 @@ export default function SqlPanel(): ReactElement {
             }}
           >
             {result && (
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              <span style={{ fontSize: 11, color: '#646a73' }}>
                 {t('sql.rowCount', { count: result.row_count })}
                 {result.truncated && ` · ${t('sql.truncated')}`}
                 {elapsed !== null && ` · ${elapsed.toFixed(0)} ms`}
-              </Text>
+              </span>
             )}
             {result && (
-              <Space size={4} style={{ marginLeft: 'auto' }}>
-                <Button size="small" icon={<ExportOutlined />} onClick={handleExportCsv}>
-                  {t('sql.exportCsv')}
-                </Button>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Button small icon="export" text={t('sql.exportCsv')} onClick={handleExportCsv} />
                 {resultHasGeometry && (
                   <Button
-                    size="small"
-                    icon={<PlusOutlined />}
+                    small
+                    icon="plus"
+                    text={t('sql.addAsLayer')}
                     loading={addingLayer}
                     onClick={handleAddAsLayer}
-                  >
-                    {t('sql.addAsLayer')}
-                  </Button>
+                  />
                 )}
-              </Space>
+              </div>
             )}
           </div>
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             {!result ? (
-              <Empty
-                description={t('sql.noResult')}
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                style={{ marginTop: 16 }}
-              />
+              <div style={{ padding: '32px 0' }}>
+                <NonIdealState
+                  icon="th"
+                  title={t('sql.noResult')}
+                  layout="vertical"
+                />
+              </div>
             ) : (
-              <Table
-                size="small"
-                virtual
-                columns={resultColumns}
-                dataSource={resultRows}
-                rowKey="__key"
-                pagination={false}
-                scroll={{ y: height - 200, x: result.columns.length * 150 }}
-              />
+              <Table2
+                numRows={result.rows.length}
+                enableRowHeader
+                enableColumnResizing
+                selectionModes={SelectionModes.ROWS_AND_CELLS}
+              >
+                {result.columns.map((col, colIdx) => (
+                  <Column
+                    key={colIdx}
+                    name={col.name}
+                    cellRenderer={(rowIdx) => {
+                      const val = result.rows[rowIdx]?.[colIdx]
+                      return (
+                        <Cell style={{ fontSize: 11, fontFamily: 'monospace' }}>
+                          {val === null || val === undefined ? '' : String(val).slice(0, 200)}
+                        </Cell>
+                      )
+                    }}
+                  />
+                ))}
+              </Table2>
             )}
           </div>
         </div>

@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import type { ReactElement } from 'react'
-import { Button, Popover, Select, Space, Switch, Tooltip, Typography } from 'antd'
-import { PicCenterOutlined } from '@ant-design/icons'
+import {
+  Button,
+  Classes,
+  HTMLSelect,
+  Intent,
+  Popover,
+  Switch,
+  Tooltip,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useSwipeStore } from '../../stores/swipeStore'
 import { useLayerStore } from '../../stores/layerStore'
 import { useDrawStore } from '../../stores/drawStore'
 import { useMeasureStore } from '../../stores/measureStore'
-
-const { Text } = Typography
 
 export default function SwipeDropdown(): ReactElement {
   const { t } = useTranslation()
@@ -19,49 +24,49 @@ export default function SwipeDropdown(): ReactElement {
   const [open, setOpen] = useState(false)
 
   const blocked = drawMode !== 'off' || measureMode !== 'off'
-  const options = layers.map((l) => ({ value: l.id, label: l.name }))
+  const options = [
+    { value: '', label: t('swipe.selectLayer') },
+    ...layers.map((l) => ({ value: l.id, label: l.name })),
+  ]
 
   const content = (
-    <Space direction="vertical" style={{ width: 240 }}>
-      <Text type="secondary" style={{ fontSize: 12 }}>
+    <div style={{ width: 240, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontWeight: 600, fontSize: 13 }}>{t('swipe.title')}</div>
+      <div className={Classes.TEXT_MUTED} style={{ fontSize: 12 }}>
         {t('swipe.hint')}
-      </Text>
-      <Select
-        size="small"
-        style={{ width: '100%' }}
-        value={layerId ?? undefined}
-        onChange={(v) => setLayer(v)}
+      </div>
+      <HTMLSelect
+        fill
+        value={layerId ?? ''}
+        onChange={(e) => setLayer(e.target.value || null)}
         options={options}
-        placeholder={t('swipe.selectLayer')}
-        showSearch
-        optionFilterProp="label"
       />
-      <Space>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
         <Switch
-          size="small"
           checked={enabled}
           disabled={!layerId}
-          onChange={(v) => setEnabled(v)}
+          onChange={(e) => setEnabled((e.target as HTMLInputElement).checked)}
+          style={{ marginBottom: 0 }}
         />
-        <Text style={{ fontSize: 12 }}>{enabled ? t('swipe.on') : t('swipe.off')}</Text>
-      </Space>
-    </Space>
+        <span style={{ fontSize: 12 }}>{enabled ? t('swipe.on') : t('swipe.off')}</span>
+      </div>
+    </div>
   )
 
   return (
     <Popover
       content={content}
-      title={t('swipe.title')}
-      trigger="click"
-      open={open}
-      onOpenChange={setOpen}
-      placement="bottomLeft"
+      isOpen={open}
+      onInteraction={(nextOpen) => setOpen(nextOpen)}
+      placement="bottom-start"
     >
-      <Tooltip title={blocked ? t('swipe.blocked') : t('swipe.title')}>
+      <Tooltip content={blocked ? t('swipe.blocked') : t('swipe.title')} placement="bottom">
         <Button
-          icon={<PicCenterOutlined />}
-          type={enabled ? 'primary' : 'text'}
+          icon="split-columns"
+          variant="minimal"
           size="small"
+          intent={enabled ? Intent.PRIMARY : undefined}
+          active={enabled}
           disabled={blocked}
         />
       </Tooltip>

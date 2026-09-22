@@ -1,5 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
-import { Layout, message, Modal, Input, Radio } from 'antd'
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  InputGroup,
+  Intent,
+  Radio,
+  RadioGroup,
+} from '@blueprintjs/core'
+import { message } from './utils/toaster'
 import { nanoid } from 'nanoid'
 import Toolbar from './components/Toolbar/Toolbar'
 import LayerPanel from './components/LayerPanel/LayerPanel'
@@ -28,8 +39,6 @@ import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
 import { useBookmarkStore, type Bookmark } from './stores/bookmarkStore'
 
-const { Header, Sider, Content, Footer } = Layout
-
 const ALLOWED_DROP_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'gpx'])
 
 export default function App() {
@@ -51,6 +60,8 @@ export default function App() {
   const [importMode, setImportMode] = useState<'merge' | 'split'>('merge')
   const [exportOpen, setExportOpen] = useState(false)
   const [exportLayerId, setExportLayerId] = useState<string | null>(null)
+  const [confirmProjectOpen, setConfirmProjectOpen] = useState(false)
+  const [pendingProjectPath, setPendingProjectPath] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const addLayer = useLayerStore((s) => s.addLayer)
   const appendFeatures = useLayerStore((s) => s.appendFeatures)
@@ -339,20 +350,7 @@ export default function App() {
     }
   }
 
-  const openProjectFromPath = async (filePath: string) => {
-    if (useLayerStore.getState().layers.length > 0) {
-      const ok = await new Promise<boolean>((resolve) => {
-        Modal.confirm({
-          title: '打开工程',
-          content: '打开工程将替换当前所有图层，是否继续？',
-          okText: '继续',
-          cancelText: '取消',
-          onOk: () => resolve(true),
-          onCancel: () => resolve(false)
-        })
-      })
-      if (!ok) return
-    }
+  const doOpenProject = async (filePath: string) => {
     try {
       const buffer = await window.electronAPI.readFile(filePath)
       const json = JSON.parse(new TextDecoder().decode(buffer))
@@ -364,6 +362,15 @@ export default function App() {
       removeRecentProject(filePath) // stale entry (moved/deleted file)
       message.error(`打开工程失败：${(e as Error).message}`)
     }
+  }
+
+  const openProjectFromPath = async (filePath: string) => {
+    if (useLayerStore.getState().layers.length > 0) {
+      setPendingProjectPath(filePath)
+      setConfirmProjectOpen(true)
+      return
+    }
+    await doOpenProject(filePath)
   }
 
   const handleOpenProject = async () => {
@@ -380,16 +387,8 @@ export default function App() {
   }
 
   return (
-    <Layout style={{ height: '100vh' }}>
-      <Header
-        style={{
-          height: 36,
-          lineHeight: '36px',
-          padding: 0,
-          background: '#ffffff',
-          borderBottom: '1px solid #d9dce0'
-        }}
-      >
+    <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <header style={{ flexShrink: 0, zIndex: 10 }}>
         <Toolbar
           onSettings={() => setSettingsOpen(true)}
           onImport={handleImport}
@@ -401,11 +400,11 @@ export default function App() {
           onWFS={() => setWfsOpen(true)}
           onDrawModeChange={handleDrawModeChange}
         />
-      </Header>
-      <Layout style={{ flex: 1, overflow: 'hidden' }}>
-        <Sider
-          width={siderWidth}
+      </header>
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+        <aside
           style={{
+            width: siderWidth,
             background: '#f5f6f8',
             borderRight: '1px solid #d9dce0',
             overflow: 'auto',
@@ -426,15 +425,15 @@ export default function App() {
               zIndex: 10
             }}
           />
-        </Sider>
-        <Content
-          style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        </aside>
+        <main
+          style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
           onDragOver={(e) => {
             e.preventDefault()
             setIsDragOver(true)
           }}
           onDragLeave={(e) => {
-            // Only clear when leaving the Content element itself, not its children
+            // Only clear when leaving the main element itself, not its children
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
               setIsDragOver(false)
             }
@@ -484,10 +483,10 @@ export default function App() {
           </div>
           {attrTableOpen && <AttributeTablePanel />}
           {sqlPanelOpen && <SqlPanel />}
-        </Content>
-        <Sider
-          width={rightPanelWidth}
+        </main>
+        <aside
           style={{
+            width: rightPanelWidth,
             background: '#f5f6f8',
             borderLeft: '1px solid #d9dce0',
             overflow: 'hidden',
@@ -508,20 +507,21 @@ export default function App() {
             }}
           />
           <FeaturePanel />
-        </Sider>
-      </Layout>
-      <Footer
+        </aside>
+      </div>
+      <footer
         style={{
           height: 24,
           padding: '0 12px',
           background: '#f5f6f8',
           borderTop: '1px solid #d9dce0',
           display: 'flex',
-          alignItems: 'center'
+          alignItems: 'center',
+          flexShrink: 0
         }}
       >
         <StatusBar />
-      </Footer>
+      </footer>
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ExportLayersModal
         open={exportOpen}
@@ -543,75 +543,124 @@ export default function App() {
           message.success(`已导入：${name}（${geojson.features.length} 个要素）`)
         }}
       />
-      <Modal
+      <Dialog
         title="导入选项"
-        open={importDialogOpen}
-        onOk={() => {
+        isOpen={importDialogOpen}
+        onClose={() => {
           setImportDialogOpen(false)
-          applyImport(pendingImportLayers, importMode)
           setPendingImportLayers([])
+        }}
+        style={{ width: 440 }}
+      >
+        <DialogBody>
+          {(() => {
+            const total = pendingImportLayers.reduce((s, l) => s + l.geojson.features.length, 0)
+            return (
+              <RadioGroup
+                selectedValue={importMode}
+                onChange={(e) => setImportMode((e.target as HTMLInputElement).value as 'merge' | 'split')}
+              >
+                <Radio value="merge" label={`合并为一个图层（${total} 个要素）`} />
+                <Radio value="split" label={`每个要素单独一个图层（创建 ${total} 个图层）`} />
+              </RadioGroup>
+            )
+          })()}
+        </DialogBody>
+        <DialogFooter
+          actions={
+            <>
+              <Button
+                text="取消"
+                onClick={() => {
+                  setImportDialogOpen(false)
+                  setPendingImportLayers([])
+                }}
+              />
+              <Button
+                intent={Intent.PRIMARY}
+                text="确定"
+                onClick={() => {
+                  setImportDialogOpen(false)
+                  applyImport(pendingImportLayers, importMode)
+                  setPendingImportLayers([])
+                }}
+              />
+            </>
+          }
+        />
+      </Dialog>
+      <Dialog
+        title="保存绘制图层"
+        isOpen={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        style={{ width: 400 }}
+      >
+        <DialogBody>
+          <RadioGroup
+            selectedValue={saveTarget}
+            onChange={(e) => setSaveTarget((e.target as HTMLInputElement).value as 'current' | 'new')}
+          >
+            <Radio
+              value="current"
+              label="保存到当前图层"
+              disabled={
+                !useLayerStore
+                  .getState()
+                  .layers.some(
+                    (l) => l.id === useLayerStore.getState().selectedLayerId && l.type === 'geojson'
+                  )
+              }
+            />
+            <Radio value="new" label="保存到新图层" />
+          </RadioGroup>
+          {saveTarget === 'new' && (
+            <div style={{ marginTop: 12 }}>
+              <InputGroup
+                value={pendingLayerName}
+                onChange={(e) => setPendingLayerName(e.target.value)}
+                placeholder="图层名称"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveDraw()
+                }}
+                autoFocus
+              />
+            </div>
+          )}
+        </DialogBody>
+        <DialogFooter
+          actions={
+            <>
+              <Button text="继续绘制" onClick={() => setSaveModalOpen(false)} />
+              <Button
+                intent={Intent.PRIMARY}
+                text="保存"
+                disabled={saveTarget === 'new' && !pendingLayerName.trim()}
+                onClick={handleSaveDraw}
+              />
+            </>
+          }
+        />
+      </Dialog>
+      <Alert
+        isOpen={confirmProjectOpen}
+        icon="warning-sign"
+        intent={Intent.WARNING}
+        confirmButtonText="继续"
+        cancelButtonText="取消"
+        onConfirm={() => {
+          setConfirmProjectOpen(false)
+          if (pendingProjectPath) {
+            doOpenProject(pendingProjectPath)
+            setPendingProjectPath(null)
+          }
         }}
         onCancel={() => {
-          setImportDialogOpen(false)
-          setPendingImportLayers([])
-        }}
-        okText="确定"
-        cancelText="取消"
-      >
-        {(() => {
-          const total = pendingImportLayers.reduce((s, l) => s + l.geojson.features.length, 0)
-          return (
-            <Radio.Group
-              value={importMode}
-              onChange={(e) => setImportMode(e.target.value)}
-              style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
-            >
-              <Radio value="merge">合并为一个图层（{total} 个要素）</Radio>
-              <Radio value="split">每个要素单独一个图层（创建 {total} 个图层）</Radio>
-            </Radio.Group>
-          )
-        })()}
-      </Modal>
-      <Modal
-        title="保存绘制图层"
-        open={saveModalOpen}
-        onOk={handleSaveDraw}
-        onCancel={() => setSaveModalOpen(false)}
-        okText="保存"
-        cancelText="继续绘制"
-        okButtonProps={{
-          disabled: saveTarget === 'new' && !pendingLayerName.trim()
+          setConfirmProjectOpen(false)
+          setPendingProjectPath(null)
         }}
       >
-        <Radio.Group
-          value={saveTarget}
-          onChange={(e) => setSaveTarget(e.target.value)}
-          style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}
-        >
-          <Radio
-            value="current"
-            disabled={
-              !useLayerStore
-                .getState()
-                .layers.some(
-                  (l) => l.id === useLayerStore.getState().selectedLayerId && l.type === 'geojson'
-                )
-            }
-          >
-            保存到当前图层
-          </Radio>
-          <Radio value="new">保存到新图层</Radio>
-        </Radio.Group>
-        {saveTarget === 'new' && (
-          <Input
-            value={pendingLayerName}
-            onChange={(e) => setPendingLayerName(e.target.value)}
-            placeholder="图层名称"
-            onPressEnter={handleSaveDraw}
-            autoFocus
-          />
-        )}
-      </Modal>
-    </Layout>
+        <p>打开工程将替换当前所有图层，是否继续？</p>
+      </Alert>
+    </div>
   )
 }

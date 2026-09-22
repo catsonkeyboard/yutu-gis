@@ -1,11 +1,19 @@
 import { useState } from 'react'
 import type { ReactElement } from 'react'
-import { Input, Modal, Typography, message } from 'antd'
+import {
+  Button,
+  Classes,
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  InputGroup,
+  Intent,
+  TextArea,
+} from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useLayerStore } from '../../stores/layerStore'
 import { sqlCalculateField, parseApiError } from '../../services/api'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 interface Props {
   open: boolean
@@ -47,42 +55,53 @@ export default function FieldCalculatorModal({ open, layerId, onClose }: Props):
   }
 
   return (
-    <Modal
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
       title={t('fieldCalc.title')}
-      open={open}
-      onOk={handleOk}
-      onCancel={onClose}
-      okText={t('fieldCalc.run')}
-      cancelText={t('common.cancel')}
-      confirmLoading={running}
-      width={480}
+      style={{ width: 480 }}
     >
-      <div style={{ marginBottom: 8 }}>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {t('fieldCalc.fieldName')}
-        </Text>
-        <Input
-          value={field}
-          onChange={(e) => setField(e.target.value)}
-          placeholder={t('fieldCalc.fieldPlaceholder')}
-          style={{ marginTop: 4 }}
-        />
-      </div>
-      <div>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {t('fieldCalc.expression')}
-        </Text>
-        <Input.TextArea
-          value={expression}
-          onChange={(e) => setExpression(e.target.value)}
-          placeholder={'round("pop" / 10000, 2)\nST_Area(geom)'}
-          rows={3}
-          style={{ marginTop: 4, fontFamily: 'Menlo, Consolas, monospace', fontSize: 12 }}
-        />
-        <Text type="secondary" style={{ fontSize: 11 }}>
-          {t('fieldCalc.hint')}
-        </Text>
-      </div>
-    </Modal>
+      <DialogBody>
+        <div style={{ marginBottom: 12 }}>
+          <div className={Classes.TEXT_MUTED} style={{ fontSize: 12, marginBottom: 4 }}>
+            {t('fieldCalc.fieldName')}
+          </div>
+          <InputGroup
+            value={field}
+            onChange={(e) => setField(e.target.value)}
+            placeholder={t('fieldCalc.fieldPlaceholder')}
+          />
+        </div>
+        <div>
+          <div className={Classes.TEXT_MUTED} style={{ fontSize: 12, marginBottom: 4 }}>
+            {t('fieldCalc.expression')}
+          </div>
+          <TextArea
+            fill
+            value={expression}
+            onChange={(e) => setExpression(e.target.value)}
+            placeholder={'round("pop" / 10000, 2)\nST_Area(geom)'}
+            rows={3}
+            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+          />
+          <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, marginTop: 4 }}>
+            {t('fieldCalc.hint')}
+          </div>
+        </div>
+      </DialogBody>
+      <DialogFooter
+        actions={
+          <>
+            <Button onClick={onClose} text={t('common.cancel')} />
+            <Button
+              intent={Intent.PRIMARY}
+              loading={running}
+              onClick={handleOk}
+              text={t('fieldCalc.run')}
+            />
+          </>
+        }
+      />
+    </Dialog>
   )
 }

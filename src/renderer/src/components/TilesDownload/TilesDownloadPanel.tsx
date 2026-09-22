@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import type maplibregl from 'maplibre-gl'
 import {
-  Slider, Select, Radio, Input, Button, Space, Typography, Progress, message
-} from 'antd'
-import { DownloadOutlined, FolderOpenOutlined, CloseOutlined } from '@ant-design/icons'
+  Button,
+  Classes,
+  ControlGroup,
+  HTMLSelect,
+  Icon,
+  InputGroup,
+  Intent,
+  ProgressBar,
+  Radio,
+  RadioGroup,
+  RangeSlider,
+} from '@blueprintjs/core'
 import { useMapStore } from '../../stores/mapStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
@@ -12,10 +21,12 @@ import BboxSelector from '../common/BboxSelector'
 import { getTileUrlTemplate, type MapProvider } from '../MapCanvas/tileProviders'
 import { countTiles } from '../../utils/tileMath'
 import {
-  startTileDownload, getTileTask, cancelTileTask, type TileTaskState
+  startTileDownload,
+  getTileTask,
+  cancelTileTask,
+  type TileTaskState,
 } from '../../services/api'
-
-const { Text } = Typography
+import { message } from '../../utils/toaster'
 
 const WARN_TILES = 10_000
 const MAX_TILES = 200_000 // 与后端 routers/tiles.py MAX_TILES 保持一致
@@ -27,7 +38,7 @@ const SOURCE_OPTIONS: { value: MapProvider | 'custom'; label: string }[] = [
   { value: 'amap-street', label: '高德街道图' },
   { value: 'amap-satellite', label: '高德影像图' },
   { value: 'amap-terrain', label: '高德地形图' },
-  { value: 'custom', label: '自定义 URL 模板' }
+  { value: 'custom', label: '自定义 URL 模板' },
 ]
 
 function timestampName(): string {
@@ -41,64 +52,49 @@ interface Props {
 }
 
 export default function TilesDownloadPanel({ map }: Props) {
-  const provider = useMapStore((s) => s.provider)
-  const setProvider = useMapStore((s) => s.setProvider)
-  const apiKeys = useSettingsStore((s) => s.apiKeys)
-  const downloadDir = useSettingsStore((s) => s.downloadDir)
-
   const open = useTilesPanelStore((s) => s.open)
-  const bbox = useTilesPanelStore((s) => s.bbox)
-  const selecting = useTilesPanelStore((s) => s.selecting)
   const setOpen = useTilesPanelStore((s) => s.setOpen)
+  const bbox = useTilesPanelStore((s) => s.bbox)
   const setBbox = useTilesPanelStore((s) => s.setBbox)
+  const selecting = useTilesPanelStore((s) => s.selecting)
   const setSelecting = useTilesPanelStore((s) => s.setSelecting)
 
-  const [zoomRange, setZoomRange] = useState<[number, number]>([10, 14])
-  const [source, setSource] = useState<MapProvider | 'custom'>('osm')
+  const downloadDir = useSettingsStore((s) => s.downloadDir)
+  const apiKeys = useSettingsStore((s) => s.apiKeys)
+  const defaultProvider = useMapStore((s) => s.provider)
+
+  useMapBboxSelect({
+    map,
+    active: open,
+    bbox,
+    selecting,
+    setBbox,
+    setSelecting,
+    sourceId: 'tiles-bbox',
+    color: '#1a6fb5',
+    provider: defaultProvider,
+  })
+
+  const [zoomRange, setZoomRange] = useState<[number, number]>([12, 14])
+  const [source, setSource] = useState<MapProvider | 'custom'>(defaultProvider)
   const [customTemplate, setCustomTemplate] = useState('')
   const [output, setOutput] = useState<'mbtiles' | 'directory'>('mbtiles')
   const [path, setPath] = useState('')
-
   const [task, setTask] = useState<TileTaskState | null>(null)
   const [starting, setStarting] = useState(false)
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const defaultPathFor = (fmt: 'mbtiles' | 'directory'): string => {
-    if (!downloadDir) return ''
-    const base = `${downloadDir}/${timestampName()}`
-    return fmt === 'mbtiles' ? `${base}.mbtiles` : base
+  const defaultPathFor = (fmt: 'mbtiles' | 'directory') => {
+    const base = downloadDir || '/tmp'
+    const name = timestampName()
+    return fmt === 'mbtiles' ? `${base}/${name}.mbtiles` : `${base}/${name}`
   }
 
-  // 打开面板：默认范围取当前视图（右键菜单打开时已预设 bbox 则保留），
-  // 缩放区间从当前地图缩放推算，并预填默认下载路径
   useEffect(() => {
-    if (!open || !map) return
-    if (!useTilesPanelStore.getState().bbox) {
-      setBbox(viewportBbox(map))
+    if (open && !path) {
+      setPath(defaultPathFor('mbtiles'))
     }
-    const z = Math.floor(map.getZoom())
-    setZoomRange([Math.max(z, 0), Math.min(z + 3, 19)])
-    setPath(defaultPathFor(output))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, map])
-
-  // 面板选择瓦片源 → 地图底图跟随，所见即所下
-  const handleSourceChange = (v: MapProvider | 'custom') => {
-    setSource(v)
-    if (v !== 'custom') setProvider(v)
-  }
-
-  // 反向同步：面板开着时用底图切换器换图，面板选择跟随（自定义模板除外）
-  useEffect(() => {
-    if (!open) return
-    setSource((cur) => (cur === 'custom' ? cur : provider))
-  }, [open, provider])
-
-  // 地图上的范围矩形 + 框选交互（与 OSM 提取面板共用同一套机制）
-  useMapBboxSelect({
-    map, active: open, bbox, selecting, setBbox, setSelecting,
-    sourceId: 'tiles-bbox', color: '#1a6fb5', provider
-  })
+  }, [open, downloadDir]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopPolling = () => {
     if (pollTimer.current) {
@@ -106,48 +102,66 @@ export default function TilesDownloadPanel({ map }: Props) {
       pollTimer.current = null
     }
   }
-  useEffect(() => stopPolling, [])
 
-  const urlTemplate =
-    source === 'custom' ? customTemplate.trim() : getTileUrlTemplate(source, apiKeys)
+  useEffect(() => {
+    return () => stopPolling()
+  }, [])
 
-  const estimate = useMemo(() => {
-    if (!bbox) return 0
-    const [south, west, north, east] = bbox
-    if (south >= north || west >= east) return 0
-    return countTiles(south, west, north, east, zoomRange[0], zoomRange[1])
-  }, [bbox, zoomRange])
+  const running = task?.status === 'running' || starting
 
-  const running = task?.status === 'running'
-  const canStart =
-    !running && !starting && estimate > 0 && estimate <= MAX_TILES &&
-    path !== '' && urlTemplate.includes('{z}')
+  const handleSourceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSource(e.target.value as MapProvider | 'custom')
+  }
 
   const handlePickPath = async () => {
     if (output === 'mbtiles') {
       const p = await window.electronAPI.saveFileDialog(
         [{ name: 'MBTiles', extensions: ['mbtiles'] }],
-        path || defaultPathFor('mbtiles')
+        path.split('/').pop() || 'tiles.mbtiles'
       )
       if (p) setPath(p)
     } else {
-      const p = await window.electronAPI.openDirectoryDialog(downloadDir || undefined)
-      if (p) setPath(p)
+      const p = await window.electronAPI.openDirectoryDialog()
+      if (p) setPath(`${p}/${timestampName()}`)
     }
   }
 
+  const estimate = useMemo(() => {
+    if (!bbox) return 0
+    return countTiles(bbox[0], bbox[1], bbox[2], bbox[3], zoomRange[0], zoomRange[1])
+  }, [bbox, zoomRange])
+
+  const canStart =
+    Boolean(bbox) &&
+    Boolean(path) &&
+    (source !== 'custom' || customTemplate.includes('{z}')) &&
+    estimate > 0 &&
+    estimate <= MAX_TILES &&
+    !running
+
   const handleStart = async () => {
-    if (!bbox) return
-    const [south, west, north, east] = bbox
+    if (!bbox || !path) return
+    const url_template =
+      source === 'custom'
+        ? customTemplate
+        : getTileUrlTemplate(source, {
+            google: apiKeys.google,
+            amap: apiKeys.amap,
+          })
+
     setStarting(true)
-    setTask(null)
     try {
       const { task_id } = await startTileDownload({
-        south, west, north, east,
-        min_zoom: zoomRange[0], max_zoom: zoomRange[1],
-        url_template: urlTemplate,
-        output, path,
-        name: path.split('/').pop()?.replace(/\.mbtiles$/, '') || 'tiles'
+        south: bbox[0],
+        west: bbox[1],
+        north: bbox[2],
+        east: bbox[3],
+        min_zoom: zoomRange[0],
+        max_zoom: zoomRange[1],
+        url_template,
+        output,
+        path,
+        name: path.split('/').pop()?.replace(/\.mbtiles$/, '') || 'tiles',
       })
       pollTimer.current = setInterval(async () => {
         try {
@@ -160,13 +174,13 @@ export default function TilesDownloadPanel({ map }: Props) {
                 `下载完成：成功 ${state.done}，跳过 ${state.skipped}，失败 ${state.failed}`
               )
             } else if (state.status === 'cancelled') {
-              message.info('下载已取消，已下载的瓦片已保留（重新开始会自动跳过）')
+              message.info('下载已取消，已下载的瓦片已保留')
             } else {
               message.error(`下载出错：${state.message}`)
             }
           }
         } catch {
-          // 单次轮询失败忽略，下个周期重试
+          // ignore error during poll
         }
       }, 500)
     } catch (e: unknown) {
@@ -181,7 +195,7 @@ export default function TilesDownloadPanel({ map }: Props) {
       try {
         await cancelTileTask(task.task_id)
       } catch {
-        // 任务可能刚好已结束
+        // ignore
       }
     }
   }
@@ -198,11 +212,17 @@ export default function TilesDownloadPanel({ map }: Props) {
 
   if (!open) return null
 
-  const progressPercent = task && task.total > 0
-    ? Math.round(((task.done + task.failed + task.skipped) / task.total) * 100)
-    : 0
+  const progressPercent =
+    task && task.total > 0
+      ? Math.round(((task.done + task.failed + task.skipped) / task.total) * 100)
+      : 0
 
-  const labelStyle: React.CSSProperties = { fontSize: 12, color: '#646a73', marginBottom: 4 }
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#646a73',
+    margin: '6px 0 3px',
+  }
 
   return (
     <div
@@ -210,22 +230,24 @@ export default function TilesDownloadPanel({ map }: Props) {
         position: 'absolute',
         top: 12,
         right: 12,
-        width: 316,
+        width: 320,
         maxHeight: 'calc(100% - 24px)',
         overflowY: 'auto',
         background: '#fff',
-        borderRadius: 8,
+        borderRadius: 4,
         boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
         zIndex: 600,
-        padding: '10px 14px 14px'
+        padding: '10px 14px 14px',
+        border: '1px solid var(--color-border, #d9dce0)',
+        fontSize: 12,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <Text strong style={{ flex: 1, fontSize: 13 }}>
-          <DownloadOutlined style={{ marginRight: 6 }} />
-          下载地图瓦片
-        </Text>
-        <Button type="text" size="small" icon={<CloseOutlined />} onClick={handleClose} />
+        <div style={{ flex: 1, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon icon="cloud-download" size={14} />
+          <span>下载地图瓦片</span>
+        </div>
+        <Button size="small" variant="minimal" icon="cross" onClick={handleClose} />
       </div>
 
       <div style={labelStyle}>范围（WGS-84）</div>
@@ -240,82 +262,132 @@ export default function TilesDownloadPanel({ map }: Props) {
         />
       </div>
 
-      <div style={labelStyle}>缩放级别 {zoomRange[0]} ~ {zoomRange[1]}</div>
-      <Slider range min={0} max={19} value={zoomRange}
-        onChange={(v) => setZoomRange(v as [number, number])} disabled={running}
-        style={{ marginTop: 0, marginBottom: 12 }} />
+      <div style={labelStyle}>
+        缩放级别 z{zoomRange[0]} ~ z{zoomRange[1]}
+      </div>
+      <div style={{ padding: '0 6px 12px' }}>
+        <RangeSlider
+          min={0}
+          max={19}
+          stepSize={1}
+          labelStepSize={3}
+          value={zoomRange}
+          onChange={(v) => setZoomRange(v as [number, number])}
+          disabled={running}
+        />
+      </div>
 
       <div style={labelStyle}>瓦片源</div>
-      <Select size="small" value={source} options={SOURCE_OPTIONS} onChange={handleSourceChange}
-        disabled={running} style={{ width: '100%', marginBottom: 8 }} />
+      <HTMLSelect
+        fill
+        value={source}
+        options={SOURCE_OPTIONS}
+        onChange={handleSourceChange}
+        disabled={running}
+        style={{ marginBottom: 8 }}
+      />
 
       {source === 'custom' && (
         <>
           <div style={labelStyle}>URL 模板（须包含 {'{z} {x} {y}'}）</div>
-          <Input size="small" placeholder="https://example.com/tiles/{z}/{x}/{y}.png"
-            value={customTemplate} onChange={(e) => setCustomTemplate(e.target.value)}
-            disabled={running} style={{ marginBottom: 8 }} />
+          <InputGroup
+            small
+            placeholder="https://example.com/tiles/{z}/{x}/{y}.png"
+            value={customTemplate}
+            onChange={(e) => setCustomTemplate(e.target.value)}
+            disabled={running}
+            style={{ marginBottom: 8 }}
+          />
         </>
       )}
 
       <div style={labelStyle}>输出格式</div>
-      <Radio.Group
-        size="small"
-        value={output}
-        onChange={(e) => { setOutput(e.target.value); setPath(defaultPathFor(e.target.value)) }}
+      <RadioGroup
+        inline
+        selectedValue={output}
+        onChange={(e) => {
+          const val = (e.target as HTMLInputElement).value as 'mbtiles' | 'directory'
+          setOutput(val)
+          setPath(defaultPathFor(val))
+        }}
         disabled={running}
         style={{ marginBottom: 8 }}
       >
-        <Radio.Button value="mbtiles">MBTiles 文件</Radio.Button>
-        <Radio.Button value="directory">z/x/y 目录</Radio.Button>
-      </Radio.Group>
+        <Radio label="MBTiles 文件" value="mbtiles" style={{ marginRight: 16 }} />
+        <Radio label="z/x/y 目录" value="directory" />
+      </RadioGroup>
 
       <div style={labelStyle}>保存位置</div>
-      <Space.Compact style={{ width: '100%', marginBottom: 8 }}>
-        <Input size="small" value={path} readOnly placeholder="点击右侧按钮选择" />
-        <Button size="small" icon={<FolderOpenOutlined />} onClick={handlePickPath} disabled={running} />
-      </Space.Compact>
+      <ControlGroup fill style={{ marginBottom: 8 }}>
+        <InputGroup
+          small
+          value={path}
+          readOnly
+          placeholder="点击右侧按钮选择路径"
+        />
+        <Button
+          small
+          icon="folder-open"
+          onClick={handlePickPath}
+          disabled={running}
+        />
+      </ControlGroup>
 
       <div style={{ marginBottom: 10 }}>
-        <Text
-          type={estimate > MAX_TILES ? 'danger' : estimate > WARN_TILES ? 'warning' : 'secondary'}
-          style={{ fontSize: 12 }}
+        <div
+          style={{
+            fontSize: 12,
+            color:
+              estimate > MAX_TILES
+                ? '#c5382c'
+                : estimate > WARN_TILES
+                  ? '#d4880f'
+                  : '#646a73',
+          }}
         >
           预计 {estimate.toLocaleString()} 张瓦片
-          {estimate > MAX_TILES && ` — 超过上限 ${MAX_TILES.toLocaleString()}，请缩小范围或降低级别`}
+          {estimate > MAX_TILES && ` — 超过上限 ${MAX_TILES.toLocaleString()}`}
           {estimate > WARN_TILES && estimate <= MAX_TILES && ' — 数量较大，下载可能较慢'}
-        </Text>
+        </div>
       </div>
 
       {task && (
         <div style={{ marginBottom: 10 }}>
-          <Progress
-            percent={progressPercent}
-            size="small"
-            status={task.status === 'error' ? 'exception' : task.status === 'completed' ? 'success' : 'active'}
+          <ProgressBar
+            value={progressPercent / 100}
+            intent={
+              task.status === 'error'
+                ? Intent.DANGER
+                : task.status === 'completed'
+                  ? Intent.SUCCESS
+                  : Intent.PRIMARY
+            }
           />
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            成功 {task.done} / 跳过 {task.skipped} / 失败 {task.failed} / 共 {task.total}
-          </Text>
+          <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, marginTop: 4 }}>
+            成功 {task.done} / 跳过 {task.skipped} / 失败 {task.failed} / 共 {task.total} ({progressPercent}%)
+          </div>
         </div>
       )}
 
       {running ? (
-        <Button danger size="small" onClick={handleCancelTask} style={{ width: '100%' }}>
-          取消下载
-        </Button>
+        <Button
+          intent={Intent.DANGER}
+          size="small"
+          onClick={handleCancelTask}
+          style={{ width: '100%' }}
+          text="取消下载"
+        />
       ) : (
         <Button
-          type="primary"
+          intent={Intent.PRIMARY}
           size="small"
-          icon={<DownloadOutlined />}
+          icon="download"
           loading={starting}
           disabled={!canStart}
           onClick={handleStart}
           style={{ width: '100%' }}
-        >
-          开始下载
-        </Button>
+          text="开始下载"
+        />
       )}
     </div>
   )
