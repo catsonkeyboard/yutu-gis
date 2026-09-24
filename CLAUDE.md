@@ -13,16 +13,21 @@
 ```
 Electron Main Process
   ├── src/main/index.ts       — window creation, IPC wiring, app lifecycle
-  ├── src/main/config.ts      — load/save ~/.yutugis/config.json (cross-platform)
+  ├── src/main/config.ts      — load/save/update ~/.yutugis/config.json (cross-platform)
   ├── src/main/python.ts      — spawns/stops Python subprocess, port discovery
   ├── src/main/menu.ts        — native menus (File / Edit / View / Help)
-  └── src/main/ipc.ts         — IPC handlers (readFile, openFileDialog, saveFileDialog,
-                                config:load, config:save)
+  ├── src/main/ipc.ts         — IPC handlers (fs / dialog / config / vehicle / flight / geocoding)
+  ├── src/main/vehicleServer.ts — vehicle-tracking CLIENT (TCP persistent / UDP listener);
+  │                             newline-delimited JSON packets pushed to renderer via IPC
+  ├── src/main/opensky.ts     — OpenSky Network + adsb.fi HTTP clients (Node https, no CORS)
+  └── src/main/geocoding.ts   — Nominatim search (10 s timeout) with Photon fallback
 
 Preload
-  └── src/preload/index.ts    — contextBridge: electronAPI (getPythonPort, readFile,
-                                writeFile, openFileDialog, saveFileDialog,
-                                loadConfig, saveConfig, onMenuAction)
+  └── src/preload/index.ts    — contextBridge: electronAPI (fs, dialogs, config
+                                load/save/update, getPythonPort, onMenuAction,
+                                vehicle start/stop + data/error/stopped events,
+                                OpenSky token/states, adsb.fi byLocation,
+                                geocode search)
 
 Renderer (React)
   ├── src/renderer/src/App.tsx          — root component; loads config on mount
@@ -37,17 +42,26 @@ Renderer (React)
   │   ├── Toolbar/            — toolbar buttons (import, WFS, draw modes, settings)
   │   ├── WFS/WFSModal.tsx    — WFS/OGC API connection and multi-layer import
   │   ├── Settings/           — language + API key settings (saves to config file)
+  │   ├── FeaturePanel/       — right-side panel: selected feature properties
+  │   ├── FlightTracking/     — flight tracking modal (OpenSky / adsb.fi)
+  │   ├── VehicleTracking/    — vehicle tracking modal (TCP/UDP connect config)
+  │   ├── Toolbar/LocationSearchModal.tsx — place search + coordinate jump
   │   └── StatusBar/          — coordinates, zoom
   ├── stores/
   │   ├── layerStore.ts       — layers[], selectedLayerId, appendFeatures()
-  │   ├── mapStore.ts         — center, zoom, provider, fitBoundsRequest
+  │   ├── mapStore.ts         — center, zoom, provider, fitBoundsRequest, jumpToRequest
   │   ├── drawStore.ts        — drawMode ('off'|'point'|'line'|'polygon'), features[]
-  │   └── settingsStore.ts    — language, apiKeys (runtime state; initialized from
-  │                             config file on startup, NOT persisted to localStorage)
+  │   ├── settingsStore.ts    — language, apiKeys (runtime state; initialized from
+  │   │                         config file on startup, NOT persisted to localStorage)
+  │   └── …13 more domain stores (measure/monitor/flight/vehicle/swipe/sqlPanel/
+  │                             attributeTable/bookmark/stylePanel/analysisPanel/
+  │                             osmPanel/tilesPanel) — one per feature area, kept small
   ├── services/api.ts         — fetch wrappers to Python backend
   └── utils/
       ├── geo.ts              — getGeoJSONBounds()
-      └── coordTransform.ts   — WGS-84 → GCJ-02 conversion (for Amap)
+      ├── coordTransform.ts   — WGS-84 → GCJ-02 conversion (for Amap)
+      └── toaster.ts          — Blueprint OverlayToaster; `message.success/error/
+                                 warning/info` — drop-in replacement for antd message
 
 Python Backend (FastAPI)
   ├── python/main.py          — FastAPI app, CORS, routers
@@ -66,7 +80,7 @@ Python Backend (FastAPI)
 |---|---|
 | Desktop | Electron 39, electron-vite 5 |
 | Frontend | React 19, TypeScript 5 |
-| UI | Ant Design 6, @ant-design/icons |
+| UI | Palantir Blueprint.js 6 (@blueprintjs/core / icons / select / table) — 2026-09 由 Ant Design 整体重写而来 |
 | Map | MapLibre GL JS v5 |
 | Draw | @mapbox/mapbox-gl-draw |
 | State | Zustand 5 (layerStore, mapStore, drawStore, settingsStore) |
@@ -113,10 +127,11 @@ Python venv path: `<project_root>/python/.venv/bin/python3.12`
 
 ### User config file
 `src/main/config.ts` manages `~/.yutugis/config.json` (created on first launch).
-Structure:
+Structure (AppConfig interface):
 ```json
 { "language": "zh", "googleMap": { "apiKey": "" }, "amap": { "apiKey": "" },
-  "openWeather": { "apiKey": "" }, "download": { "dir": "<home>/Downloads" } }
+  "openWeather": { "apiKey": "" }, "firms": { "apiKey": "" }, "waqi": { "apiKey": "" },
+  "download": { "dir": "<home>/Downloads" }, "bookmarks": [], "recentProjects": [] }
 ```
 - `loadConfig()` merges file contents with `DEFAULT_CONFIG` — missing keys fall back to defaults.
 - `saveConfig()` is called from `SettingsModal` when the user saves settings.
@@ -208,7 +223,7 @@ three layers (点/线/面), reusing `_feature_label` from osm.py. Hard cap
 
 ## OSM Feature Extraction
 
-Toolbar ThunderboltOutlined button (or right-click → "OSM 要素提取") toggles a
+Toolbar `icon="flash"` button (or right-click → "OSM 要素提取") toggles a
 **floating panel** (top-right, NOT a modal) → pick the area (drag-select /
 viewport / numbers) → 提取要素 queries Overpass → preview + filter → import.
 
@@ -241,8 +256,8 @@ Toolbar button → osmPanelStore.setOpen(true)
 
 ### `OsmExtractPanel` (src/renderer/src/components/OsmExtract/OsmExtractPanel.tsx)
 - Two-level filter bar:
-  - **Level 1** (blue tags): category — 全部 / 建筑 / 道路 / 航空 / …  (only categories present in results)
-  - **Level 2** (geekblue tags): sub-type — `taxiway` / `runway` / `primary` / … (tag value; hidden when only one sub-type)
+  - **Level 1** (Blueprint Tag, Intent.PRIMARY when active): category — 全部 / 建筑 / 道路 / 航空 / …  (only categories present in results)
+  - **Level 2** (Blueprint Tag): sub-type — `taxiway` / `runway` / `primary` / … (tag value; hidden when only one sub-type)
 - Clicking any tag auto-selects all matching rows; checkboxes remain manually adjustable
 - `getCategory(props)` checks `TAG_KEYS` in order; `getSubCategory(props, category)` returns the tag value
 
@@ -265,7 +280,7 @@ drag-select the area, pan/zoom, and tweak params at the same time.
 
 ### Data flow
 ```
-Toolbar DownloadOutlined button → tilesPanelStore.setOpen(true)
+Toolbar `icon="cloud-download"` button → tilesPanelStore.setOpen(true)
   (right-click menu item also opens it, pre-setting bbox to the viewport)
   → TilesDownloadPanel (floating; bbox from drag-select "框选范围" /
     current viewport "当前视图" / editable numbers; zoom slider, source,
@@ -315,9 +330,10 @@ MBTiles metadata table or metadata.json, with fallbacks for foreign files)
 
 ## Data Monitoring 数据监控
 
-Toolbar FundOutlined button → Popover panel (controlled, stays open while
-toggling) with checkboxes for live overlays. Badge dot + primary button state
-while any overlay is active. State in `monitorStore` (runtime only).
+Toolbar pulse-icon Button (`icon="pulse"`, Blueprint minimal variant) → Popover
+panel (controlled, stays open while toggling) with checkboxes for live overlays.
+Badge dot + Intent.PRIMARY button state while any overlay is active. State in
+`monitorStore` (runtime only).
 
 | Overlay | Source | Key | Rendering |
 |---|---|---|---|
@@ -348,17 +364,69 @@ while any overlay is active. State in `monitorStore` (runtime only).
   through Toolbar). Keys live in `~/.yutugis/config.json`:
   `openWeather.apiKey` / `firms.apiKey` / `waqi.apiKey`.
 
+## Flight Tracking 航班追踪
+
+Toolbar button → `FlightTrackingModal` (`components/FlightTracking/`) + real-time
+rendering via `MapCanvas/FlightLayer.tsx`.
+
+- **Two data sources**, both fetched in the **main process** (Node https, no CORS)
+  and reached over IPC — NOT through the Python backend:
+  - **OpenSky Network**: OAuth2 client credentials → token → `GET /api/states`
+    by bbox (`src/main/opensky.ts`, `services/opensky.ts` renderer side)
+  - **adsb.fi open data**: `GET /lat,lon/dist_nm` radial query
+- Airports resolved offline via bundled IATA lookup (`services/airports.ts`),
+  no network call needed for airport names.
+- State in `flightStore`; packets pushed to `VehicleLayer`-style map layers,
+  kept on top via `bringFlightLayersToTop(map)`.
+
+## Vehicle Tracking 车辆追踪
+
+`components/VehicleTracking/VehicleTrackingModal.tsx` + `MapCanvas/VehicleLayer.tsx`.
+
+- The main process acts as a **client** connecting to an external tracking server
+  (`src/main/vehicleServer.ts` — despite the file name it connects OUT):
+  - TCP mode: persistent connection, newline-delimited JSON stream, auto-reconnect
+    every 3 s until user disconnects
+  - UDP mode: binds a local port, receives pushed datagrams
+- Packet shape `{ time, devNo, direct, speed, lat, lon }`; validated then pushed
+  to the renderer over `vehicle:data` IPC events.
+- State in `vehicleStore`.
+
+## Location Search 地点搜索
+
+`Toolbar/LocationSearchModal.tsx` — two tabs:
+
+- **Place search**: `geocode:search` IPC → `src/main/geocoding.ts`
+  (Nominatim primary, 10 s timeout; Photon by komoot fallback when Nominatim
+  is slow/rate-limited). Result bbox → `requestFitBounds`.
+- **Coordinate jump**: parse `lat, lon` input → `requestJumpTo`.
+
 ## IPC API (`window.electronAPI`)
 
 ```ts
 getPythonPort(): Promise<number>
-readFile(path: string): Promise<ArrayBuffer>
+readFile(path: string): Promise<Buffer>
 writeFile(path: string, content: string): Promise<void>
+writeFileBinary(path: string, data: ArrayBuffer): Promise<void>
 openFileDialog(filters): Promise<string | null>
-saveFileDialog(filters): Promise<string | null>
-loadConfig(): Promise<{ language: 'zh'|'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; openWeather: { apiKey: string }; download: { dir: string } }>
-saveConfig(config): Promise<void>
-onMenuAction(cb: (action: string) => void): () => void
+saveFileDialog(filters, defaultPath?): Promise<string | null>
+openDirectoryDialog(defaultPath?): Promise<string | null>
+loadConfig(): Promise<AppConfig>
+saveConfig(config: AppConfig): Promise<void>
+updateConfig(partial: Partial<AppConfig>): Promise<AppConfig>   // read-merge-write, never clobbers unknown keys
+onMenuAction(cb: (action: 'import'|'export'|'open'|'save') => void): () => void
+
+startVehicleServer(config: { host: string; port: number; protocol: 'udp'|'tcp' }): Promise<void>
+stopVehicleServer(): Promise<void>
+onVehicleData(cb: (packet: VehiclePacket) => void): () => void     // IPC push, newline-delimited JSON upstream
+onVehicleError(cb: (msg: string) => void): () => void
+onVehicleStarted(cb: () => void): () => void
+onVehicleStopped(cb: () => void): () => void
+
+openSkyFetchToken(clientId, clientSecret): Promise<{ access_token: string; expires_in: number }>
+openSkyFetchStates(bounds, token): Promise<{ time: number; states: unknown[][] | null }>
+adsbfiFetchByLocation(lat, lon, distNm): Promise<AdsbfiResponse>
+geocodeSearch(query: string, limit?): Promise<GeocodingResult[]>   // Nominatim → Photon fallback
 ```
 
 ---
@@ -412,7 +480,7 @@ Do not tighten `img-src` or `connect-src` — tiles will stop loading.
 
 - **fiona requires Python 3.12** — pre-built wheels are available on PyPI. Python 3.13+ has no fiona wheels; do not upgrade Python version.
 - **uv must be used** for Python dependency management, not pip directly. `pip install` in the venv may silently fail.
-- **`Input.Search` breaks paste** — Ant Design's `Input.Search` with `enterButton` interferes with paste events. Use plain `<Input>` + a separate `<Button>` for URL inputs.
+- ~~**`Input.Search` breaks paste**~~ — obsolete after the Blueprint.js rewrite (was an Ant Design issue). Kept for history: URL inputs should use a plain input + separate button anyway.
 - **Never `git add -A` blindly** — `python/.venv/` is large; verify `.gitignore` covers it before staging.
 - **settingsStore has no persist middleware** — do not add `persist` back. Settings are loaded from `~/.yutugis/config.json` at startup via IPC; writing to localStorage would create a stale second source of truth.
 - **MapboxDraw + MapLibre** — `draw` must be cast as `unknown as maplibregl.IControl` when calling `map.addControl`. The types are not directly compatible but the runtime interface matches.
