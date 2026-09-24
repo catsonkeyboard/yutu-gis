@@ -1,0 +1,75 @@
+# Release workflow — build & publish installers for all three platforms.
+#
+# 触发方式：推送形如 v* 的 tag
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# 前置准备（一次性）：
+#   1. macOS 签名+公证：在 repo Settings → Secrets and variables → Actions 添加
+#      APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
+#      （app-specific password 在 appleid.apple.com 生成）
+#      并准备 macOS 证书 base64：security find-identity -v -p codesigning
+#      将 .p12 导出并 base64 存为 MAC_CERTS，密码存为 MAC_CERTS_PASSWORD
+#   2. Windows 签名（可选，不配则产出未签名安装包）
+#   3. Python 后端：本模板暂只打前端安装包；后端需先按 README 编译
+#      python-backend 可执行文件放入 resources/（打包发布前置条件）
+#   4. electron-builder.yml 的 publish 段可保持 generic 占位——CI 里用
+#      --publish always + GH_TOKEN 直接发到 GitHub Releases
+#
+# 未配置 mac 公密 secrets 时，mac job 会以 notarize:false 构建仅供测试，
+# 产物挂在 Release 上但用户下载后需手动 xattr -cr 绕过 Gatekeeper。
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            build_cmd: npm run build:mac
+          - os: windows-latest
+            build_cmd: npm run build:win
+          - os: ubuntu-latest
+            build_cmd: npm run build:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # macOS: import signing certificate if provided
+      - name: Import macOS certificates
+        if: matrix.os == 'macos-latest' && env.MAC_CERTS != ''
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MAC_CERTS }}
+          p12-password: ${{ secrets.MAC_CERTS_PASSWORD }}
+        env:
+          MAC_CERTS: ${{ secrets.MAC_CERTS }}
+
+      - name: Build & publish
+        run: ${{ matrix.build_cmd }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS notarization — absent secrets ⇒ notarize stays off (see electron-builder.yml)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # NOTE: before public release, compile the Python backend into
+        # resources/python-backend (see README "Building"), otherwise the
+        # packaged app cannot start its backend.
