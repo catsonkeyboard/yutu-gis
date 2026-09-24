@@ -1,15 +1,42 @@
 /**
  * adsb.fi Open Data API client (renderer side)
  *
- * All HTTP requests are routed through the Electron main process via IPC
- * to avoid CORS restrictions.
+ * Requests go to the local Python backend (`/external/adsbfi/*`), which proxies
+ * adsb.fi with system-proxy support.
  *
  * API: GET /v3/lat/{lat}/lon/{lon}/dist/{dist}
- * Returns ADSBexchange v2 compatible aircraft data.
  * Rate limit: 1 request per second.
  */
 
+import { getJson } from './api'
 import type { FlightState } from '../stores/flightStore'
+
+interface AdsbfiAircraft {
+  hex: string
+  flight?: string
+  r?: string
+  t?: string
+  alt_baro?: number | 'ground'
+  alt_geom?: number
+  gs?: number
+  track?: number
+  baro_rate?: number
+  squawk?: string
+  lat?: number
+  lon?: number
+  seen_pos?: number
+  seen?: number
+  category?: string
+}
+
+interface AdsbfiResponse {
+  ac: AdsbfiAircraft[] | null
+  msg: string
+  now: number
+  total: number
+  ctime: number
+  ptime: number
+}
 
 /**
  * Fetch aircraft within a radius from a center point.
@@ -20,7 +47,9 @@ export async function fetchAdsbfiFlights(
   lon: number,
   distNm: number
 ): Promise<Record<string, FlightState>> {
-  const data = await window.electronAPI.adsbfiFetchByLocation(lat, lon, distNm)
+  const data = await getJson<AdsbfiResponse>(
+    `/external/adsbfi/locations?lat=${lat}&lon=${lon}&dist_nm=${Math.round(distNm)}`
+  )
 
   const flights: Record<string, FlightState> = {}
 
@@ -29,8 +58,7 @@ export async function fetchAdsbfiFlights(
   for (const ac of data.ac) {
     if (ac.lat == null || ac.lon == null) continue
 
-    const altBaro =
-      ac.alt_baro === 'ground' ? 0 : ac.alt_baro != null ? ac.alt_baro * 0.3048 : null // ft → m
+    const altBaro = ac.alt_baro === 'ground' ? 0 : ac.alt_baro != null ? ac.alt_baro * 0.3048 : null // ft → m
     const onGround = ac.alt_baro === 'ground'
 
     flights[ac.hex] = {
@@ -46,7 +74,7 @@ export async function fetchAdsbfiFlights(
       verticalRate: ac.baro_rate != null ? ac.baro_rate * 0.00508 : null, // ft/min → m/s
       geoAltitude: ac.alt_geom != null ? ac.alt_geom * 0.3048 : null,
       squawk: ac.squawk ?? null,
-      category: 0,
+      category: 0
     }
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import type maplibregl from 'maplibre-gl'
 import { useFlightStore, type FlightState } from '../../stores/flightStore'
-import { fetchStateVectors, fetchAccessToken } from '../../services/opensky'
+import { fetchStateVectors } from '../../services/opensky'
 import { fetchAdsbfiFlights } from '../../services/adsbfi'
 
 interface Props {
@@ -180,7 +180,7 @@ export default function FlightLayer({ map }: Props) {
   const layersAddedRef = useRef(false)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const { setFlights, setLastUpdate, setError, setFetching, setToken, clearToken } =
+  const { setFlights, setLastUpdate, setError, setFetching } =
     useFlightStore.getState()
 
   // Fetch flights based on current map bounds and active data source
@@ -205,16 +205,13 @@ export default function FlightLayer({ map }: Props) {
           lomax: b.getEast()
         }
 
-        let token = store.accessToken
-        if (store.openSkyConfig.clientId && store.openSkyConfig.clientSecret) {
-          if (!token || (store.tokenExpiresAt && Date.now() >= store.tokenExpiresAt)) {
-            const tokenResp = await fetchAccessToken(store.openSkyConfig.clientId, store.openSkyConfig.clientSecret)
-            token = tokenResp.access_token
-            setToken(token, tokenResp.expires_in)
-          }
-        }
+        // Credentials travel with each call; the backend caches the token
+        const credentials =
+          store.openSkyConfig.clientId && store.openSkyConfig.clientSecret
+            ? store.openSkyConfig
+            : null
 
-        result = await fetchStateVectors(bounds, token)
+        result = await fetchStateVectors(bounds, credentials)
       } else {
         // adsb.fi: use center + radius
         const { lat, lon, distNm } = getBoundsRadiusNm(map)
@@ -224,13 +221,7 @@ export default function FlightLayer({ map }: Props) {
       setFlights(result)
       setLastUpdate(Date.now())
     } catch (err) {
-      const msg = (err as Error).message
-      if (msg === 'TOKEN_EXPIRED') {
-        clearToken()
-        setError('Token 已过期，正在重新获取...')
-      } else {
-        setError(msg)
-      }
+      setError((err as Error).message)
     } finally {
       setFetching(false)
     }

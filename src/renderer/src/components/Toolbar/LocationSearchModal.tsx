@@ -15,19 +15,10 @@ import {
   Tag,
 } from '@blueprintjs/core'
 import { searchAirportByIata } from '../../services/airports'
+import { geocodeSearch, type GeocodingResult } from '../../services/api'
 import { useMapStore } from '../../stores/mapStore'
 import { useLayerStore } from '../../stores/layerStore'
 import { message } from '../../utils/toaster'
-
-interface GeocodingResult {
-  name: string
-  displayName: string
-  lat: number
-  lon: number
-  bbox: [number, number, number, number] // [south, north, west, east] from Nominatim
-  type: string
-  importance: number
-}
 
 interface Props {
   open: boolean
@@ -128,7 +119,7 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
     setCityLoading(true)
     setCitySearched(true)
     try {
-      const results = await window.electronAPI.geocodeSearch(query, 8)
+      const results = await geocodeSearch(query, 8)
       setCityResults(results)
       if (results.length === 0) {
         message.info('未找到匹配的地名')

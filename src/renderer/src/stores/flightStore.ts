@@ -34,13 +34,11 @@ interface FlightStoreState {
   dataSource: FlightDataSource
   /** Polling interval in seconds (min 5 for adsbfi, min 10 for opensky) */
   pollInterval: number
-  /** OpenSky OAuth2 config */
+  /** OpenSky OAuth2 config (credentials travel with each request; the
+   *  Python backend owns token caching — see services/opensky.ts) */
   openSkyConfig: OpenSkyConfig
   /** adsb.fi config (currently empty, reserved) */
   adsbfiConfig: AdsbfiConfig
-  /** Access token (OpenSky only, managed internally) */
-  accessToken: string | null
-  tokenExpiresAt: number | null
   /** Current aircraft in view */
   flights: Record<string, FlightState>
   /** Last fetch timestamp */
@@ -55,8 +53,6 @@ interface FlightStoreState {
   setPollInterval: (interval: number) => void
   setOpenSkyConfig: (config: OpenSkyConfig) => void
   setAdsbfiConfig: (config: AdsbfiConfig) => void
-  setToken: (token: string, expiresIn: number) => void
-  clearToken: () => void
   setFlights: (flights: Record<string, FlightState>) => void
   setLastUpdate: (ts: number) => void
   setError: (msg: string | null) => void
@@ -70,8 +66,6 @@ export const useFlightStore = create<FlightStoreState>((set) => ({
   pollInterval: 10,
   openSkyConfig: { clientId: '', clientSecret: '' },
   adsbfiConfig: {},
-  accessToken: null,
-  tokenExpiresAt: null,
   flights: {},
   lastUpdate: null,
   error: null,
@@ -82,12 +76,6 @@ export const useFlightStore = create<FlightStoreState>((set) => ({
   setPollInterval: (pollInterval) => set({ pollInterval }),
   setOpenSkyConfig: (openSkyConfig) => set({ openSkyConfig }),
   setAdsbfiConfig: (adsbfiConfig) => set({ adsbfiConfig }),
-  setToken: (token, expiresIn) =>
-    set({
-      accessToken: token,
-      tokenExpiresAt: Date.now() + (expiresIn - 30) * 1000,
-    }),
-  clearToken: () => set({ accessToken: null, tokenExpiresAt: null }),
   setFlights: (flights) => set({ flights }),
   setLastUpdate: (ts) => set({ lastUpdate: ts }),
   setError: (error) => set({ error }),
@@ -98,6 +86,6 @@ export const useFlightStore = create<FlightStoreState>((set) => ({
       flights: {},
       lastUpdate: null,
       error: null,
-      fetching: false,
-    }),
+      fetching: false
+    })
 }))

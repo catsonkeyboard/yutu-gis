@@ -16,18 +16,15 @@ Electron Main Process
   ├── src/main/config.ts      — load/save/update ~/.yutugis/config.json (cross-platform)
   ├── src/main/python.ts      — spawns/stops Python subprocess, port discovery
   ├── src/main/menu.ts        — native menus (File / Edit / View / Help)
-  ├── src/main/ipc.ts         — IPC handlers (fs / dialog / config / vehicle / flight / geocoding)
-  ├── src/main/vehicleServer.ts — vehicle-tracking CLIENT (TCP persistent / UDP listener);
-  │                             newline-delimited JSON packets pushed to renderer via IPC
-  ├── src/main/opensky.ts     — OpenSky Network + adsb.fi HTTP clients (Node https, no CORS)
-  └── src/main/geocoding.ts   — Nominatim search (10 s timeout) with Photon fallback
+  ├── src/main/ipc.ts         — IPC handlers (fs / dialog / config / vehicle)
+  └── src/main/vehicleClient.ts — vehicle-tracking CLIENT (TCP persistent / UDP listener);
+                               newline-delimited JSON packets pushed to renderer via IPC.
+                               (2026-09 renamed from vehicleServer.ts — it connects OUT.)
 
 Preload
   └── src/preload/index.ts    — contextBridge: electronAPI (fs, dialogs, config
                                 load/save/update, getPythonPort, onMenuAction,
-                                vehicle start/stop + data/error/stopped events,
-                                OpenSky token/states, adsb.fi byLocation,
-                                geocode search)
+                                vehicle start/stop + data/error/stopped events)
 
 Renderer (React)
   ├── src/renderer/src/App.tsx          — root component; loads config on mount
@@ -66,9 +63,12 @@ Renderer (React)
 Python Backend (FastAPI)
   ├── python/main.py          — FastAPI app, CORS, routers
   ├── python/routers/data.py  — /data/import, /data/wfs/*, /data/ogc/*, /data/osm/extract
+  ├── python/routers/external.py — /external/opensky/*, /external/adsbfi/*, /external/geocode
+  │                            (2026-09 migrated from the Electron main process — httpx with
+  │                             system-proxy mounts; OpenSky tokens cached server-side)
   └── python/services/
       ├── gis.py              — file_to_geojson() via fiona
-      ├── wfs.py              — WFS 1.x/2.x + OGC API Features via httpx
+      ├── external.py         — OpenSky / adsb.fi / Nominatim+Photon via httpx
       └── osm.py              — overpass_extract(south,west,north,east); multi-endpoint retry
 ```
 
@@ -369,22 +369,28 @@ Badge dot + Intent.PRIMARY button state while any overlay is active. State in
 Toolbar button → `FlightTrackingModal` (`components/FlightTracking/`) + real-time
 rendering via `MapCanvas/FlightLayer.tsx`.
 
-- **Two data sources**, both fetched in the **main process** (Node https, no CORS)
-  and reached over IPC — NOT through the Python backend:
-  - **OpenSky Network**: OAuth2 client credentials → token → `GET /api/states`
-    by bbox (`src/main/opensky.ts`, `services/opensky.ts` renderer side)
-  - **adsb.fi open data**: `GET /lat,lon/dist_nm` radial query
+- **Two data sources**, both proxied through the **Python backend**
+  (`/external/*`, httpx with system-proxy mounts — migrated from the Electron
+  main process 2026-09, see docs/plans/2026-09-24-main-process-network-migration.md):
+  - **OpenSky Network**: `POST /external/opensky/token` (OAuth2, token cached
+    server-side per client_id, expiry −60 s) → `GET /external/opensky/states`
+    by bbox. Credentials travel with each states call; the backend attaches
+    the cached token. `TOKEN_EXPIRED` is surfaced as HTTP 401 and clears the
+    cache (next call self-heals).
+  - **adsb.fi open data**: `GET /external/adsbfi/locations?lat&lon&dist_nm`
+    (router caps dist_nm ≤ 250)
+- Renderer services: `services/opensky.ts` / `services/adsbfi.ts` — pure fetch
+  wrappers, NO token state in `flightStore` (removed 2026-09).
 - Airports resolved offline via bundled IATA lookup (`services/airports.ts`),
   no network call needed for airport names.
-- State in `flightStore`; packets pushed to `VehicleLayer`-style map layers,
-  kept on top via `bringFlightLayersToTop(map)`.
+- State in `flightStore`; map layers kept on top via `bringFlightLayersToTop(map)`.
 
 ## Vehicle Tracking 车辆追踪
 
 `components/VehicleTracking/VehicleTrackingModal.tsx` + `MapCanvas/VehicleLayer.tsx`.
 
 - The main process acts as a **client** connecting to an external tracking server
-  (`src/main/vehicleServer.ts` — despite the file name it connects OUT):
+  (`src/main/vehicleClient.ts` — renamed from vehicleServer.ts 2026-09; it connects OUT):
   - TCP mode: persistent connection, newline-delimited JSON stream, auto-reconnect
     every 3 s until user disconnects
   - UDP mode: binds a local port, receives pushed datagrams
@@ -396,9 +402,10 @@ rendering via `MapCanvas/FlightLayer.tsx`.
 
 `Toolbar/LocationSearchModal.tsx` — two tabs:
 
-- **Place search**: `geocode:search` IPC → `src/main/geocoding.ts`
-  (Nominatim primary, 10 s timeout; Photon by komoot fallback when Nominatim
-  is slow/rate-limited). Result bbox → `requestFitBounds`.
+- **Place search**: `geocodeSearch()` from `services/api.ts` →
+  `GET /external/geocode` (Python backend; Nominatim primary, 10 s timeout;
+  Photon by komoot fallback when Nominatim is slow/rate-limited).
+  Result bbox → `requestFitBounds`.
 - **Coordinate jump**: parse `lat, lon` input → `requestJumpTo`.
 
 ## IPC API (`window.electronAPI`)
@@ -422,12 +429,11 @@ onVehicleData(cb: (packet: VehiclePacket) => void): () => void     // IPC push, 
 onVehicleError(cb: (msg: string) => void): () => void
 onVehicleStarted(cb: () => void): () => void
 onVehicleStopped(cb: () => void): () => void
-
-openSkyFetchToken(clientId, clientSecret): Promise<{ access_token: string; expires_in: number }>
-openSkyFetchStates(bounds, token): Promise<{ time: number; states: unknown[][] | null }>
-adsbfiFetchByLocation(lat, lon, distNm): Promise<AdsbfiResponse>
-geocodeSearch(query: string, limit?): Promise<GeocodingResult[]>   // Nominatim → Photon fallback
 ```
+
+> OpenSky / adsb.fi / geocoding IPC handlers were **removed 2026-09** — those
+> calls now go through the Python backend (`/external/*`). Do not re-add them
+> to the main process; see `services/api.ts` and `python/routers/external.py`.
 
 ---
 

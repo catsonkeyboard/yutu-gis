@@ -1,8 +1,9 @@
 /**
  * OpenSky Network API client (renderer side)
  *
- * All HTTP requests are routed through the Electron main process via IPC
- * to avoid CORS restrictions. The main process uses Node.js `https` module.
+ * All requests go to the local Python backend (`/external/*`), which proxies
+ * OpenSky with system-proxy support. Access tokens are cached SERVER-side —
+ * the renderer no longer tracks token expiry.
  *
  * State vector indices:
  *  0: icao24, 1: callsign, 2: origin_country, 3: time_position, 4: last_contact,
@@ -11,29 +12,47 @@
  * 15: spi, 16: position_source, 17: category
  */
 
+import { getJson, getBaseUrl, parseApiError } from './api'
 import type { FlightState } from '../stores/flightStore'
 
 /**
- * Exchange client_id + client_secret for an access token.
+ * Exchange client_id + client_secret for an access token (cached server-side).
  * Returns { access_token, expires_in }.
  */
 export async function fetchAccessToken(
   clientId: string,
   clientSecret: string
 ): Promise<{ access_token: string; expires_in: number }> {
-  return window.electronAPI.openSkyFetchToken(clientId, clientSecret)
+  const body = JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+  const resp = await fetch(`${getBaseUrl()}/external/opensky/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body
+  })
+  if (!resp.ok) throw new Error(parseApiError(await resp.text()))
+  return resp.json() as Promise<{ access_token: string; expires_in: number }>
 }
 
 /**
- * Fetch state vectors for a bounding box.
- * If token is provided, uses authenticated mode (higher rate limit).
- * If token is null, uses anonymous mode.
+ * Fetch state vectors for a bounding box via the Python backend.
+ * Credentials are optional — the backend attaches a cached token when supplied.
  */
 export async function fetchStateVectors(
   bounds: { lamin: number; lomin: number; lamax: number; lomax: number },
-  token: string | null
+  credentials: { clientId: string; clientSecret: string } | null
 ): Promise<Record<string, FlightState>> {
-  const data = await window.electronAPI.openSkyFetchStates(bounds, token)
+  const params = new URLSearchParams({
+    lamin: String(bounds.lamin),
+    lomin: String(bounds.lomin),
+    lamax: String(bounds.lamax),
+    lomax: String(bounds.lomax),
+    ...(credentials
+      ? { client_id: credentials.clientId, client_secret: credentials.clientSecret }
+      : {})
+  })
+  const data = await getJson<{ time: number; states: unknown[][] | null }>(
+    `/external/opensky/states?${params}`
+  )
 
   const flights: Record<string, FlightState> = {}
 
@@ -60,7 +79,7 @@ export async function fetchStateVectors(
       verticalRate: sv[11] as number | null,
       geoAltitude: sv[13] as number | null,
       squawk: sv[14] as string | null,
-      category: (sv[17] as number) ?? 0,
+      category: (sv[17] as number) ?? 0
     }
   }
 
@@ -72,10 +91,10 @@ export async function fetchStateVectors(
  * Returns number of aircraft found.
  */
 export async function testConnection(
-  token: string | null
+  credentials: { clientId: string; clientSecret: string } | null
 ): Promise<number> {
   // Use a small area over central Europe as a quick connectivity test
   const bounds = { lamin: 47.0, lomin: 8.0, lamax: 48.0, lomax: 9.0 }
-  const flights = await fetchStateVectors(bounds, token)
+  const flights = await fetchStateVectors(bounds, credentials)
   return Object.keys(flights).length
 }

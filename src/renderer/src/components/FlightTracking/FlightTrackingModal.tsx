@@ -38,8 +38,6 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
     setDataSource,
     setPollInterval,
     setOpenSkyConfig,
-    setToken,
-    clearToken,
     setError,
     clear,
   } = useFlightStore()
@@ -75,15 +73,14 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
     setTestResult(null)
     try {
       if (activeTab === 'opensky') {
-        let token: string | null = null
+        let credentials: { clientId: string; clientSecret: string } | null = null
         if (clientId.trim() && clientSecret.trim()) {
-          const tokenResp = await fetchAccessToken(clientId.trim(), clientSecret.trim())
-          token = tokenResp.access_token
+          credentials = { clientId: clientId.trim(), clientSecret: clientSecret.trim() }
+          const tokenResp = await fetchAccessToken(credentials.clientId, credentials.clientSecret)
           setTestResult(`✅ OAuth2 认证成功！Token 有效期 ${tokenResp.expires_in} 秒`)
-          setToken(token, tokenResp.expires_in)
         }
 
-        const count = await testOpenSky(token)
+        const count = await testOpenSky(credentials)
         setTestResult(
           (prev) =>
             (prev ? prev + '\n' : '') + `✅ OpenSky API 连接正常，测试区域发现 ${count} 架航空器`
@@ -103,7 +100,6 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
     try {
       if (active) {
         clear()
-        clearToken()
       }
 
       if (activeTab === 'opensky') {
@@ -114,10 +110,10 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
         setOpenSkyConfig(cfg)
         setPollInterval(currentPollInterval)
 
+        // Verify credentials up-front when supplied (token is cached backend-side)
         if (cfg.clientId && cfg.clientSecret) {
           try {
-            const tokenResp = await fetchAccessToken(cfg.clientId, cfg.clientSecret)
-            setToken(tokenResp.access_token, tokenResp.expires_in)
+            await fetchAccessToken(cfg.clientId, cfg.clientSecret)
           } catch (err) {
             setError(`Token 获取失败：${(err as Error).message}`)
             return
@@ -136,7 +132,6 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
 
   const handleStop = () => {
     clear()
-    clearToken()
   }
 
   const formatTime = (ts: number | null) => {

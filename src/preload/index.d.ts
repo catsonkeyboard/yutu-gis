@@ -6,7 +6,17 @@ type BookmarkEntry = {
   provider: string
   createdAt: number
 }
-type AppConfig = { language: 'zh' | 'en'; googleMap: { apiKey: string }; amap: { apiKey: string }; openWeather: { apiKey: string }; firms: { apiKey: string }; waqi: { apiKey: string }; download: { dir: string }; bookmarks: BookmarkEntry[]; recentProjects: string[] }
+type AppConfig = {
+  language: 'zh' | 'en'
+  googleMap: { apiKey: string }
+  amap: { apiKey: string }
+  openWeather: { apiKey: string }
+  firms: { apiKey: string }
+  waqi: { apiKey: string }
+  download: { dir: string }
+  bookmarks: BookmarkEntry[]
+  recentProjects: string[]
+}
 type VehicleServerConfig = { host: string; port: number; protocol: 'udp' | 'tcp' }
 type VehiclePacket = {
   time: number
@@ -15,43 +25,6 @@ type VehiclePacket = {
   speed: number
   lat: number
   lon: number
-}
-type OpenSkyBounds = { lamin: number; lomin: number; lamax: number; lomax: number }
-type OpenSkyTokenResult = { access_token: string; expires_in: number }
-type OpenSkyStatesResult = { time: number; states: unknown[][] | null }
-type AdsbfiAircraft = {
-  hex: string
-  flight?: string
-  r?: string
-  t?: string
-  alt_baro?: number | 'ground'
-  alt_geom?: number
-  gs?: number
-  track?: number
-  baro_rate?: number
-  squawk?: string
-  lat?: number
-  lon?: number
-  seen_pos?: number
-  seen?: number
-  category?: string
-}
-type AdsbfiResponse = {
-  ac: AdsbfiAircraft[] | null
-  msg: string
-  now: number
-  total: number
-  ctime: number
-  ptime: number
-}
-type GeocodingResult = {
-  name: string
-  displayName: string
-  lat: number
-  lon: number
-  bbox: [number, number, number, number]
-  type: string
-  importance: number
 }
 
 export interface ElectronAPI {
@@ -76,13 +49,6 @@ export interface ElectronAPI {
   onVehicleError: (callback: (msg: string) => void) => () => void
   onVehicleStarted: (callback: () => void) => () => void
   onVehicleStopped: (callback: () => void) => () => void
-  // OpenSky Network
-  openSkyFetchToken: (clientId: string, clientSecret: string) => Promise<OpenSkyTokenResult>
-  openSkyFetchStates: (bounds: OpenSkyBounds, token: string | null) => Promise<OpenSkyStatesResult>
-  // adsb.fi Open Data
-  adsbfiFetchByLocation: (lat: number, lon: number, distNm: number) => Promise<AdsbfiResponse>
-  // Geocoding
-  geocodeSearch: (query: string, limit?: number) => Promise<GeocodingResult[]>
 }
 
 declare global {

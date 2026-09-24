@@ -1,5 +1,10 @@
 let baseUrl = ''
 
+/** Current backend base URL (empty until initApi resolves the port). */
+export function getBaseUrl(): string {
+  return baseUrl
+}
+
 export async function initApi(): Promise<void> {
   const port = await window.electronAPI.getPythonPort()
   baseUrl = `http://127.0.0.1:${port}`
@@ -9,7 +14,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   const resp = await fetch(`${baseUrl}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   })
   if (!resp.ok) {
     const detail = await resp.text()
@@ -18,7 +23,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return resp.json() as Promise<T>
 }
 
-async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(path: string): Promise<T> {
   const resp = await fetch(`${baseUrl}${path}`)
   if (!resp.ok) {
     const detail = await resp.text()
@@ -56,7 +61,7 @@ export async function importGisFile(filePath: string): Promise<ImportedLayer[]> 
 
   const resp = await fetch(`${baseUrl}/data/import`, { method: 'POST', body: formData })
   if (!resp.ok) throw new Error(await resp.text())
-  const data = await resp.json() as { layers: ImportedLayer[] }
+  const data = (await resp.json()) as { layers: ImportedLayer[] }
   return data.layers
 }
 
@@ -65,7 +70,7 @@ export async function importGisFileFromFile(file: File): Promise<ImportedLayer[]
   formData.append('file', file, file.name)
   const resp = await fetch(`${baseUrl}/data/import`, { method: 'POST', body: formData })
   if (!resp.ok) throw new Error(await resp.text())
-  const data = await resp.json() as { layers: ImportedLayer[] }
+  const data = (await resp.json()) as { layers: ImportedLayer[] }
   return data.layers
 }
 
@@ -117,14 +122,23 @@ export async function ogcGetFeatures(
   collectionId: string,
   maxFeatures: number
 ): Promise<GeoJSON.FeatureCollection> {
-  return postJson('/data/ogc/features', { url, collection_id: collectionId, max_features: maxFeatures })
+  return postJson('/data/ogc/features', {
+    url,
+    collection_id: collectionId,
+    max_features: maxFeatures
+  })
 }
 
 // ---------------------------------------------------------------------------
 // OSM Feature Extraction
 // ---------------------------------------------------------------------------
 
-export async function osmExtract(south: number, west: number, north: number, east: number): Promise<GeoJSON.FeatureCollection> {
+export async function osmExtract(
+  south: number,
+  west: number,
+  north: number,
+  east: number
+): Promise<GeoJSON.FeatureCollection> {
   return postJson('/data/osm/extract', { south, west, north, east })
 }
 
@@ -145,7 +159,7 @@ export async function exportLayer(
     geojson,
     format,
     path: dir,
-    name,
+    name
   })
   return data.files
 }
@@ -216,7 +230,10 @@ export async function sqlCalculateField(
 }
 
 /** Export the full (uncapped) query result to a CSV file on disk. */
-export async function sqlExportCsv(sql: string, path: string): Promise<{ path: string; rows: number }> {
+export async function sqlExportCsv(
+  sql: string,
+  path: string
+): Promise<{ path: string; rows: number }> {
   return postJson('/sql/export', { sql, path })
 }
 
@@ -322,7 +339,7 @@ export async function fetchWaqi(
     south: String(south),
     west: String(west),
     north: String(north),
-    east: String(east),
+    east: String(east)
   })
   return getJson(`/monitor/waqi?${params}`)
 }
@@ -343,22 +360,22 @@ export const GIBS_LAYERS = {
     matrixSet: 'GoogleMapsCompatible_Level9',
     ext: 'jpg',
     maxzoom: 9,
-    daily: true,
+    daily: true
   },
   sst: {
     id: 'GHRSST_L4_MUR_Sea_Surface_Temperature',
     matrixSet: 'GoogleMapsCompatible_Level7',
     ext: 'png',
     maxzoom: 7,
-    daily: true,
+    daily: true
   },
   nightlights: {
     id: 'VIIRS_Black_Marble',
     matrixSet: 'GoogleMapsCompatible_Level8',
     ext: 'png',
     maxzoom: 8,
-    daily: false,
-  },
+    daily: false
+  }
 } as const satisfies Record<string, GibsLayerDef>
 
 export type GibsOverlayKey = keyof typeof GIBS_LAYERS
@@ -456,4 +473,23 @@ export function getGeoTiffUrlTemplate(sourceId: string): string {
 /** XYZ URL template served by the local Python backend for a registered source. */
 export function getTileSourceUrlTemplate(sourceId: string): string {
   return `${baseUrl}/tiles/sources/${sourceId}/{z}/{x}/{y}`
+}
+
+// ---------------------------------------------------------------------------
+// External services (OpenSky / adsb.fi / geocoding — proxied with system-proxy support)
+// ---------------------------------------------------------------------------
+
+export interface GeocodingResult {
+  name: string
+  displayName: string
+  lat: number
+  lon: number
+  bbox: [number, number, number, number] // [south, north, west, east]
+  type: string
+  importance: number
+}
+
+/** Place search via Nominatim (Photon fallback) — proxied by the Python backend. */
+export async function geocodeSearch(query: string, limit = 5): Promise<GeocodingResult[]> {
+  return getJson(`/external/geocode?q=${encodeURIComponent(query)}&limit=${limit}`)
 }

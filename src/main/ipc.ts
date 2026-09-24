@@ -2,13 +2,7 @@ import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { getPythonPort } from './python'
 import { loadConfig, saveConfig, updateConfig, type AppConfig } from './config'
-import { startVehicleServer, stopVehicleServer, type VehicleServerConfig } from './vehicleServer'
-import {
-  fetchOpenSkyToken, fetchOpenSkyStates,
-  fetchAdsbfiByLocation,
-  type OpenSkyBounds,
-} from './opensky'
-import { geocodeSearch } from './geocoding'
+import { startVehicleServer, stopVehicleServer, type VehicleServerConfig } from './vehicleClient'
 
 export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('app:getPythonPort', () => getPythonPort())
@@ -29,7 +23,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('dialog:openFile', async (_event, filters: Electron.FileFilter[]) => {
     const result = await dialog.showOpenDialog(win, {
       properties: ['openFile'],
-      filters,
+      filters
     })
     return result.canceled ? null : result.filePaths[0]
   })
@@ -45,7 +39,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('dialog:openDirectory', async (_event, defaultPath?: string) => {
     const result = await dialog.showOpenDialog(win, {
       properties: ['openDirectory'],
-      defaultPath,
+      defaultPath
     })
     return result.canceled ? null : result.filePaths[0]
   })
@@ -62,35 +56,4 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     stopVehicleServer()
     win.webContents.send('vehicle:stopped')
   })
-
-  // ── OpenSky Network ─────────────────────────────────────────────────────
-  ipcMain.handle(
-    'opensky:token',
-    async (_event, clientId: string, clientSecret: string) => {
-      return fetchOpenSkyToken(clientId, clientSecret)
-    }
-  )
-
-  ipcMain.handle(
-    'opensky:states',
-    async (_event, bounds: OpenSkyBounds, token: string | null) => {
-      return fetchOpenSkyStates(bounds, token)
-    }
-  )
-
-  // ── adsb.fi Open Data ───────────────────────────────────────────────────
-  ipcMain.handle(
-    'adsbfi:byLocation',
-    async (_event, lat: number, lon: number, distNm: number) => {
-      return fetchAdsbfiByLocation(lat, lon, distNm)
-    }
-  )
-
-  // ── Geocoding (Nominatim) ──────────────────────────────────────────────
-  ipcMain.handle(
-    'geocode:search',
-    async (_event, query: string, limit: number) => {
-      return geocodeSearch(query, limit)
-    }
-  )
 }
