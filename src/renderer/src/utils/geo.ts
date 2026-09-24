@@ -1,9 +1,12 @@
 /**
  * Compute the bounding box [[minLng, minLat], [maxLng, maxLat]] of a GeoJSON FeatureCollection.
  * Returns null if the collection is empty or has no geometry.
+ * (Geometry is typed nullable per RFC 7946 §3.1 — features may carry `geometry: null`.)
  */
+type NullableGeomFeature = GeoJSON.Feature<GeoJSON.Geometry | null>
+
 export function getGeoJSONBounds(
-  geojson: GeoJSON.FeatureCollection
+  geojson: GeoJSON.FeatureCollection<GeoJSON.Geometry | null>
 ): [[number, number], [number, number]] | null {
   let minLng = Infinity
   let minLat = Infinity
@@ -32,7 +35,7 @@ export function getGeoJSONBounds(
   if (!isFinite(minLng)) return null
   return [
     [minLng, minLat],
-    [maxLng, maxLat],
+    [maxLng, maxLat]
   ]
 }
 
@@ -41,7 +44,7 @@ export function getGeoJSONBounds(
  * has a meaningful area.
  */
 export function getFeatureBounds(
-  feature: GeoJSON.Feature
+  feature: NullableGeomFeature
 ): [[number, number], [number, number]] | null {
   const bounds = getGeoJSONBounds({ type: 'FeatureCollection', features: [feature] })
   if (!bounds) return null
@@ -50,7 +53,7 @@ export function getFeatureBounds(
     const d = 0.005
     return [
       [minLon - d, minLat - d],
-      [maxLon + d, maxLat + d],
+      [maxLon + d, maxLat + d]
     ]
   }
   return bounds

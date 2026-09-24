@@ -6,7 +6,9 @@
  */
 
 const A = 6378245.0
-const EE = 0.00669342162296594323
+// Krasovsky 1940 eccentricity constant; shortest literal that round-trips
+// to the same double as the canonical 0.00669342162296594323.
+const EE = 0.006693421622965943
 
 function outOfChina(lng: number, lat: number): boolean {
   return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271
@@ -70,7 +72,7 @@ function transformPositions(coords: unknown): unknown {
 
 /** Return a new FeatureCollection with all coordinates converted from WGS-84 to GCJ-02. */
 export function convertToGcj02(
-  geojson: GeoJSON.FeatureCollection
+  geojson: GeoJSON.FeatureCollection<GeoJSON.Geometry | null>
 ): GeoJSON.FeatureCollection {
   return {
     ...geojson,
@@ -82,9 +84,9 @@ export function convertToGcj02(
           ...f.geometry,
           coordinates: transformPositions(
             (f.geometry as GeoJSON.Geometry & { coordinates: unknown }).coordinates
-          ),
-        } as GeoJSON.Geometry,
+          )
+        } as GeoJSON.Geometry
       }
-    }),
+    }) as GeoJSON.Feature<GeoJSON.Geometry, GeoJSON.GeoJsonProperties>[]
   }
 }
