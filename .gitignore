@@ -20,3 +20,11 @@ resources/python-backend
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# Secrets
+.env*
+*.pem
+*.key
+
+# WorkBuddy workspace
+.workbuddy/
