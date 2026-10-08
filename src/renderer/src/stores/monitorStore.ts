@@ -14,10 +14,12 @@ export const OWM_LAYERS: Record<OwmOverlayKey, string> = {
   temp: 'temp_new',
   clouds: 'clouds_new',
   wind: 'wind_new',
-  pressure: 'pressure_new',
+  pressure: 'pressure_new'
 }
 
 interface MonitorStoreState {
+  /** Floating panel open (top-right over the map, like tiles/OSM panels) */
+  panelOpen: boolean
   /** Which weather raster overlays are enabled */
   weather: Record<WeatherOverlayKey, boolean>
   /** Which NASA GIBS satellite imagery overlays are enabled */
@@ -49,6 +51,7 @@ interface MonitorStoreState {
 
   toggleWeather: (key: WeatherOverlayKey) => void
   toggleGibs: (key: GibsOverlayKey) => void
+  setPanelOpen: (open: boolean) => void
   setEarthquakeOn: (v: boolean) => void
   setTyphoonOn: (v: boolean) => void
   setFireOn: (v: boolean) => void
@@ -69,18 +72,19 @@ interface MonitorStoreState {
 }
 
 export const useMonitorStore = create<MonitorStoreState>((set) => ({
+  panelOpen: false,
   weather: {
     radar: false,
     precipitation: false,
     temp: false,
     clouds: false,
     wind: false,
-    pressure: false,
+    pressure: false
   },
   gibs: {
     truecolor: false,
     sst: false,
-    nightlights: false,
+    nightlights: false
   },
   earthquakeOn: false,
   typhoonOn: false,
@@ -97,10 +101,9 @@ export const useMonitorStore = create<MonitorStoreState>((set) => ({
   aqi: null,
   error: null,
 
-  toggleWeather: (key) =>
-    set((s) => ({ weather: { ...s.weather, [key]: !s.weather[key] } })),
-  toggleGibs: (key) =>
-    set((s) => ({ gibs: { ...s.gibs, [key]: !s.gibs[key] } })),
+  toggleWeather: (key) => set((s) => ({ weather: { ...s.weather, [key]: !s.weather[key] } })),
+  toggleGibs: (key) => set((s) => ({ gibs: { ...s.gibs, [key]: !s.gibs[key] } })),
+  setPanelOpen: (panelOpen) => set({ panelOpen }),
   setEarthquakeOn: (earthquakeOn) => set({ earthquakeOn }),
   setTyphoonOn: (typhoonOn) => set({ typhoonOn }),
   setFireOn: (fireOn) => set({ fireOn }),
@@ -117,12 +120,12 @@ export const useMonitorStore = create<MonitorStoreState>((set) => ({
   setRadarPlaying: (radarPlaying) => set({ radarPlaying }),
   advanceRadar: () =>
     set((s) => ({
-      radarIndex: s.radarFrames.length ? (s.radarIndex + 1) % s.radarFrames.length : 0,
+      radarIndex: s.radarFrames.length ? (s.radarIndex + 1) % s.radarFrames.length : 0
     })),
   setFires: (fires) => set({ fires }),
   setGdacs: (gdacs) => set({ gdacs }),
   setAqi: (aqi) => set({ aqi }),
-  setError: (error) => set({ error }),
+  setError: (error) => set({ error })
 }))
 
 /** True when any monitor overlay is enabled (drives the toolbar badge). */

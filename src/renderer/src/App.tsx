@@ -8,7 +8,7 @@ import {
   InputGroup,
   Intent,
   Radio,
-  RadioGroup,
+  RadioGroup
 } from '@blueprintjs/core'
 import { message } from './utils/toaster'
 import { nanoid } from 'nanoid'
@@ -17,7 +17,11 @@ import LayerPanel from './components/LayerPanel/LayerPanel'
 import MapCanvas from './components/MapCanvas/MapCanvas'
 import StatusBar from './components/StatusBar/StatusBar'
 import {
-  initApi, importGisFile, importGisFileFromFile, importPbfFile, parseApiError,
+  initApi,
+  importGisFile,
+  importGisFileFromFile,
+  importPbfFile,
+  parseApiError,
   type ImportedLayer
 } from './services/api'
 import { importOfflineMap } from './utils/importOfflineMap'
@@ -37,12 +41,16 @@ import SqlPanel from './components/SqlWorkbench/SqlPanel'
 import { useSqlPanelStore } from './stores/sqlPanelStore'
 import i18n from './i18n'
 import { useSettingsStore } from './stores/settingsStore'
+import { useSettingsModalStore } from './stores/settingsModalStore'
 import { useBookmarkStore, type Bookmark } from './stores/bookmarkStore'
 
 const ALLOWED_DROP_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'gpx'])
 
 export default function App() {
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  // Settings modal open state lives in a store so nested components
+  // (MonitorPanel in MapCanvas) can open it without a prop chain.
+  const settingsOpen = useSettingsModalStore((s) => s.open)
+  const setSettingsOpen = useSettingsModalStore((s) => s.setOpen)
   const [wfsOpen, setWfsOpen] = useState(false)
   const [siderWidth, setSiderWidth] = useState(260)
   const resizingRef = useRef(false)
@@ -90,10 +98,10 @@ export default function App() {
           amap: cfg.amap.apiKey,
           openweather: cfg.openWeather?.apiKey ?? '',
           firms: cfg.firms?.apiKey ?? '',
-          waqi: cfg.waqi?.apiKey ?? '',
+          waqi: cfg.waqi?.apiKey ?? ''
         })
         setDownloadDir(cfg.download.dir)
-        useBookmarkStore.getState().setAll(((cfg as { bookmarks?: Bookmark[] }).bookmarks ?? []))
+        useBookmarkStore.getState().setAll((cfg as { bookmarks?: Bookmark[] }).bookmarks ?? [])
         setRecentProjects((cfg as { recentProjects?: string[] }).recentProjects ?? [])
         i18n.changeLanguage(cfg.language)
       })
@@ -213,7 +221,10 @@ export default function App() {
 
   const handleImport = async () => {
     const filePath = await window.electronAPI.openFileDialog([
-      { name: 'GIS Files', extensions: ['geojson', 'json', 'shp', 'kml', 'gpx', 'pbf', 'mbtiles', 'tif', 'tiff'] },
+      {
+        name: 'GIS Files',
+        extensions: ['geojson', 'json', 'shp', 'kml', 'gpx', 'pbf', 'mbtiles', 'tif', 'tiff']
+      },
       { name: 'OSM PBF', extensions: ['pbf'] },
       { name: '离线地图 (MBTiles / 瓦片目录 metadata.json)', extensions: ['mbtiles', 'json'] },
       { name: 'GeoTIFF 影像', extensions: ['tif', 'tiff'] },
@@ -387,7 +398,15 @@ export default function App() {
   }
 
   return (
-    <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div
+      style={{
+        height: '100vh',
+        width: '100vw',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}
+    >
       <header style={{ flexShrink: 0, zIndex: 10 }}>
         <Toolbar
           onSettings={() => setSettingsOpen(true)}
@@ -401,7 +420,9 @@ export default function App() {
           onDrawModeChange={handleDrawModeChange}
         />
       </header>
-      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+      <div
+        style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden', position: 'relative' }}
+      >
         <aside
           style={{
             width: siderWidth,
@@ -427,7 +448,14 @@ export default function App() {
           />
         </aside>
         <main
-          style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minWidth: 0
+          }}
           onDragOver={(e) => {
             e.preventDefault()
             setIsDragOver(true)
@@ -558,7 +586,9 @@ export default function App() {
             return (
               <RadioGroup
                 selectedValue={importMode}
-                onChange={(e) => setImportMode((e.target as HTMLInputElement).value as 'merge' | 'split')}
+                onChange={(e) =>
+                  setImportMode((e.target as HTMLInputElement).value as 'merge' | 'split')
+                }
               >
                 <Radio value="merge" label={`合并为一个图层（${total} 个要素）`} />
                 <Radio value="split" label={`每个要素单独一个图层（创建 ${total} 个图层）`} />
@@ -598,7 +628,9 @@ export default function App() {
         <DialogBody>
           <RadioGroup
             selectedValue={saveTarget}
-            onChange={(e) => setSaveTarget((e.target as HTMLInputElement).value as 'current' | 'new')}
+            onChange={(e) =>
+              setSaveTarget((e.target as HTMLInputElement).value as 'current' | 'new')
+            }
           >
             <Radio
               value="current"

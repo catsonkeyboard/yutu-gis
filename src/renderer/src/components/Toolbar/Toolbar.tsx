@@ -8,15 +8,15 @@ import {
   MenuItem,
   Navbar,
   Popover,
-  Tooltip,
+  Tooltip
 } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import { useDrawStore, type DrawMode } from '../../stores/drawStore'
+import { useMonitorStore, isMonitorActive } from '../../stores/monitorStore'
 import LocationSearchModal from './LocationSearchModal'
 import BookmarkDropdown from './BookmarkDropdown'
 import MapExportDropdown from './MapExportDropdown'
 import SwipeDropdown from './SwipeDropdown'
-import MonitorDropdown from './MonitorDropdown'
 import VehicleTrackingModal from '../VehicleTracking/VehicleTrackingModal'
 import FlightTrackingModal from '../FlightTracking/FlightTrackingModal'
 import { useVehicleStore } from '../../stores/vehicleStore'
@@ -49,7 +49,7 @@ export default function Toolbar({
   onOpenProject,
   onSaveProject,
   recentProjects = [],
-  onOpenRecent,
+  onOpenRecent
 }: Props) {
   const { t } = useTranslation()
   const drawMode = useDrawStore((s) => s.drawMode)
@@ -69,6 +69,10 @@ export default function Toolbar({
   const sqlOpen = useSqlPanelStore((s) => s.open)
   const setSqlOpen = useSqlPanelStore((s) => s.setOpen)
 
+  const monitorPanelOpen = useMonitorStore((s) => s.panelOpen)
+  const setMonitorPanelOpen = useMonitorStore((s) => s.setPanelOpen)
+  const monitorActive = useMonitorStore(isMonitorActive)
+
   const measureMode = useMeasureStore((s) => s.mode)
   const setMeasureMode = useMeasureStore((s) => s.setMode)
 
@@ -84,11 +88,7 @@ export default function Toolbar({
 
   const projectMenu = (
     <Menu>
-      <MenuItem
-        icon="folder-open"
-        text={t('toolbar.openProject') + '…'}
-        onClick={onOpenProject}
-      />
+      <MenuItem icon="folder-open" text={t('toolbar.openProject') + '…'} onClick={onOpenProject} />
       {recentProjects.length > 0 && <MenuDivider title="最近工程" />}
       {recentProjects.map((p) => (
         <MenuItem
@@ -112,7 +112,7 @@ export default function Toolbar({
         padding: '0 8px',
         boxShadow: 'none',
         borderBottom: '1px solid var(--color-border, #d9dce0)',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#ffffff'
       }}
     >
       <Navbar.Group style={{ height: '100%', gap: 2 }}>
@@ -151,6 +151,7 @@ export default function Toolbar({
                 if (!tilesPanelOpen) {
                   setOsmPanelOpen(false)
                   setAnalysisOpen(false)
+                  setMonitorPanelOpen(false)
                 }
                 setTilesPanelOpen(!tilesPanelOpen)
               }}
@@ -166,6 +167,7 @@ export default function Toolbar({
                 if (!osmPanelOpen) {
                   setTilesPanelOpen(false)
                   setAnalysisOpen(false)
+                  setMonitorPanelOpen(false)
                 }
                 setOsmPanelOpen(!osmPanelOpen)
               }}
@@ -181,6 +183,7 @@ export default function Toolbar({
                 if (!analysisOpen) {
                   setTilesPanelOpen(false)
                   setOsmPanelOpen(false)
+                  setMonitorPanelOpen(false)
                 }
                 setAnalysisOpen(!analysisOpen)
               }}
@@ -309,7 +312,7 @@ export default function Toolbar({
                     height: 6,
                     borderRadius: '50%',
                     backgroundColor: '#15b374',
-                    pointerEvents: 'none',
+                    pointerEvents: 'none'
                   }}
                 />
               )}
@@ -340,7 +343,7 @@ export default function Toolbar({
                     height: 6,
                     borderRadius: '50%',
                     backgroundColor: '#15b374',
-                    pointerEvents: 'none',
+                    pointerEvents: 'none'
                   }}
                 />
               )}
@@ -351,7 +354,39 @@ export default function Toolbar({
             onClose={() => setFlightTrackingOpen(false)}
           />
 
-          <MonitorDropdown onSettings={onSettings} />
+          <Tooltip content={t('monitor.title')} placement="bottom">
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Button
+                icon="pulse"
+                variant="minimal"
+                size="small"
+                active={monitorPanelOpen}
+                intent={monitorActive || monitorPanelOpen ? Intent.PRIMARY : undefined}
+                onClick={() => {
+                  if (!monitorPanelOpen) {
+                    setTilesPanelOpen(false)
+                    setOsmPanelOpen(false)
+                    setAnalysisOpen(false)
+                  }
+                  setMonitorPanelOpen(!monitorPanelOpen)
+                }}
+              />
+              {monitorActive && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: '#15b374',
+                    pointerEvents: 'none'
+                  }}
+                />
+              )}
+            </span>
+          </Tooltip>
         </div>
 
         <Navbar.Divider />

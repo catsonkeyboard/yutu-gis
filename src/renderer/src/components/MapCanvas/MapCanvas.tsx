@@ -15,6 +15,7 @@ import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
 import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
 import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
 import MonitorLayer, { bringMonitorLayersToTop } from './MonitorLayer'
+import MonitorPanel from './MonitorPanel'
 import MeasureLayer, { bringMeasureLayersToTop } from './MeasureLayer'
 import RadarTimelineBar from './RadarTimelineBar'
 import SwipeOverlay from './SwipeOverlay'
@@ -44,7 +45,8 @@ export default function MapCanvas({ onSave }: Props) {
   const drawMode = useDrawStore((s) => s.drawMode)
   const drawModeRef = useRef(drawMode)
   const setFeatures = useDrawStore((s) => s.setFeatures)
-  const { center, zoom, provider, fitBoundsRequest, jumpToRequest, setCenter, setZoom } = useMapStore()
+  const { center, zoom, provider, fitBoundsRequest, jumpToRequest, setCenter, setZoom } =
+    useMapStore()
   const { apiKeys } = useSettingsStore()
   const layers = useLayerStore((s) => s.layers)
   const selectedLayerId = useLayerStore((s) => s.selectedLayerId)
@@ -57,24 +59,33 @@ export default function MapCanvas({ onSave }: Props) {
   const layersRef = useRef(layers)
   const providerRef = useRef(provider)
 
-  useEffect(() => { drawModeRef.current = drawMode }, [drawMode])
-  useEffect(() => { selectedLayerIdRef.current = selectedLayerId }, [selectedLayerId])
-  useEffect(() => { layersRef.current = layers }, [layers])
-  useEffect(() => { providerRef.current = provider }, [provider])
+  useEffect(() => {
+    drawModeRef.current = drawMode
+  }, [drawMode])
+  useEffect(() => {
+    selectedLayerIdRef.current = selectedLayerId
+  }, [selectedLayerId])
+  useEffect(() => {
+    layersRef.current = layers
+  }, [layers])
+  useEffect(() => {
+    providerRef.current = provider
+  }, [provider])
 
   const renderLayers = (
     map: maplibregl.Map,
     layerList: Layer[],
     currentProvider = providerRef.current,
-    currentSelectedId = selectedLayerIdRef.current,
+    currentSelectedId = selectedLayerIdRef.current
   ) => {
     const needsGcj02 = currentProvider.startsWith('amap')
     // The swipe-compare layer renders only on the overlay map
     const swipe = useSwipeStore.getState()
     const swipeLayerId = swipe.enabled ? swipe.layerId : null
     // Remove all user layers first
-    const existingLayers = map.getStyle().layers
-      .filter((l) => l.id.startsWith('user-'))
+    const existingLayers = map
+      .getStyle()
+      .layers.filter((l) => l.id.startsWith('user-'))
       .map((l) => l.id)
     existingLayers.forEach((id) => {
       if (map.getLayer(id)) map.removeLayer(id)
@@ -104,13 +115,13 @@ export default function MapCanvas({ onSave }: Props) {
           tileSize: 256,
           ...(src.bounds ? { bounds: src.bounds } : {}),
           minzoom: src.minzoom ?? 0,
-          maxzoom: src.maxzoom ?? 19,
+          maxzoom: src.maxzoom ?? 19
         })
         map.addLayer({
           id: `user-${layer.id}-raster`,
           type: 'raster',
           source: sourceId,
-          paint: { 'raster-opacity': layer.opacity },
+          paint: { 'raster-opacity': layer.opacity }
         })
       })
 
@@ -135,8 +146,8 @@ export default function MapCanvas({ onSave }: Props) {
             source: sourceId,
             paint: {
               'heatmap-radius': style.heatRadius ?? 20,
-              'heatmap-opacity': layer.opacity,
-            },
+              'heatmap-opacity': layer.opacity
+            }
           })
           return
         }
@@ -145,7 +156,7 @@ export default function MapCanvas({ onSave }: Props) {
             type: 'geojson',
             data,
             cluster: true,
-            clusterRadius: style.clusterRadius ?? 50,
+            clusterRadius: style.clusterRadius ?? 50
           })
           map.addLayer({
             id: `user-${layer.id}-cluster`,
@@ -153,12 +164,20 @@ export default function MapCanvas({ onSave }: Props) {
             source: sourceId,
             filter: ['has', 'point_count'],
             paint: {
-              'circle-color': ['step', ['get', 'point_count'], '#51a4d0', 10, '#f1a340', 100, '#e5544e'],
+              'circle-color': [
+                'step',
+                ['get', 'point_count'],
+                '#51a4d0',
+                10,
+                '#f1a340',
+                100,
+                '#e5544e'
+              ],
               'circle-radius': ['step', ['get', 'point_count'], 14, 10, 20, 100, 26],
               'circle-opacity': layer.opacity * 0.85,
               'circle-stroke-color': '#fff',
-              'circle-stroke-width': 1.5,
-            },
+              'circle-stroke-width': 1.5
+            }
           })
           map.addLayer({
             id: `user-${layer.id}-cluster-count`,
@@ -168,9 +187,9 @@ export default function MapCanvas({ onSave }: Props) {
             layout: {
               'text-field': ['get', 'point_count_abbreviated'],
               'text-font': ['Noto Sans Regular'],
-              'text-size': 11,
+              'text-size': 11
             },
-            paint: { 'text-color': '#ffffff' },
+            paint: { 'text-color': '#ffffff' }
           })
           map.addLayer({
             id: `user-${layer.id}-point`,
@@ -182,8 +201,8 @@ export default function MapCanvas({ onSave }: Props) {
               'circle-radius': style.pointRadius,
               'circle-opacity': layer.opacity,
               'circle-stroke-color': '#fff',
-              'circle-stroke-width': 1,
-            },
+              'circle-stroke-width': 1
+            }
           })
           return
         }
@@ -197,14 +216,21 @@ export default function MapCanvas({ onSave }: Props) {
           type: 'fill',
           source: sourceId,
           filter: ['==', '$type', 'Polygon'],
-          paint: (custom?.fill as never) ?? { 'fill-color': color, 'fill-opacity': layer.opacity * 0.4 },
+          paint: (custom?.fill as never) ?? {
+            'fill-color': color,
+            'fill-opacity': layer.opacity * 0.4
+          }
         })
         map.addLayer({
           id: `user-${layer.id}-line`,
           type: 'line',
           source: sourceId,
           filter: ['any', ['==', '$type', 'LineString'], ['==', '$type', 'Polygon']],
-          paint: (custom?.line as never) ?? { 'line-color': color, 'line-width': 1.5, 'line-opacity': layer.opacity },
+          paint: (custom?.line as never) ?? {
+            'line-color': color,
+            'line-width': 1.5,
+            'line-opacity': layer.opacity
+          }
         })
         map.addLayer({
           id: `user-${layer.id}-point`,
@@ -216,8 +242,8 @@ export default function MapCanvas({ onSave }: Props) {
             'circle-radius': 5,
             'circle-opacity': layer.opacity,
             'circle-stroke-color': '#fff',
-            'circle-stroke-width': 1,
-          },
+            'circle-stroke-width': 1
+          }
         })
         // Attribute label (independent of the symbology mode)
         if (layer.style?.labelField) {
@@ -230,14 +256,14 @@ export default function MapCanvas({ onSave }: Props) {
               'text-font': ['Noto Sans Regular'],
               'text-size': layer.style.labelSize ?? 12,
               'text-anchor': 'top',
-              'text-offset': [0, 0.6],
+              'text-offset': [0, 0.6]
             },
             paint: {
               'text-color': layer.style.labelColor ?? '#333333',
               'text-halo-color': '#ffffff',
               'text-halo-width': 1.2,
-              'text-opacity': layer.opacity,
-            },
+              'text-opacity': layer.opacity
+            }
           })
         }
       })
@@ -256,7 +282,12 @@ export default function MapCanvas({ onSave }: Props) {
     const map = mapRef.current
     if (!map) return
     const b = map.getBounds()
-    const bounds: [number, number, number, number] = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]
+    const bounds: [number, number, number, number] = [
+      b.getSouth(),
+      b.getWest(),
+      b.getNorth(),
+      b.getEast()
+    ]
     setContextMenuPos({ x: e.clientX, y: e.clientY, bounds })
   }
 
@@ -271,7 +302,7 @@ export default function MapCanvas({ onSave }: Props) {
       zoom: zoom,
       attributionControl: {},
       // Keep the WebGL drawing buffer readable for map export (PNG/clipboard)
-      canvasContextAttributes: { preserveDrawingBuffer: true },
+      canvasContextAttributes: { preserveDrawingBuffer: true }
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
@@ -303,9 +334,7 @@ export default function MapCanvas({ onSave }: Props) {
       if (Date.now() - useOsmPanelStore.getState().selectEndAt < 300) return
       const style = map.getStyle()
       if (!style) return
-      const userLayerIds = style.layers
-        .filter((l) => l.id.startsWith('user-'))
-        .map((l) => l.id)
+      const userLayerIds = style.layers.filter((l) => l.id.startsWith('user-')).map((l) => l.id)
       if (!userLayerIds.length) return
       const hits = map.queryRenderedFeatures(e.point, { layers: userLayerIds })
       if (!hits.length) return
@@ -338,9 +367,7 @@ export default function MapCanvas({ onSave }: Props) {
       if (useMeasureStore.getState().mode !== 'off') return // MeasureLayer owns the cursor
       const style = map.getStyle()
       if (!style) return
-      const userLayerIds = style.layers
-        .filter((l) => l.id.startsWith('user-'))
-        .map((l) => l.id)
+      const userLayerIds = style.layers.filter((l) => l.id.startsWith('user-')).map((l) => l.id)
       const hits = userLayerIds.length
         ? map.queryRenderedFeatures(e.point, { layers: userLayerIds })
         : []
@@ -363,7 +390,10 @@ export default function MapCanvas({ onSave }: Props) {
   useEffect(() => {
     const map = mapRef.current
     if (!map || !fitBoundsRequest) return
-    map.fitBounds(fitBoundsRequest.bounds as maplibregl.LngLatBoundsLike, { padding: 60, maxZoom: 16 })
+    map.fitBounds(fitBoundsRequest.bounds as maplibregl.LngLatBoundsLike, {
+      padding: 60,
+      maxZoom: 16
+    })
   }, [fitBoundsRequest])
 
   // Re-render user layers when swipe compare state changes (hide/show swipe layer)
@@ -437,7 +467,10 @@ export default function MapCanvas({ onSave }: Props) {
   }, [drawMode])
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }} onContextMenu={handleContextMenu}>
+    <div
+      style={{ width: '100%', height: '100%', position: 'relative' }}
+      onContextMenu={handleContextMenu}
+    >
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       <VehicleLayer map={mapInstance} />
       <FlightLayer map={mapInstance} />
@@ -465,6 +498,7 @@ export default function MapCanvas({ onSave }: Props) {
       <OsmExtractPanel map={mapInstance} />
       <AnalysisPanel />
       <StylePanel />
+      <MonitorPanel />
       <DrawHintBanner onSave={onSave} />
       <BasemapSwitcher />
     </div>

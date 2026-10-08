@@ -1,33 +1,27 @@
-import { useState } from 'react'
-import {
-  Button,
-  Checkbox,
-  Classes,
-  Divider,
-  Intent,
-  Popover,
-  Tooltip,
-} from '@blueprintjs/core'
+import { Button, Checkbox, Classes, Divider, Icon, Intent } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
 import {
   useMonitorStore,
   isMonitorActive,
   type WeatherOverlayKey,
-  type GibsOverlayKey,
+  type GibsOverlayKey
 } from '../../stores/monitorStore'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useSettingsModalStore } from '../../stores/settingsModalStore'
 import { message } from '../../utils/toaster'
 
 const OWM_KEYS: WeatherOverlayKey[] = ['precipitation', 'temp', 'clouds', 'wind', 'pressure']
 const GIBS_KEYS: GibsOverlayKey[] = ['truecolor', 'sst', 'nightlights']
 
-interface Props {
-  onSettings?: () => void
-}
-
-export default function MonitorDropdown({ onSettings }: Props) {
+/**
+ * Floating monitor panel (top-right over the map) — same container pattern
+ * as TilesDownloadPanel / OsmExtractPanel / AnalysisPanel. The map stays
+ * interactive while toggling overlays.
+ */
+export default function MonitorPanel(): React.JSX.Element | null {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const open = useMonitorStore((s) => s.panelOpen)
+  const setPanelOpen = useMonitorStore((s) => s.setPanelOpen)
   const weather = useMonitorStore((s) => s.weather)
   const gibs = useMonitorStore((s) => s.gibs)
   const earthquakeOn = useMonitorStore((s) => s.earthquakeOn)
@@ -43,28 +37,41 @@ export default function MonitorDropdown({ onSettings }: Props) {
     setTyphoonOn,
     setFireOn,
     setGdacsOn,
-    setAqiOn,
+    setAqiOn
   } = useMonitorStore.getState()
   const apiKeys = useSettingsStore((s) => s.apiKeys)
+  const setSettingsOpen = useSettingsModalStore((s) => s.setOpen)
 
-  const active = isMonitorActive({ weather, gibs, earthquakeOn, typhoonOn, fireOn, gdacsOn, aqiOn })
+  if (!open) return null
+
+  const openSettings = (): void => {
+    setPanelOpen(false)
+    setSettingsOpen(true)
+  }
 
   /** Block enabling a key-gated overlay when the key is missing: warn + open settings. */
-  const requireKey = (key: string, msgKey: string, enable: () => void, turningOn: boolean) => {
+  const requireKey = (
+    key: string,
+    msgKey: string,
+    enable: () => void,
+    turningOn: boolean
+  ): void => {
     if (turningOn && !key) {
       message.warning(t(msgKey))
-      setOpen(false)
-      onSettings?.()
+      openSettings()
       return
     }
     enable()
   }
 
-  const handleOwmToggle = (key: WeatherOverlayKey) =>
+  const handleOwmToggle = (key: WeatherOverlayKey): void =>
     requireKey(apiKeys.openweather, 'monitor.needKey', () => toggleWeather(key), !weather[key])
 
-  const sectionTitle = (text: string) => (
-    <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, fontWeight: 600, margin: '6px 0 4px' }}>
+  const sectionTitle = (text: string): React.JSX.Element => (
+    <div
+      className={Classes.TEXT_MUTED}
+      style={{ fontSize: 11, fontWeight: 600, margin: '6px 0 4px' }}
+    >
       {text}
     </div>
   )
@@ -76,17 +83,51 @@ export default function MonitorDropdown({ onSettings }: Props) {
       icon="cog"
       intent={Intent.PRIMARY}
       style={{ fontSize: 11, padding: '0 4px', minHeight: 18, height: 18 }}
-      onClick={() => {
-        setOpen(false)
-        onSettings?.()
-      }}
+      onClick={openSettings}
       text={t('monitor.goSettings')}
     />
   )
 
-  const panel = (
-    <div style={{ width: 260, maxHeight: '70vh', overflowY: 'auto', padding: 10 }}>
-      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{t('monitor.title')}</div>
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        width: 320,
+        maxHeight: 'calc(100% - 24px)',
+        overflowY: 'auto',
+        background: '#fff',
+        borderRadius: 4,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        zIndex: 600,
+        padding: '10px 14px 14px',
+        border: '1px solid var(--color-border, #d9dce0)',
+        fontSize: 12
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+        <div
+          style={{
+            flex: 1,
+            fontWeight: 600,
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6
+          }}
+        >
+          <Icon icon="pulse" size={14} />
+          <span>{t('monitor.title')}</span>
+          {isMonitorActive({ weather, gibs, earthquakeOn, typhoonOn, fireOn, gdacsOn, aqiOn }) && (
+            <span
+              title={t('monitor.weather')}
+              style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#15b374' }}
+            />
+          )}
+        </div>
+        <Button size="small" variant="minimal" icon="cross" onClick={() => setPanelOpen(false)} />
+      </div>
 
       {sectionTitle(t('monitor.weather'))}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -105,7 +146,10 @@ export default function MonitorDropdown({ onSettings }: Props) {
             style={{ marginBottom: 4 }}
           />
         ))}
-        <div className={Classes.TEXT_MUTED} style={{ fontSize: 11, paddingLeft: 22, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div
+          className={Classes.TEXT_MUTED}
+          style={{ fontSize: 11, paddingLeft: 22, display: 'flex', alignItems: 'center', gap: 4 }}
+        >
           <span>{t('monitor.owmHint')}</span>
           {settingsLink}
         </div>
@@ -184,40 +228,5 @@ export default function MonitorDropdown({ onSettings }: Props) {
         </>
       )}
     </div>
-  )
-
-  return (
-    <Popover
-      content={panel}
-      isOpen={open}
-      onInteraction={(nextOpen) => setOpen(nextOpen)}
-      placement="bottom-start"
-    >
-      <Tooltip content={t('monitor.title')} placement="bottom">
-        <span style={{ position: 'relative', display: 'inline-flex' }}>
-          <Button
-            icon="pulse"
-            variant="minimal"
-            size="small"
-            intent={active ? Intent.PRIMARY : undefined}
-            active={active || open}
-          />
-          {active && (
-            <span
-              style={{
-                position: 'absolute',
-                top: 2,
-                right: 2,
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                backgroundColor: '#15b374',
-                pointerEvents: 'none',
-              }}
-            />
-          )}
-        </span>
-      </Tooltip>
-    </Popover>
   )
 }
