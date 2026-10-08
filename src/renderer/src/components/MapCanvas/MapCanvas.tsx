@@ -466,6 +466,30 @@ export default function MapCanvas({ onSave }: Props) {
     }
   }, [drawMode])
 
+  // Escape cancels the active draw mode. MapboxDraw's built-in key handler
+  // requires event.target to have the 'mapboxgl-canvas' class — never true on
+  // MapLibre ('maplibregl-canvas'), so its Escape handling is dead code here.
+  // We listen on window (works regardless of focus). Cancel = discard the
+  // WHOLE session (draft + finished features) with no save prompt — saving is
+  // the hint banner's job. clear() flips drawMode to 'off' and the drawMode
+  // effect above handles MapboxDraw cleanup (changeMode + deleteAll).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return
+      // Skip while typing in inputs (layer rename, …) — Escape there should
+      // cancel the edit, not the drawing session
+      const target = e.target as HTMLElement
+      if (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
+      if (useDrawStore.getState().drawMode === 'off') return
+      // Don't fight open dialogs/popovers (save modal, context menu, …)
+      if (document.querySelector('.bp6-overlay-open, .bp5-overlay-open, .bp-overlay-open')) return
+
+      useDrawStore.getState().clear()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   return (
     <div
       style={{ width: '100%', height: '100%', position: 'relative' }}
