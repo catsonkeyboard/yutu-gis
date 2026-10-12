@@ -84,8 +84,9 @@ async def test_wfs_get_features():
             )
 
     assert resp.status_code == 200
-    assert resp.json()['type'] == 'FeatureCollection'
-    assert len(resp.json()['features']) == 1
+    fc = resp.json()['geojson']
+    assert fc['type'] == 'FeatureCollection'
+    assert len(fc['features']) == 1
 
 
 @pytest.mark.asyncio
@@ -130,4 +131,4 @@ async def test_ogc_get_features():
             )
 
     assert resp.status_code == 200
-    assert resp.json()['type'] == 'FeatureCollection'
+    assert resp.json()['geojson']['type'] == 'FeatureCollection'

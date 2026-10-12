@@ -134,9 +134,12 @@ export default function AnalysisPanel(): ReactElement | null {
         id,
         name,
         type: 'geojson',
-        source: { type: 'FeatureCollection', features: result.features },
+        // keep the server response object when hashed — enables zero-upload
+        // SQL sync and server-side sidecar copy
+        source: result.contentHash ? result : { type: 'FeatureCollection', features: result.features },
         visible: true,
         opacity: 1,
+        contentHash: result.contentHash,
       })
       setSelectedLayer(id)
       const bounds = getGeoJSONBounds(result)

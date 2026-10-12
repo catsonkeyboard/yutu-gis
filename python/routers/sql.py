@@ -1,14 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from services import sql as sql_service
-
+from services import layer_store
 router = APIRouter()
 
 
 class RegisterRequest(BaseModel):
     name: str
-    geojson: dict
+    geojson: dict | None = None
     layer_id: str | None = None
+    version: int | None = None
+    content_hash: str | None = None
 
 
 class QueryRequest(BaseModel):
@@ -34,7 +36,9 @@ async def tables():
 @router.post("/tables")
 async def register_table(req: RegisterRequest):
     try:
-        return sql_service.register_layer(req.name, req.geojson, req.layer_id)
+        return sql_service.register_layer(
+            req.name, req.geojson, req.layer_id, req.version, req.content_hash
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"注册图层失败：{e}")
 
@@ -70,7 +74,8 @@ class CalculateRequest(BaseModel):
 async def calculate_field(req: CalculateRequest):
     """Field calculator: add a computed column and return the new FeatureCollection."""
     try:
-        return sql_service.calculate_field(req.geojson, req.expression, req.field)
+        fc = sql_service.calculate_field(req.geojson, req.expression, req.field)
+        return {'geojson': fc, 'content_hash': layer_store.put(fc)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -96,7 +101,8 @@ async def export_query(req: ExportQueryRequest):
 @router.post("/query/geojson")
 async def query_geojson(req: QueryRequest):
     try:
-        return sql_service.query_as_geojson(req.sql)
+        fc = sql_service.query_as_geojson(req.sql)
+        return {'geojson': fc, 'content_hash': layer_store.put(fc)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

@@ -8,8 +8,17 @@ from services import wfs as wfs_service
 from services import osm as osm_service
 from services import pbf as pbf_service
 from services import export as export_service
+from services import layer_store
 
 router = APIRouter()
+
+
+def _store_layers(layers: list[dict]) -> None:
+    """Attach content_hash to every big layer produced by an import."""
+    for layer in layers:
+        digest = layer_store.put(layer['geojson'])
+        if digest:
+            layer['content_hash'] = digest
 
 
 # ---------------------------------------------------------------------------
@@ -25,6 +34,7 @@ async def import_file(file: UploadFile = File(...)):
         tmp_path = tmp.name
     try:
         layers = file_to_layers(tmp_path, filename)
+        _store_layers(layers)
         return {'layers': layers}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -44,7 +54,9 @@ async def import_pbf(req: PbfImportRequest):
     large and the backend runs on the same machine.
     """
     try:
-        return pbf_service.pbf_to_layers(req.path)
+        result = pbf_service.pbf_to_layers(req.path)
+        _store_layers(result['layers'])
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -101,7 +113,8 @@ async def get_wfs_layers(req: WFSLayersRequest):
 async def get_wfs_features(req: WFSFeaturesRequest):
     """Fetch GeoJSON FeatureCollection from a WFS endpoint."""
     try:
-        return await wfs_service.wfs_get_features(req.url, req.type_name, req.max_features)
+        fc = await wfs_service.wfs_get_features(req.url, req.type_name, req.max_features)
+        return {'geojson': fc, 'content_hash': layer_store.put(fc)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -134,7 +147,8 @@ async def get_ogc_collections(req: OGCCollectionsRequest):
 async def get_ogc_features(req: OGCFeaturesRequest):
     """Fetch GeoJSON FeatureCollection from OGC API Features."""
     try:
-        return await wfs_service.ogc_get_features(req.url, req.collection_id, req.max_features)
+        fc = await wfs_service.ogc_get_features(req.url, req.collection_id, req.max_features)
+        return {'geojson': fc, 'content_hash': layer_store.put(fc)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -154,6 +168,7 @@ class OsmExtractRequest(BaseModel):
 async def osm_extract(req: OsmExtractRequest):
     """Query Overpass API and return GeoJSON FeatureCollection within the given bbox."""
     try:
-        return await osm_service.overpass_extract(req.south, req.west, req.north, req.east)
+        fc = await osm_service.overpass_extract(req.south, req.west, req.north, req.east)
+        return {'geojson': fc, 'content_hash': layer_store.put(fc)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

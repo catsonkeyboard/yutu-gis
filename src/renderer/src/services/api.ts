@@ -50,6 +50,17 @@ export function parseApiError(e: unknown): string {
 export interface ImportedLayer {
   name: string
   geojson: GeoJSON.FeatureCollection
+  /** Content-addressed store hash (server-side copy) — enables zero-upload
+   *  SQL registration and server-side sidecar copy on project save. */
+  contentHash?: string
+}
+
+function toImportedLayer(l: {
+  name: string
+  geojson: GeoJSON.FeatureCollection
+  content_hash?: string
+}): ImportedLayer {
+  return { name: l.name, geojson: l.geojson, contentHash: l.content_hash }
 }
 
 export async function importGisFile(filePath: string): Promise<ImportedLayer[]> {
@@ -61,8 +72,10 @@ export async function importGisFile(filePath: string): Promise<ImportedLayer[]> 
 
   const resp = await fetch(`${baseUrl}/data/import`, { method: 'POST', body: formData })
   if (!resp.ok) throw new Error(await resp.text())
-  const data = (await resp.json()) as { layers: ImportedLayer[] }
-  return data.layers
+  const data = (await resp.json()) as {
+    layers: { name: string; geojson: GeoJSON.FeatureCollection; content_hash?: string }[]
+  }
+  return data.layers.map(toImportedLayer)
 }
 
 export async function importGisFileFromFile(file: File): Promise<ImportedLayer[]> {
@@ -70,15 +83,21 @@ export async function importGisFileFromFile(file: File): Promise<ImportedLayer[]
   formData.append('file', file, file.name)
   const resp = await fetch(`${baseUrl}/data/import`, { method: 'POST', body: formData })
   if (!resp.ok) throw new Error(await resp.text())
-  const data = (await resp.json()) as { layers: ImportedLayer[] }
-  return data.layers
+  const data = (await resp.json()) as {
+    layers: { name: string; geojson: GeoJSON.FeatureCollection; content_hash?: string }[]
+  }
+  return data.layers.map(toImportedLayer)
 }
 
 /** Parse a local .osm.pbf extract server-side (read from disk, no upload). */
 export async function importPbfFile(
   path: string
 ): Promise<{ layers: ImportedLayer[]; truncated: boolean }> {
-  return postJson('/data/import/pbf', { path })
+  const data = await postJson<{ layers: Parameters<typeof toImportedLayer>[0][]; truncated: boolean }>(
+    '/data/import/pbf',
+    { path }
+  )
+  return { layers: data.layers.map(toImportedLayer), truncated: data.truncated }
 }
 
 // ---------------------------------------------------------------------------
@@ -99,8 +118,12 @@ export async function wfsGetFeatures(
   url: string,
   typeName: string,
   maxFeatures: number
-): Promise<GeoJSON.FeatureCollection> {
-  return postJson('/data/wfs/features', { url, type_name: typeName, max_features: maxFeatures })
+): Promise<{ geojson: GeoJSON.FeatureCollection; contentHash?: string }> {
+  const data = await postJson<{ geojson: GeoJSON.FeatureCollection; content_hash?: string }>(
+    '/data/wfs/features',
+    { url, type_name: typeName, max_features: maxFeatures }
+  )
+  return { geojson: data.geojson, contentHash: data.content_hash }
 }
 
 // ---------------------------------------------------------------------------
@@ -121,12 +144,12 @@ export async function ogcGetFeatures(
   url: string,
   collectionId: string,
   maxFeatures: number
-): Promise<GeoJSON.FeatureCollection> {
-  return postJson('/data/ogc/features', {
-    url,
-    collection_id: collectionId,
-    max_features: maxFeatures
-  })
+): Promise<{ geojson: GeoJSON.FeatureCollection; contentHash?: string }> {
+  const data = await postJson<{ geojson: GeoJSON.FeatureCollection; content_hash?: string }>(
+    '/data/ogc/features',
+    { url, collection_id: collectionId, max_features: maxFeatures }
+  )
+  return { geojson: data.geojson, contentHash: data.content_hash }
 }
 
 // ---------------------------------------------------------------------------
@@ -138,8 +161,12 @@ export async function osmExtract(
   west: number,
   north: number,
   east: number
-): Promise<GeoJSON.FeatureCollection> {
-  return postJson('/data/osm/extract', { south, west, north, east })
+): Promise<{ geojson: GeoJSON.FeatureCollection; contentHash?: string }> {
+  const data = await postJson<{ geojson: GeoJSON.FeatureCollection; content_hash?: string }>(
+    '/data/osm/extract',
+    { south, west, north, east }
+  )
+  return { geojson: data.geojson, contentHash: data.content_hash }
 }
 
 // ---------------------------------------------------------------------------
@@ -198,13 +225,23 @@ export async function sqlListTables(): Promise<SqlTableInfo[]> {
   return data.tables
 }
 
-/** Register a layer as a DuckDB table (re-registering by layer_id replaces it). */
+/** Register a layer as a DuckDB table (re-registering by layer_id replaces it).
+  Pass the layer's sourceVersion to skip server-side work when unchanged;
+  pass contentHash (without geojson) to register from the layer store. */
 export async function sqlRegisterTable(
   name: string,
-  geojson: GeoJSON.FeatureCollection,
-  layerId: string
+  geojson: GeoJSON.FeatureCollection | null,
+  layerId: string,
+  version?: number,
+  contentHash?: string
 ): Promise<SqlTableInfo> {
-  return postJson('/sql/tables', { name, geojson, layer_id: layerId })
+  return postJson('/sql/tables', {
+    name,
+    geojson,
+    layer_id: layerId,
+    version,
+    content_hash: contentHash,
+  })
 }
 
 /** Register a local file (GPKG/SHP/GeoJSON/CSV/Parquet…) as a lazy DuckDB view. */
@@ -216,8 +253,39 @@ export async function sqlQuery(sql: string, limit = 1000): Promise<SqlQueryResul
   return postJson('/sql/query', { sql, limit })
 }
 
-export async function sqlQueryGeojson(sql: string): Promise<GeoJSON.FeatureCollection> {
-  return postJson('/sql/query/geojson', { sql })
+export async function sqlQueryGeojson(
+  sql: string
+): Promise<{ geojson: GeoJSON.FeatureCollection; contentHash?: string }> {
+  const data = await postJson<{ geojson: GeoJSON.FeatureCollection; content_hash?: string }>(
+    '/sql/query/geojson',
+    { sql }
+  )
+  return { geojson: data.geojson, contentHash: data.content_hash }
+}
+
+// ---------------------------------------------------------------------------
+// Project sidecar files (large geojson layers live next to the .yutugis file)
+// ---------------------------------------------------------------------------
+
+/** Atomically write a project layer sidecar file (raw JSON Blob body). */
+export async function saveProjectFile(path: string, blob: Blob): Promise<void> {
+  const resp = await fetch(`${baseUrl}/project/file?path=${encodeURIComponent(path)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: blob,
+  })
+  if (!resp.ok) throw new Error(await resp.text())
+}
+
+/** Read a project layer sidecar file as a FeatureCollection. */
+export async function readProjectFile(path: string): Promise<GeoJSON.FeatureCollection> {
+  return getJson<GeoJSON.FeatureCollection>(`/project/file?path=${encodeURIComponent(path)}`)
+}
+
+/** Delete sidecar *.geojson files not listed in `keep` (orphan cleanup). */
+export async function cleanupProjectFiles(dir: string, keep: string[]): Promise<number> {
+  const data = await postJson<{ removed: number }>('/project/cleanup', { dir, keep })
+  return data.removed
 }
 
 /** Field calculator: add a computed column (DuckDB expression) to a layer. */
@@ -225,8 +293,17 @@ export async function sqlCalculateField(
   geojson: GeoJSON.FeatureCollection,
   expression: string,
   field: string
-): Promise<GeoJSON.FeatureCollection> {
-  return postJson('/sql/calculate', { geojson, expression, field })
+): Promise<{ geojson: GeoJSON.FeatureCollection; contentHash?: string }> {
+  const data = await postJson<{ geojson: GeoJSON.FeatureCollection; content_hash?: string }>(
+    '/sql/calculate',
+    { geojson, expression, field }
+  )
+  return { geojson: data.geojson, contentHash: data.content_hash }
+}
+
+/** Copy a layer-store entry (content-addressed) into the project sidecar. */
+export async function copyProjectFile(path: string, hash: string): Promise<void> {
+  await postJson('/project/copy', { hash, path })
 }
 
 /** Export the full (uncapped) query result to a CSV file on disk. */
@@ -265,8 +342,11 @@ export async function runAnalysis(
   primary: GeoJSON.FeatureCollection,
   secondary: GeoJSON.FeatureCollection | null,
   params: AnalysisParams
-): Promise<GeoJSON.FeatureCollection & { skipped?: number }> {
-  return postJson('/analysis/run', { op, primary, secondary, params })
+): Promise<GeoJSON.FeatureCollection & { skipped?: number; contentHash?: string }> {
+  const data = await postJson<
+    GeoJSON.FeatureCollection & { skipped?: number; content_hash?: string }
+  >('/analysis/run', { op, primary, secondary, params })
+  return { ...data, contentHash: data.content_hash }
 }
 
 // ---------------------------------------------------------------------------

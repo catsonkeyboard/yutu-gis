@@ -63,6 +63,44 @@ class TestRegister:
         assert len(tables) == 1
         assert tables[0]['rows'] == 2
 
+    def test_same_version_skips_reregister(self):
+        sql_service.register_layer('城市', fc(point_geom(0, 0)), layer_id='L1', version=10)
+        # different data, same version → skipped: old table content stays
+        info = sql_service.register_layer(
+            '城市', fc(point_geom(0, 0), point_geom(1, 1), point_geom(2, 2)),
+            layer_id='L1', version=10,
+        )
+        assert info['rows'] == 1
+        assert sql_service.list_tables()[0]['rows'] == 1
+
+    def test_new_version_reregisters(self):
+        sql_service.register_layer('城市', fc(point_geom(0, 0)), layer_id='L1', version=10)
+        info = sql_service.register_layer(
+            '城市', fc(point_geom(0, 0), point_geom(1, 1)), layer_id='L1', version=11,
+        )
+        assert info['rows'] == 2
+
+    def test_no_version_always_registers(self):
+        sql_service.register_layer('城市', fc(point_geom(0, 0)), layer_id='L1', version=10)
+        info = sql_service.register_layer(
+            '城市', fc(point_geom(0, 0), point_geom(1, 1)), layer_id='L1',
+        )
+        assert info['rows'] == 2
+
+    def test_register_by_content_hash_without_geojson(self):
+        from services import layer_store
+
+        big = fc(*[point_geom(float(i), 0.0) for i in range(3)])
+        digest = layer_store.put(big, force=True)
+        info = sql_service.register_layer('城市', None, layer_id='L9', content_hash=digest)
+        assert info['rows'] == 3
+        result = sql_service.run_query('SELECT count(*) AS n FROM 城市')
+        assert result['rows'][0][0] == 3
+
+    def test_invalid_hash_without_geojson_rejected(self):
+        with pytest.raises(ValueError):
+            sql_service.register_layer('城市', None, content_hash='nosuchhash')
+
 
 class TestQuery:
     def test_rejects_non_select(self):

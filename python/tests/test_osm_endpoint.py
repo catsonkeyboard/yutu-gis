@@ -25,9 +25,10 @@ async def test_osm_extract_endpoint():
             resp = await client.post("/data/osm/extract", json={"south": 19.9, "west": 109.9, "north": 20.1, "east": 110.1})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["type"] == "FeatureCollection"
-    assert len(body["features"]) == 1
-    assert body["features"][0]["properties"]["_feature_label"] == "设施 (cafe)"
+    fc = body["geojson"]
+    assert fc["type"] == "FeatureCollection"
+    assert len(fc["features"]) == 1
+    assert fc["features"][0]["properties"]["_feature_label"] == "设施 (cafe)"
 
 
 @pytest.mark.asyncio

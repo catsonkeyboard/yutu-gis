@@ -83,7 +83,13 @@ export default function SqlPanel(): ReactElement {
     try {
       const vectorLayers = useLayerStore.getState().layers.filter((l) => l.type === 'geojson')
       for (const layer of vectorLayers) {
-        await sqlRegisterTable(layer.name, layer.source as GeoJSON.FeatureCollection, layer.id)
+        await sqlRegisterTable(
+          layer.name,
+          layer.contentHash ? null : (layer.source as GeoJSON.FeatureCollection),
+          layer.id,
+          layer.sourceVersion,
+          layer.contentHash
+        )
       }
       const tbls = await sqlListTables()
       setTables(tbls)
@@ -172,14 +178,14 @@ export default function SqlPanel(): ReactElement {
   const handleAddAsLayer = async () => {
     setAddingLayer(true)
     try {
-      const geojson = await sqlQueryGeojson(sql)
+      const { geojson, contentHash } = await sqlQueryGeojson(sql)
       if (!geojson.features.length) {
         message.info(t('sql.emptyGeojson'))
         return
       }
       const id = nanoid()
       const name = `SQL_${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`
-      addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
+      addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1, contentHash })
       setSelectedLayer(id)
       const bounds = getGeoJSONBounds(geojson)
       if (bounds) requestFitBounds(bounds)

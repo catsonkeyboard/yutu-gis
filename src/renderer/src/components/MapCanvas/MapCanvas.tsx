@@ -29,6 +29,9 @@ import { buildPaint } from '../StylePanel/styleUtils'
 import { setMap as setGlobalMap } from '../../services/mapRef'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
+import { loadLazyLayers } from '../../services/project'
+import { parseApiError } from '../../services/api'
+import { message } from '../../utils/toaster'
 
 const DEFAULT_COLOR = '#0080ff'
 const SELECTED_COLOR = '#ff7700'
@@ -431,6 +434,18 @@ export default function MapCanvas({ onSave }: Props) {
       map.once('styledata', () => renderLayers(map, layersRef.current))
     }
   }, [layers]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch sidecar data for layers that just became visible (lazy placeholders
+  // from a loaded v2 project). renderLayers only adds sources for visible
+  // layers, so a placeholder costs nothing until its data arrives.
+  useEffect(() => {
+    const lazy = layers.filter((l) => l.type === 'geojson' && l.visible && l.lazy)
+    if (!lazy.length) return
+    loadLazyLayers(lazy).then(({ failed }) => {
+      failed.forEach((f) => message.error(`图层「${f.name}」数据加载失败：${parseApiError(f.error)}`))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layers])
 
   // Update highlight color when selection changes (fast path — no full re-render)
   useEffect(() => {

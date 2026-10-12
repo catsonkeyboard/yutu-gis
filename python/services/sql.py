@@ -14,9 +14,12 @@ import datetime
 import decimal
 import json
 import re
-import tempfile
 import threading
 from pathlib import Path
+
+import threading
+
+from services import layer_store
 
 _lock = threading.RLock()
 _con = None
@@ -95,17 +98,13 @@ def _describe(con, table: str) -> list[dict]:
     ]
 
 
-def _register_spatial(con, table: str, geojson: dict) -> None:
-    with tempfile.NamedTemporaryFile('w', suffix='.geojson', delete=False, encoding='utf-8') as tmp:
-        json.dump(geojson, tmp, ensure_ascii=False)
-        tmp_path = tmp.name
-    try:
-        con.execute(
-            f'CREATE OR REPLACE TABLE {_quote(table)} AS SELECT * FROM ST_Read(?)',
-            [tmp_path],
-        )
-    finally:
-        Path(tmp_path).unlink(missing_ok=True)
+def _register_spatial(con, table: str, store_path: Path) -> None:
+    """Materialize the layer from a layer-store file (content-addressed)."""
+    con.execute(
+        f'CREATE OR REPLACE TABLE {_quote(table)} AS SELECT * FROM ST_Read(?)',
+        [str(store_path)],
+    )
+
 
 
 def _register_fallback(con, table: str, geojson: dict) -> None:
@@ -146,7 +145,13 @@ def _register_fallback(con, table: str, geojson: dict) -> None:
         con.executemany(insert, rows)
 
 
-def register_layer(name: str, geojson: dict, layer_id: str | None = None) -> dict:
+def register_layer(
+    name: str,
+    geojson: dict | None,
+    layer_id: str | None = None,
+    version: int | None = None,
+    content_hash: str | None = None,
+) -> dict:
     with _lock:
         con = _connection()
         # Re-registering the same layer replaces its table
@@ -155,20 +160,38 @@ def register_layer(name: str, geojson: dict, layer_id: str | None = None) -> dic
             for tname, meta in _tables.items():
                 if meta.get('layer_id') == layer_id:
                     table = tname
+                    # Same source version → nothing changed, skip the copy entirely
+                    if version is not None and meta.get('source_version') == version:
+                        return {
+                            'table': table,
+                            'columns': meta['columns'],
+                            'rows': meta['rows'],
+                            'kind': 'layer',
+                        }
                     break
         if table is None:
             table = _dedupe_table_name(sanitize_table_name(name))
 
         if _spatial:
-            _register_spatial(con, table, geojson)
+            # Prefer a layer-store hit by content hash (zero upload); otherwise
+            # persist the uploaded geojson into the store and read it from there.
+            store_path = layer_store.path_of(content_hash) if content_hash else None
+            if store_path is None:
+                if geojson is None:
+                    raise ValueError('content_hash 无效且未提供 geojson')
+                digest = layer_store.put(geojson, force=True)
+                store_path = layer_store.path_of(digest)
+            _register_spatial(con, table, store_path)
         else:
+            if geojson is None:
+                raise ValueError('降级模式需要 geojson')
             _register_fallback(con, table, geojson)
 
         rows = con.execute(f'SELECT count(*) FROM {_quote(table)}').fetchone()[0]
         columns = _describe(con, table)
         _tables[table] = {
             'layer_id': layer_id, 'rows': rows, 'columns': columns,
-            'kind': 'layer', 'path': None,
+            'kind': 'layer', 'path': None, 'source_version': version,
         }
         return {'table': table, 'columns': columns, 'rows': rows, 'kind': 'layer'}
 
@@ -300,7 +323,7 @@ def calculate_field(geojson: dict, expression: str, field_name: str) -> dict:
         tmp = '__calc_tmp'
         try:
             if _spatial:
-                _register_spatial(con, tmp, geojson)
+                _register_spatial(con, tmp, layer_store.path_of(layer_store.put(geojson, force=True)))
             else:
                 _register_fallback(con, tmp, geojson)
 

@@ -29,7 +29,7 @@ type ServiceType = 'wfs' | 'ogc'
 interface Props {
   open: boolean
   onClose: () => void
-  onImport: (geojson: GeoJSON.FeatureCollection, name: string) => void
+  onImport: (geojson: GeoJSON.FeatureCollection, name: string, contentHash?: string) => void
 }
 
 export default function WFSModal({ open, onClose, onImport }: Props): ReactElement {
@@ -115,11 +115,10 @@ export default function WFSModal({ open, onClose, onImport }: Props): ReactEleme
       const item = items[i]
       setProgress({ current: i + 1, total: items.length })
       try {
-        const geojson =
-          serviceType === 'wfs'
+        const { geojson, contentHash } = serviceType === 'wfs'
             ? await wfsGetFeatures(trimmedUrl, item.key, maxFeatures)
             : await ogcGetFeatures(trimmedUrl, item.key, maxFeatures)
-        onImport(geojson, item.name)
+        onImport(geojson, item.name, contentHash)
       } catch (e) {
         errors.push(`${item.name}: ${(e as Error).message}`)
       }

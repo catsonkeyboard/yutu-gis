@@ -37,12 +37,12 @@ export default function FieldCalculatorModal({ open, layerId, onClose }: Props):
     }
     setRunning(true)
     try {
-      const fc = await sqlCalculateField(
+      const { geojson: fc, contentHash } = await sqlCalculateField(
         layer.source as GeoJSON.FeatureCollection,
         expression,
         field.trim()
       )
-      setSource(layer.id, fc)
+      setSource(layer.id, fc, contentHash)
       message.success(t('fieldCalc.done', { field: field.trim() }))
       setField('')
       setExpression('')

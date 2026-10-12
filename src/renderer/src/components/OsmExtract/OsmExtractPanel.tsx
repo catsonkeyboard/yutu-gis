@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type maplibregl from 'maplibre-gl'
 import { nanoid } from 'nanoid'
 import {
@@ -125,6 +125,11 @@ export default function OsmExtractPanel({ map }: Props) {
     return byCat.filter((r) => r.subCategory === activeSubCategory)
   }, [rows, activeCategory, activeSubCategory])
 
+  // Latest extract response — kept by reference so an unfiltered single-layer
+  // import can reuse the original FC and its content-store hash.
+  const queriedFcRef = useRef<GeoJSON.FeatureCollection | null>(null)
+  const queriedHashRef = useRef<string | undefined>(undefined)
+
   const handleExtract = async () => {
     if (!bbox) return
     setLoading(true)
@@ -133,7 +138,9 @@ export default function OsmExtractPanel({ map }: Props) {
     setSelectedKeys([])
     setQueried(false)
     try {
-      const fc = await osmExtract(bbox[0], bbox[1], bbox[2], bbox[3])
+      const { geojson: fc, contentHash } = await osmExtract(bbox[0], bbox[1], bbox[2], bbox[3])
+      queriedFcRef.current = fc
+      queriedHashRef.current = contentHash
       const parsed: OsmFeature[] = fc.features.map((f, i) => {
         const props = (f.properties ?? {}) as Record<string, unknown>
         const geomType = f.geometry.type
@@ -176,12 +183,17 @@ export default function OsmExtractPanel({ map }: Props) {
   const handleImport = () => {
     const selected = rows.filter((r) => selectedKeys.includes(r.key))
 
-    let layers: { fc: GeoJSON.FeatureCollection; name: string }[]
+    let layers: { fc: GeoJSON.FeatureCollection; name: string; hash?: string }[]
     if (importMode === 'single') {
+      // whole = no row filtered out → the original FC is imported as-is
+      const whole = rows.length > 0 && selected.length === rows.length
       layers = [
         {
-          fc: { type: 'FeatureCollection', features: selected.map((r) => r.feature) },
+          fc: whole
+            ? (queriedFcRef.current as GeoJSON.FeatureCollection)
+            : { type: 'FeatureCollection', features: selected.map((r) => r.feature) },
           name: t('osm.layerNamePrefix'),
+          hash: whole ? queriedHashRef.current : undefined,
         },
       ]
     } else {
@@ -203,9 +215,9 @@ export default function OsmExtractPanel({ map }: Props) {
     }
 
     let lastId = ''
-    for (const { fc, name } of layers) {
+    for (const { fc, name, hash } of layers) {
       const id = nanoid()
-      addLayer({ id, name, type: 'geojson', source: fc, visible: true, opacity: 1 })
+      addLayer({ id, name, type: 'geojson', source: fc, visible: true, opacity: 1, contentHash: hash })
       lastId = id
     }
     if (lastId) setSelectedLayer(lastId)

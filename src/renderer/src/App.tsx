@@ -26,7 +26,7 @@ import {
 } from './services/api'
 import { importOfflineMap } from './utils/importOfflineMap'
 import { importGeoTiff } from './utils/importGeoTiff'
-import { serializeProject, loadProject } from './services/project'
+import { saveProject, loadProject } from './services/project'
 import { useLayerStore } from './stores/layerStore'
 import { useMapStore } from './stores/mapStore'
 import { useDrawStore, type DrawMode } from './stores/drawStore'
@@ -173,13 +173,16 @@ export default function App() {
       const name =
         allFeatures.length === 1 ? featName(allFeatures[0], layers[0].name) : layers[0].name
       const id = nanoid()
+      // single-layer import keeps the original FC reference and its store hash
+      const single = layers.length === 1 ? layers[0] : undefined
       addLayer({
         id,
         name,
         type: 'geojson',
-        source: { type: 'FeatureCollection', features: allFeatures },
+        source: single ? single.geojson : { type: 'FeatureCollection', features: allFeatures },
         visible: true,
-        opacity: 1
+        opacity: 1,
+        contentHash: single?.contentHash,
       })
       setSelectedLayer(id)
       message.success(`已导入：${name}（${allFeatures.length} 个要素）`)
@@ -353,7 +356,7 @@ export default function App() {
     ])
     if (!filePath) return
     try {
-      await window.electronAPI.writeFile(filePath, JSON.stringify(serializeProject()))
+      await saveProject(filePath)
       addRecentProject(filePath)
       message.success(`已保存工程：${filePath.split('/').pop()}`)
     } catch (e) {
@@ -365,7 +368,7 @@ export default function App() {
     try {
       const buffer = await window.electronAPI.readFile(filePath)
       const json = JSON.parse(new TextDecoder().decode(buffer))
-      const { warnings } = await loadProject(json)
+      const { warnings } = await loadProject(json, filePath)
       warnings.forEach((w) => message.warning(w))
       addRecentProject(filePath)
       message.success('工程已打开')
@@ -562,9 +565,9 @@ export default function App() {
       <WFSModal
         open={wfsOpen}
         onClose={() => setWfsOpen(false)}
-        onImport={(geojson, name) => {
+        onImport={(geojson, name, contentHash) => {
           const id = nanoid()
-          addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1 })
+          addLayer({ id, name, type: 'geojson', source: geojson, visible: true, opacity: 1, contentHash })
           setSelectedLayer(id)
           const bounds = getGeoJSONBounds(geojson)
           if (bounds) requestFitBounds(bounds)
