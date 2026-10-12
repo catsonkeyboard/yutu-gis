@@ -25,7 +25,7 @@ export default function BasemapSwitcher() {
     <div
       style={{
         position: 'absolute',
-        bottom: 36,
+        bottom: 130,
         right: 10,
         zIndex: 10,
       }}
