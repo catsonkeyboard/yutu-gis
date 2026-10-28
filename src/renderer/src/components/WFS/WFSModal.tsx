@@ -209,7 +209,7 @@ export default function WFSModal({ open, onClose, onImport }: Props): ReactEleme
           label={
             <span>
               {serviceType === 'wfs' ? '图层名称 (TypeName)' : '集合 ID (Collection)'}
-              <span style={{ fontWeight: 400, marginLeft: 8, fontSize: 11, color: 'var(--color-text-secondary, #8f959e)' }}>
+              <span style={{ fontWeight: 400, marginLeft: 8, fontSize: 11, color: 'var(--color-text-secondary)' }}>
                 已选 {selectedItems.size} 项，可多选
               </span>
             </span>
@@ -232,10 +232,10 @@ export default function WFSModal({ open, onClose, onImport }: Props): ReactEleme
               style={{
                 maxHeight: 180,
                 overflowY: 'auto',
-                border: '1px solid #d9dce0',
-                borderRadius: 3,
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius)',
                 padding: '6px 8px',
-                background: '#fff',
+                background: 'var(--color-bg-elevated)',
               }}
             >
               {displayedLayers.map((item) => {
@@ -257,7 +257,7 @@ export default function WFSModal({ open, onClose, onImport }: Props): ReactEleme
                     >
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{key}</span>
                       {title && title !== key && (
-                        <span style={{ fontSize: 11, color: '#8f959e', marginLeft: 6 }}>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginLeft: 6 }}>
                           ({title})
                         </span>
                       )}
@@ -293,9 +293,9 @@ export default function WFSModal({ open, onClose, onImport }: Props): ReactEleme
                     alignItems: 'center',
                     gap: 4,
                     fontSize: 11,
-                    background: '#e4edf6',
+                    background: 'var(--color-primary-bg)',
                     padding: '2px 6px',
-                    borderRadius: 3,
+                    borderRadius: 'var(--radius)',
                   }}
                 >
                   {key}

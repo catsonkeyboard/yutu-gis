@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Button,
-  Classes,
   Icon,
   InputGroup,
   Intent,
@@ -12,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useLayerStore } from '../../stores/layerStore'
 import { useMapStore } from '../../stores/mapStore'
-import { useStylePanelStore } from '../../stores/stylePanelStore'
+import { openStylePanel } from '../../stores/floatingPanels'
 import { getGeoJSONBounds } from '../../utils/geo'
 
 interface Props {
@@ -31,7 +30,6 @@ export default function LayerPanel({ onExportLayer }: Props) {
     setEditingId(null)
   }
   const requestFitBounds = useMapStore((s) => s.requestFitBounds)
-  const openStylePanel = useStylePanelStore((s) => s.openFor)
   const listRef = useRef<HTMLDivElement>(null)
 
   // Scroll selected item into view when selection changes (e.g. from map click)
@@ -63,17 +61,18 @@ export default function LayerPanel({ onExportLayer }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', userSelect: 'none' }}>
       <div
         style={{
-          padding: '8px 10px',
-          borderBottom: '1px solid var(--color-border, #d9dce0)',
+          padding: '14px 12px 10px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
-          background: 'var(--color-bg-panel, #f5f6f8)',
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{t('layer.panel')}</span>
-        <span className={Classes.TEXT_MUTED} style={{ fontSize: 11 }}>
+        <span className="yutu-section-label">{t('layer.panel')}</span>
+        <span
+          className="yutu-num"
+          style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}
+        >
           {layers.length}
         </span>
       </div>
@@ -104,20 +103,13 @@ export default function LayerPanel({ onExportLayer }: Props) {
               <div
                 key={layer.id}
                 data-layer-id={layer.id}
+                className={
+                  isSelected ? 'yutu-layer-row yutu-layer-row--selected' : 'yutu-layer-row'
+                }
                 onClick={() => handleSelectLayer(layer.id)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '5px 8px',
-                  opacity: layer.visible ? 1 : 0.45,
-                  transition: 'background-color 0.12s ease',
-                  backgroundColor: isSelected ? 'var(--color-bg-selected, #e4edf6)' : 'transparent',
-                  borderLeft: isSelected ? '3px solid var(--color-primary, #1a6fb5)' : '3px solid transparent',
-                  cursor: 'pointer',
-                  fontSize: 12,
+                  opacity: layer.visible ? 1 : 0.4,
                 }}
-                className="bp6-menu-item"
               >
                 {/* Left: Icon & Layer Name */}
                 <div

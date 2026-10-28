@@ -7,12 +7,12 @@ import {
   ControlGroup,
   Divider,
   HTMLSelect,
-  Icon,
   NumericInput,
   SegmentedControl,
   Slider,
 } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
+import FloatingPanel from '../common/FloatingPanel'
 import { useLayerStore, type LayerStyle } from '../../stores/layerStore'
 import { useStylePanelStore } from '../../stores/stylePanelStore'
 import { deriveColumns } from '../AttributeTable/tableUtils'
@@ -133,8 +133,8 @@ export default function StylePanel(): ReactElement | null {
   const labelStyle: React.CSSProperties = {
     fontSize: 11,
     fontWeight: 600,
-    color: '#646a73',
-    margin: '6px 0 4px',
+    color: 'var(--color-text-secondary)',
+    margin: '8px 0 4px',
   }
   const gradClasses = (style.breaks?.length ?? 5) || 5
   const gradMethodDefault: 'equal' | 'quantile' = 'equal'
@@ -146,32 +146,12 @@ export default function StylePanel(): ReactElement | null {
   }))
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 320,
-        maxHeight: 'calc(100% - 24px)',
-        overflowY: 'auto',
-        background: '#fff',
-        borderRadius: 4,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-        zIndex: 620,
-        padding: '10px 14px 14px',
-        border: '1px solid var(--color-border, #d9dce0)',
-        fontSize: 12,
-      }}
+    <FloatingPanel
+      title={`${t('style.title')} — ${layer.name}`}
+      icon="tint"
+      width={320}
+      onClose={close}
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <div style={{ flex: 1, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <Icon icon="tint" size={14} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {t('style.title')} — {layer.name}
-          </span>
-        </div>
-        <Button size="small" variant="minimal" icon="cross" onClick={close} />
-      </div>
 
       <SegmentedControl
         small
@@ -437,6 +417,6 @@ export default function StylePanel(): ReactElement | null {
           {t('style.reset')}
         </Button>
       </div>
-    </div>
+    </FloatingPanel>
   )
 }

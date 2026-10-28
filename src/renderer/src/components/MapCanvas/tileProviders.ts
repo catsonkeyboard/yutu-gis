@@ -1,6 +1,7 @@
 import type { StyleSpecification } from 'maplibre-gl'
 
 export type MapProvider =
+  | 'carto-dark'
   | 'osm'
   | 'google-street'
   | 'google-satellite'
@@ -19,6 +20,19 @@ const GLYPHS_URL = 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
 
 export function getTileStyle(provider: MapProvider, apiKeys: ApiKeys): StyleSpecification {
   const styles: Record<MapProvider, StyleSpecification> = {
+    'carto-dark': {
+      version: 8,
+      sources: {
+        carto: {
+          type: 'raster',
+          tiles: ['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution:
+            '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+        },
+      },
+      layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
+    },
     osm: {
       version: 8,
       sources: {
@@ -103,6 +117,7 @@ export function getTileStyle(provider: MapProvider, apiKeys: ApiKeys): StyleSpec
 
 /** Plain-text data attribution for a provider (baked into exported images). */
 export function getAttribution(provider: MapProvider): string {
+  if (provider === 'carto-dark') return '© OpenStreetMap contributors © CARTO'
   if (provider === 'osm') return '© OpenStreetMap contributors'
   if (provider.startsWith('google')) return '© Google'
   return '© 高德地图'

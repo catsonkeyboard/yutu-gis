@@ -49,28 +49,28 @@ export default function MapContextMenu({ pos, onExtract, onTilesDownload, onClos
         position: 'fixed',
         left,
         top,
-        background: '#fff',
-        border: '1px solid #e8e8e8',
-        borderRadius: 6,
-        boxShadow: '0 3px 10px rgba(0,0,0,0.15)',
-        zIndex: 1000,
+        background: 'var(--color-bg-elevated)',
+        border: '1px solid var(--color-border-strong)',
+        borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow-lg)',
+        zIndex: 'var(--z-context-menu)',
         minWidth: menuWidth,
-        padding: '4px 0',
+        padding: 4,
         userSelect: 'none',
+        color: 'var(--color-text)',
+        fontSize: 12,
       }}
     >
       {items.map((item) => (
         <div
           key={item.label}
+          className="yutu-context-item"
           style={{
-            padding: '6px 14px',
+            padding: '6px 10px',
+            borderRadius: 'var(--radius-sm)',
             cursor: 'pointer',
-            fontSize: 13,
-            color: '#333',
             whiteSpace: 'nowrap',
           }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = '#f5f5f5')}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'transparent')}
           onClick={() => {
             onClose()
             item.action(pos.bounds)

@@ -14,7 +14,7 @@ import { COLOR_RAMPS } from '../StylePanel/colorRamps'
 
 type ChartType = 'histogram' | 'bar' | 'pie'
 
-const BAR_COLOR = '#1a6fb5'
+const BAR_COLOR = 'var(--color-primary)'
 const PIE_COLORS = COLOR_RAMPS.Spectral
 
 interface Props {
@@ -85,10 +85,10 @@ export default function ChartsTab({ features, columns, height }: Props): ReactEl
               </g>
             )
           })}
-          <text x={4} y={chartHeight - 4} fontSize={10} fill="#8f959e">
+          <text x={4} y={chartHeight - 4} fontSize={10} fill="var(--color-text-tertiary)">
             {fmtNum(bins[0].x0)}
           </text>
-          <text x={chartWidth - 4} y={chartHeight - 4} fontSize={10} textAnchor="end" fill="#8f959e">
+          <text x={chartWidth - 4} y={chartHeight - 4} fontSize={10} textAnchor="end" fill="var(--color-text-tertiary)">
             {fmtNum(bins[bins.length - 1].x1)}
           </text>
         </svg>
@@ -108,13 +108,13 @@ export default function ChartsTab({ features, columns, height }: Props): ReactEl
             const y = i * rowH + 4
             return (
               <g key={c.label}>
-                <text x={110} y={y + rowH - 6} fontSize={11} textAnchor="end" fill="#1f2329">
+                <text x={110} y={y + rowH - 6} fontSize={11} textAnchor="end" fill="var(--color-text)">
                   {c.label.slice(0, 14)}
                 </text>
                 <rect x={120} y={y + 2} width={barW} height={rowH - 4} fill={BAR_COLOR} opacity={0.85}>
                   <title>{`${c.label}: ${c.count}`}</title>
                 </rect>
-                <text x={126 + barW} y={y + rowH - 6} fontSize={10} fill="#8f959e">
+                <text x={126 + barW} y={y + rowH - 6} fontSize={10} fill="var(--color-text-secondary)">
                   {c.count}
                 </text>
               </g>
@@ -170,7 +170,7 @@ export default function ChartsTab({ features, columns, height }: Props): ReactEl
           return (
             <g key={s.label}>
               <rect x={lx} y={ly - 9} width={10} height={10} fill={s.color} />
-              <text x={lx + 16} y={ly} fontSize={11} fill="#1f2329">
+              <text x={lx + 16} y={ly} fontSize={11} fill="var(--color-text)">
                 {s.label.slice(0, 16)} — {s.count} ({s.percent}%)
               </text>
             </g>

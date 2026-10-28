@@ -139,7 +139,7 @@ export default function ExportLayersModal({ open, onClose, initialLayerId }: Pro
                 options={FORMATS}
               />
               {format === 'shp' && (
-                <div style={{ fontSize: 11, color: '#8f959e', marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
                   {t('export.shpHint')}
                 </div>
               )}
@@ -148,14 +148,14 @@ export default function ExportLayersModal({ open, onClose, initialLayerId }: Pro
             <FormGroup label={t('export.selectLayers') || '选择导出图层'}>
               <div
                 style={{
-                  border: '1px solid #d9dce0',
-                  borderRadius: 3,
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius)',
                   padding: '8px 10px',
                   maxHeight: 200,
                   overflowY: 'auto',
                 }}
               >
-                <div style={{ paddingBottom: 6, borderBottom: '1px solid #f0f0f0', marginBottom: 6 }}>
+                <div style={{ paddingBottom: 6, borderBottom: '1px solid var(--color-border)', marginBottom: 6 }}>
                   <Checkbox
                     indeterminate={indeterminate}
                     checked={allChecked}

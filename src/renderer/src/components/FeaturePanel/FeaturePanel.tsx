@@ -256,7 +256,7 @@ export default function FeaturePanel(): ReactElement {
                       <td
                         style={{
                           padding: '5px 8px',
-                          color: prop.key.startsWith('_') ? '#8f959e' : 'inherit',
+                          color: prop.key.startsWith('_') ? 'var(--color-text-tertiary)' : 'inherit',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',

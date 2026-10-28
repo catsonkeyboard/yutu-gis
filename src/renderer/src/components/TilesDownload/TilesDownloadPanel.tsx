@@ -5,7 +5,6 @@ import {
   Classes,
   ControlGroup,
   HTMLSelect,
-  Icon,
   InputGroup,
   Intent,
   ProgressBar,
@@ -18,6 +17,7 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useMapBboxSelect, viewportBbox } from '../../hooks/useMapBboxSelect'
 import BboxSelector from '../common/BboxSelector'
+import FloatingPanel from '../common/FloatingPanel'
 import { getTileUrlTemplate, type MapProvider } from '../MapCanvas/tileProviders'
 import { countTiles } from '../../utils/tileMath'
 import {
@@ -71,7 +71,7 @@ export default function TilesDownloadPanel({ map }: Props) {
     setBbox,
     setSelecting,
     sourceId: 'tiles-bbox',
-    color: '#1a6fb5',
+    color: 'var(--color-primary)',
     provider: defaultProvider,
   })
 
@@ -220,37 +220,19 @@ export default function TilesDownloadPanel({ map }: Props) {
   const labelStyle: React.CSSProperties = {
     fontSize: 11,
     fontWeight: 600,
-    color: '#646a73',
-    margin: '6px 0 3px',
+    color: 'var(--color-text-secondary)',
+    margin: '8px 0 4px',
   }
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 320,
-        maxHeight: 'calc(100% - 24px)',
-        overflowY: 'auto',
-        background: '#fff',
-        borderRadius: 4,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-        zIndex: 600,
-        padding: '10px 14px 14px',
-        border: '1px solid var(--color-border, #d9dce0)',
-        fontSize: 12,
-      }}
+    <FloatingPanel
+      title="下载地图瓦片"
+      icon="cloud-download"
+      width={320}
+      onClose={handleClose}
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <div style={{ flex: 1, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Icon icon="cloud-download" size={14} />
-          <span>下载地图瓦片</span>
-        </div>
-        <Button size="small" variant="minimal" icon="cross" onClick={handleClose} />
-      </div>
+      <div className="yutu-field-label">范围（WGS-84）</div>
 
-      <div style={labelStyle}>范围（WGS-84）</div>
       <div style={{ marginBottom: 8 }}>
         <BboxSelector
           bbox={bbox}
@@ -339,10 +321,10 @@ export default function TilesDownloadPanel({ map }: Props) {
             fontSize: 12,
             color:
               estimate > MAX_TILES
-                ? '#c5382c'
+                ? 'var(--color-error)'
                 : estimate > WARN_TILES
-                  ? '#d4880f'
-                  : '#646a73',
+                  ? 'var(--color-warning)'
+                  : 'var(--color-text-secondary)',
           }}
         >
           预计 {estimate.toLocaleString()} 张瓦片
@@ -389,6 +371,6 @@ export default function TilesDownloadPanel({ map }: Props) {
           text="开始下载"
         />
       )}
-    </div>
+    </FloatingPanel>
   )
 }

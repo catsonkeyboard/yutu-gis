@@ -1,5 +1,7 @@
-import { Button, Checkbox, Classes, Divider, Icon, Intent } from '@blueprintjs/core'
+import { Button, Checkbox, Classes, Divider, Intent } from '@blueprintjs/core'
 import { useTranslation } from 'react-i18next'
+import FloatingPanel from '../common/FloatingPanel'
+import StatusDot from '../common/StatusDot'
 import {
   useMonitorStore,
   isMonitorActive,
@@ -68,10 +70,7 @@ export default function MonitorPanel(): React.JSX.Element | null {
     requireKey(apiKeys.openweather, 'monitor.needKey', () => toggleWeather(key), !weather[key])
 
   const sectionTitle = (text: string): React.JSX.Element => (
-    <div
-      className={Classes.TEXT_MUTED}
-      style={{ fontSize: 11, fontWeight: 600, margin: '6px 0 4px' }}
-    >
+    <div className="yutu-section-label" style={{ margin: '12px 0 4px' }}>
       {text}
     </div>
   )
@@ -89,46 +88,27 @@ export default function MonitorPanel(): React.JSX.Element | null {
   )
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 320,
-        maxHeight: 'calc(100% - 24px)',
-        overflowY: 'auto',
-        background: '#fff',
-        borderRadius: 4,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-        zIndex: 600,
-        padding: '10px 14px 14px',
-        border: '1px solid var(--color-border, #d9dce0)',
-        fontSize: 12
-      }}
+    <FloatingPanel
+      title={t('monitor.title')}
+      icon="pulse"
+      width={320}
+      onClose={() => setPanelOpen(false)}
+      badge={
+        isMonitorActive({
+          weather,
+          gibs,
+          earthquakeOn,
+          typhoonOn,
+          fireOn,
+          gdacsOn,
+          aqiOn,
+        }) ? (
+          <span style={{ position: 'relative', display: 'inline-flex', width: 6, height: 6 }}>
+            <StatusDot size={6} title={t('monitor.title')} />
+          </span>
+        ) : undefined
+      }
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <div
-          style={{
-            flex: 1,
-            fontWeight: 600,
-            fontSize: 13,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6
-          }}
-        >
-          <Icon icon="pulse" size={14} />
-          <span>{t('monitor.title')}</span>
-          {isMonitorActive({ weather, gibs, earthquakeOn, typhoonOn, fireOn, gdacsOn, aqiOn }) && (
-            <span
-              title={t('monitor.weather')}
-              style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#15b374' }}
-            />
-          )}
-        </div>
-        <Button size="small" variant="minimal" icon="cross" onClick={() => setPanelOpen(false)} />
-      </div>
-
       {sectionTitle(t('monitor.weather'))}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Checkbox
@@ -224,9 +204,9 @@ export default function MonitorPanel(): React.JSX.Element | null {
       {error && (
         <>
           <Divider style={{ margin: '8px 0' }} />
-          <div style={{ color: '#c5382c', fontSize: 11 }}>{error}</div>
+          <div style={{ color: 'var(--color-error)', fontSize: 11 }}>{error}</div>
         </>
       )}
-    </div>
+    </FloatingPanel>
   )
 }

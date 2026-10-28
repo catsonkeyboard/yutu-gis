@@ -30,6 +30,7 @@
   "map": {
     "basemap": "底图切换",
     "providers": {
+      "carto-dark": "CARTO 暗色图",
       "osm": "OSM 街道图",
       "google-street": "Google 街道图",
       "google-satellite": "Google 影像图",

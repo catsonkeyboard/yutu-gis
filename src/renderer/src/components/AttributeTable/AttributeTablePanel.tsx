@@ -171,8 +171,8 @@ export default function AttributeTablePanel(): ReactElement {
       style={{
         height,
         flexShrink: 0,
-        borderTop: '1px solid var(--color-border, #d9dce0)',
-        background: '#fff',
+        borderTop: '1px solid var(--color-border)',
+        background: 'var(--color-bg-panel)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -180,6 +180,7 @@ export default function AttributeTablePanel(): ReactElement {
       }}
     >
       <div
+        className="yutu-resize-handle-row"
         onMouseDown={handleResizeStart}
         style={{
           position: 'absolute',
@@ -188,20 +189,20 @@ export default function AttributeTablePanel(): ReactElement {
           right: 0,
           height: 5,
           cursor: 'row-resize',
-          zIndex: 20,
+          zIndex: 'var(--z-panel)',
         }}
       />
 
       {/* Header */}
       <div
         style={{
-          padding: '4px 8px',
-          borderBottom: '1px solid var(--color-border, #e5e7eb)',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--color-border)',
           display: 'flex',
           alignItems: 'center',
           gap: 8,
           flexShrink: 0,
-          backgroundColor: 'var(--color-bg-panel, #f5f6f8)',
+          backgroundColor: 'var(--color-bg-panel)',
           fontSize: 12,
         }}
       >
@@ -348,8 +349,8 @@ export default function AttributeTablePanel(): ReactElement {
                       <Cell
                         style={{
                           fontSize: 12,
-                          backgroundColor: isRowSelected ? '#e4edf6' : undefined,
-                          color: c.internal ? '#aaa' : undefined,
+                          backgroundColor: isRowSelected ? 'var(--color-bg-selected)' : undefined,
+                          color: c.internal ? 'var(--color-text-tertiary)' : undefined,
                           textAlign: c.numeric ? 'right' : 'left',
                         }}
                       >

@@ -429,8 +429,8 @@ export default function App() {
         <aside
           style={{
             width: siderWidth,
-            background: '#f5f6f8',
-            borderRight: '1px solid #d9dce0',
+            background: 'var(--color-bg-panel)',
+            borderRight: '1px solid var(--color-border)',
             overflow: 'auto',
             position: 'relative',
             flexShrink: 0
@@ -438,6 +438,7 @@ export default function App() {
         >
           <LayerPanel onExportLayer={handleExportLayer} />
           <div
+            className="yutu-resize-handle"
             onMouseDown={handleSiderResizeStart}
             style={{
               position: 'absolute',
@@ -485,10 +486,11 @@ export default function App() {
               style={{
                 position: 'absolute',
                 inset: 0,
-                zIndex: 1000,
+                zIndex: 'var(--z-drag-overlay)',
                 pointerEvents: 'none',
-                background: 'rgba(26, 111, 181, 0.06)',
-                border: '2px dashed #1a6fb5',
+                background: 'var(--color-primary-bg)',
+                border: '2px dashed var(--color-primary)',
+                borderRadius: 'var(--radius-lg)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -496,13 +498,14 @@ export default function App() {
             >
               <span
                 style={{
-                  background: 'rgba(255,255,255,0.95)',
-                  padding: '6px 16px',
-                  borderRadius: 2,
+                  background: 'var(--color-bg-elevated)',
+                  padding: '8px 18px',
+                  borderRadius: 'var(--radius)',
                   fontSize: 13,
-                  color: '#1a6fb5',
+                  color: 'var(--color-primary)',
                   fontWeight: 500,
-                  border: '1px solid #d9dce0'
+                  border: '1px solid var(--color-border-strong)',
+                  boxShadow: 'var(--shadow-md)'
                 }}
               >
                 松开以导入
@@ -518,14 +521,13 @@ export default function App() {
         <aside
           style={{
             width: rightPanelWidth,
-            background: '#f5f6f8',
-            borderLeft: '1px solid #d9dce0',
+            background: 'var(--color-bg-panel)',
+            borderLeft: '1px solid var(--color-border)',
             overflow: 'hidden',
-            position: 'relative',
-            flexShrink: 0
           }}
         >
           <div
+            className="yutu-resize-handle"
             onMouseDown={handleRightPanelResizeStart}
             style={{
               position: 'absolute',
@@ -542,10 +544,10 @@ export default function App() {
       </div>
       <footer
         style={{
-          height: 24,
+          height: 26,
           padding: '0 12px',
-          background: '#f5f6f8',
-          borderTop: '1px solid #d9dce0',
+          background: 'var(--color-bg-panel)',
+          borderTop: '1px solid var(--color-border)',
           display: 'flex',
           alignItems: 'center',
           flexShrink: 0

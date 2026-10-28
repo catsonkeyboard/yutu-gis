@@ -146,7 +146,7 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
 
   const cityPanel = (
     <div style={{ paddingTop: 8 }}>
-      <div style={{ fontSize: 12, color: '#8f959e', marginBottom: 8 }}>
+      <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
         输入城市名或地名（支持中英文），点击搜索结果跳转
       </div>
       <ControlGroup fill>
@@ -171,7 +171,7 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
       {citySearched && (
         <div style={{ marginTop: 10 }}>
           {cityResults.length === 0 && !cityLoading ? (
-            <div style={{ padding: '16px 0', textAlign: 'center', color: '#8f959e', fontSize: 12 }}>
+            <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 12 }}>
               无匹配结果
             </div>
           ) : (
@@ -179,8 +179,8 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
               style={{
                 maxHeight: 260,
                 overflowY: 'auto',
-                border: '1px solid #d9dce0',
-                borderRadius: 3,
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius)',
               }}
             >
               {cityResults.map((item, idx) => (
@@ -190,14 +190,14 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
                   style={{
                     cursor: 'pointer',
                     padding: '8px 10px',
-                    borderBottom: idx < cityResults.length - 1 ? '1px solid #f0f0f0' : 'none',
+                    borderBottom: idx < cityResults.length - 1 ? '1px solid var(--color-border)' : 'none',
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 8,
                     transition: 'background 0.15s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f0f7ff'
+                    e.currentTarget.style.background = 'var(--color-primary-bg)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent'
@@ -205,13 +205,13 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
                 >
                   <Icon icon="map-marker" intent={Intent.PRIMARY} style={{ marginTop: 2, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1f2329', marginBottom: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', marginBottom: 1 }}>
                       {item.name}
                     </div>
                     <div
                       style={{
                         fontSize: 11,
-                        color: '#8f959e',
+                        color: 'var(--color-text-tertiary)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -234,7 +234,7 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
 
   const coordsPanel = (
     <div style={{ paddingTop: 8 }}>
-      <div style={{ fontSize: 12, color: '#8f959e', marginBottom: 10 }}>
+      <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 10 }}>
         输入十进制度数（如纬度 31.2304，经度 121.4737）
       </div>
       <FormGroup label="纬度 (Latitude)">
@@ -269,7 +269,7 @@ export default function LocationSearchModal({ open, onClose }: Props): ReactElem
 
   const iataPanel = (
     <div style={{ paddingTop: 8 }}>
-      <div style={{ fontSize: 12, color: '#8f959e', marginBottom: 10 }}>
+      <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 10 }}>
         输入 3 位 IATA 代码（如 PEK、SHA、CAN）跳转至该机场范围
       </div>
       <ControlGroup fill>

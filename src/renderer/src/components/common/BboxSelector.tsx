@@ -30,7 +30,7 @@ export default function BboxSelector({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
       <div style={{ display: 'flex', gap: 6 }}>
         <ControlGroup fill>
-          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel, #f5f6f8)', border: '1px solid #d9dce0', borderRight: 'none', borderRadius: '3px 0 0 3px', color: '#646a73' }}>
+          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel)', border: '1px solid var(--color-border)', borderRight: 'none', borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', color: 'var(--color-text-secondary)' }}>
             南
           </span>
           <NumericInput
@@ -43,7 +43,7 @@ export default function BboxSelector({
           />
         </ControlGroup>
         <ControlGroup fill>
-          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel, #f5f6f8)', border: '1px solid #d9dce0', borderRight: 'none', borderRadius: '3px 0 0 3px', color: '#646a73' }}>
+          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel)', border: '1px solid var(--color-border)', borderRight: 'none', borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', color: 'var(--color-text-secondary)' }}>
             北
           </span>
           <NumericInput
@@ -59,7 +59,7 @@ export default function BboxSelector({
 
       <div style={{ display: 'flex', gap: 6 }}>
         <ControlGroup fill>
-          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel, #f5f6f8)', border: '1px solid #d9dce0', borderRight: 'none', borderRadius: '3px 0 0 3px', color: '#646a73' }}>
+          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel)', border: '1px solid var(--color-border)', borderRight: 'none', borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', color: 'var(--color-text-secondary)' }}>
             西
           </span>
           <NumericInput
@@ -72,7 +72,7 @@ export default function BboxSelector({
           />
         </ControlGroup>
         <ControlGroup fill>
-          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel, #f5f6f8)', border: '1px solid #d9dce0', borderRight: 'none', borderRadius: '3px 0 0 3px', color: '#646a73' }}>
+          <span style={{ fontSize: 11, padding: '4px 6px', background: 'var(--color-bg-panel)', border: '1px solid var(--color-border)', borderRight: 'none', borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', color: 'var(--color-text-secondary)' }}>
             东
           </span>
           <NumericInput

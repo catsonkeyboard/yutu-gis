@@ -29,6 +29,7 @@ import { buildPaint } from '../StylePanel/styleUtils'
 import { setMap as setGlobalMap } from '../../services/mapRef'
 import { useTilesPanelStore } from '../../stores/tilesPanelStore'
 import { useOsmPanelStore } from '../../stores/osmPanelStore'
+import { toggleFloatingPanel } from '../../stores/floatingPanels'
 import { loadLazyLayers } from '../../services/project'
 import { parseApiError } from '../../services/api'
 import { message } from '../../utils/toaster'
@@ -37,7 +38,7 @@ const DEFAULT_COLOR = '#0080ff'
 const SELECTED_COLOR = '#ff7700'
 
 interface Props {
-  onSave?: () => void
+  onSave: () => void
 }
 
 export default function MapCanvas({ onSave }: Props) {
@@ -520,16 +521,12 @@ export default function MapCanvas({ onSave }: Props) {
       <MapContextMenu
         pos={contextMenuPos}
         onExtract={(bounds) => {
-          useTilesPanelStore.getState().setOpen(false)
-          const store = useOsmPanelStore.getState()
-          store.setBbox(bounds)
-          store.setOpen(true)
+          toggleFloatingPanel('osm', true)
+          useOsmPanelStore.getState().setBbox(bounds)
         }}
         onTilesDownload={(bounds) => {
-          useOsmPanelStore.getState().setOpen(false)
-          const store = useTilesPanelStore.getState()
-          store.setBbox(bounds)
-          store.setOpen(true)
+          toggleFloatingPanel('tiles', true)
+          useTilesPanelStore.getState().setBbox(bounds)
         }}
         onClose={() => setContextMenuPos(null)}
       />

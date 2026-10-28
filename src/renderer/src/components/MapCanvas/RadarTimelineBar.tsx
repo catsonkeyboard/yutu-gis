@@ -32,15 +32,16 @@ export default function RadarTimelineBar(): ReactElement | null {
         left: '50%',
         transform: 'translateX(-50%)',
         width: 380,
-        background: '#fff',
-        borderRadius: 4,
-        boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
-        zIndex: 620,
+        maxWidth: 'calc(100% - 48px)',
+        background: 'var(--color-bg-elevated)',
+        borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow-md)',
+        zIndex: 'var(--z-panel--front)',
         padding: '5px 12px',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        border: '1px solid var(--color-border, #d9dce0)',
+        border: '1px solid var(--color-border)',
         fontSize: 12,
       }}
     >
@@ -67,7 +68,7 @@ export default function RadarTimelineBar(): ReactElement | null {
       <Tag minimal style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
         {timeLabel}
       </Tag>
-      <span style={{ fontSize: 11, color: '#646a73', whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', whiteSpace: 'nowrap' }}>
         {t('monitor.radar')}
       </span>
     </div>

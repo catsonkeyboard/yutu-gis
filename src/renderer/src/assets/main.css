@@ -17,23 +17,26 @@ body,
 }
 
 /* ============================================================================
-   Desktop GIS Enterprise UI Styles (Palantir Blueprint.js Compact Theme)
+   Desktop GIS Enterprise UI — 深色石墨主题（Palantir Blueprint.js 6）
    ============================================================================ */
 
-/* --- 通用精简滚动条 --- */
+/* --- 精简滚动条 --- */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c4c8cc;
-  border-radius: 3px;
+  background: #4a4a4a;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8adb3;
+  background: #6b7276;
+  background-clip: padding-box;
 }
 
 /* --- Blueprint 紧凑微调 --- */
@@ -42,14 +45,277 @@ body,
 }
 
 .bp6-compact .bp6-button {
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 .bp6-dialog {
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
+  background: var(--color-bg-elevated);
+}
+
+.bp6-dialog-header {
+  border-bottom: 1px solid var(--color-border);
 }
 
 .bp6-tag {
   border-radius: var(--radius-sm);
+}
+
+.bp6-card {
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: none;
+  border: 1px solid var(--color-border);
+}
+
+/* 数字统一等宽，避免跳列（参考图里的统计数值） */
+.bp6-numeric,
+.yutu-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 浮动面板（FloatingPanel 组件） --- */
+.yutu-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  max-height: calc(100% - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: var(--z-panel);
+  color: var(--color-text);
+}
+
+.yutu-panel--front {
+  z-index: var(--z-panel--front);
+}
+
+.yutu-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.yutu-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--font-size-medium);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.yutu-panel-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yutu-panel-body {
+  padding: 12px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* --- 分组标签（侧栏/表单分区，参考图中的「使用 / 模型 / 观测」） --- */
+.yutu-section-label {
+  font-size: var(--font-size-micro);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* --- 表单标签 --- */
+.yutu-field-label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin: 8px 0 4px;
+}
+
+/* --- 统计数值（参考图中的 KPI 大数字） --- */
+.yutu-kpi-value {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.yutu-kpi-label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-tertiary);
+}
+
+/* --- 进度/占比条（参考图中的指标行） --- */
+.yutu-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #444444;
+  overflow: hidden;
+}
+
+.yutu-track-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-primary);
+}
+
+/* --- 分隔线 --- */
+.yutu-divider {
+  height: 1px;
+  background: var(--color-border);
+  border: 0;
+}
+
+/* --- MapLibre 控件深色化 --- */
+.maplibregl-ctrl-group {
+  background: var(--color-bg-elevated) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--color-border) !important;
+}
+
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1) opacity(0.72);
+}
+
+.maplibregl-ctrl-group button:hover {
+  background: var(--color-bg-hover) !important;
+}
+
+.maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon {
+  filter: invert(1) opacity(1);
+}
+
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-scale {
+  background: rgba(48, 48, 48, 0.85) !important;
+  color: var(--color-text-tertiary) !important;
+  border-color: var(--color-border-strong) !important;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--color-text-secondary) !important;
+}
+
+.maplibregl-popup-content {
+  background: var(--color-bg-elevated) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-md) !important;
+  font-size: 12px;
+  padding: 8px 10px !important;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: var(--color-bg-elevated) !important;
+  border-bottom-color: var(--color-bg-elevated) !important;
+}
+
+.maplibregl-popup-close-button {
+  color: var(--color-text-tertiary) !important;
+}
+
+/* --- 地图交互提示（蓝图画布参考） --- */
+.bp6-tooltip {
+  background: var(--color-bg-input) !important;
+  color: var(--color-text) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-md) !important;
+  font-size: var(--font-size-small);
+}
+
+/* --- 侧栏拖拽手柄：悬停时才显示强调色 --- */
+.yutu-resize-handle {
+  background: transparent;
+  transition: background-color 0.12s ease;
+}
+
+.yutu-resize-handle:hover,
+.yutu-resize-handle:active {
+  background: var(--color-primary);
+}
+
+.bp6-popover-content,
+.bp6-menu {
+  border-radius: var(--radius) !important;
+}
+
+/* --- 底部面板横向拖拽手柄 --- */
+.yutu-resize-handle-row {
+  background: transparent;
+  transition: background-color 0.12s ease;
+}
+
+.yutu-resize-handle-row:hover,
+.yutu-resize-handle-row:active {
+  background: var(--color-primary);
+}
+
+/* --- 右键菜单项 --- */
+.yutu-context-item:hover {
+  background: var(--color-bg-hover);
+}
+
+/* --- 图层行 --- */
+.yutu-layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  margin: 0 6px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.12s ease;
+}
+
+.yutu-layer-row:hover {
+  background: var(--color-bg-hover);
+}
+
+.yutu-layer-row--selected {
+  background: var(--color-bg-selected);
+  border-left-color: var(--color-primary);
+}
+
+.yutu-layer-row--selected:hover {
+  background: var(--color-bg-selected);
+}
+
+/* --- 工具栏：激活态用抬升的中性面，运行中才用强调色 --- */
+.bp6-button.yutu-tool-active,
+.bp6-button.yutu-tool-active:hover {
+  background: var(--color-bg-selected) !important;
+  color: var(--color-text) !important;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong) !important;
+}
+
+.bp6-button.yutu-tool-live {
+  color: var(--color-primary) !important;
+}
+
+.bp6-button.yutu-tool-live:hover {
+  background: var(--color-primary-bg) !important;
 }

@@ -184,7 +184,7 @@ export default function SwipeOverlay({ map }: Props): ReactElement | null {
         style={{
           position: 'absolute',
           inset: 0,
-          zIndex: 450,
+          zIndex: 'var(--z-map-overlay)',
           clipPath: `inset(0 0 0 ${position * 100}%)`,
           pointerEvents: 'none',
         }}
@@ -197,8 +197,8 @@ export default function SwipeOverlay({ map }: Props): ReactElement | null {
           bottom: 0,
           left: `${position * 100}%`,
           width: 2,
-          background: '#1a6fb5',
-          zIndex: 460,
+          background: 'var(--color-primary)',
+          zIndex: 'var(--z-map-overlay)',
           cursor: 'col-resize',
         }}
         onMouseDown={handleDragStart}
@@ -211,13 +211,13 @@ export default function SwipeOverlay({ map }: Props): ReactElement | null {
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: '#1a6fb5',
-            color: '#fff',
+            background: 'var(--color-primary)',
+            color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 12,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: 'var(--shadow-md)',
             userSelect: 'none',
           }}
         >

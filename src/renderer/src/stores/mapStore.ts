@@ -1,12 +1,7 @@
 import { create } from 'zustand'
+import type { MapProvider } from '../components/MapCanvas/tileProviders'
 
-export type MapProvider =
-  | 'osm'
-  | 'google-street'
-  | 'google-satellite'
-  | 'amap-street'
-  | 'amap-satellite'
-  | 'amap-terrain'
+export type { MapProvider }
 
 interface FitBoundsRequest {
   bounds: [[number, number], [number, number]]

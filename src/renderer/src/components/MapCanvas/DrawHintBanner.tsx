@@ -1,56 +1,44 @@
-import { useDrawStore } from '../../stores/drawStore'
+import type { ReactElement } from 'react'
+import { Button, Icon } from '@blueprintjs/core'
+import { useDrawStore, type DrawMode } from '../../stores/drawStore'
 
-const HINTS: Record<string, string> = {
-  point: '点击地图添加点，按 Escape 取消',
-  line: '点击添加节点，双击完成绘制，按 Escape 取消',
-  polygon: '点击添加顶点，点击起点或双击完成围栏，按 Escape 取消',
+const HINTS: Record<Exclude<DrawMode, 'off'>, string> = {
+  point: '在地图上单击添加点要素',
+  line: '依次单击添加折线顶点，双击结束',
+  polygon: '依次单击添加面顶点，双击闭合',
 }
 
-interface Props {
-  onSave?: () => void
-}
-
-export default function DrawHintBanner({ onSave }: Props) {
+export default function DrawHintBanner({ onSave }: { onSave: () => void }): ReactElement | null {
   const drawMode = useDrawStore((s) => s.drawMode)
   const features = useDrawStore((s) => s.features)
+
   if (drawMode === 'off') return null
 
   return (
     <div
       style={{
         position: 'absolute',
-        top: 8,
+        top: 12,
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 10,
+        zIndex: 'var(--z-map-overlay)',
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        background: 'rgba(22, 119, 255, 0.9)',
-        color: '#fff',
-        padding: '4px 12px',
-        borderRadius: 4,
-        fontSize: 13,
+        gap: 10,
+        background: 'var(--color-bg-elevated)',
+        color: 'var(--color-text)',
+        padding: '6px 8px 6px 12px',
+        borderRadius: 'var(--radius)',
+        border: '1px solid var(--color-border-strong)',
+        boxShadow: 'var(--shadow-md)',
+        fontSize: 12,
         whiteSpace: 'nowrap',
       }}
     >
+      <Icon icon="edit" size={12} color="var(--color-primary)" />
       <span style={{ pointerEvents: 'none' }}>{HINTS[drawMode]}</span>
       {features.length > 0 && (
-        <button
-          onClick={onSave}
-          style={{
-            background: 'rgba(255,255,255,0.25)',
-            border: '1px solid rgba(255,255,255,0.6)',
-            borderRadius: 3,
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: 12,
-            padding: '1px 10px',
-            lineHeight: '20px',
-          }}
-        >
-          完成并保存
-        </button>
+        <Button size="small" intent="primary" icon="floppy-disk" onClick={onSave} text="完成并保存" />
       )}
     </div>
   )

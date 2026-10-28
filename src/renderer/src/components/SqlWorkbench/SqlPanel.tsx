@@ -278,22 +278,23 @@ export default function SqlPanel(): ReactElement {
       style={{
         height,
         flexShrink: 0,
-        borderTop: '1px solid #d9dce0',
-        background: '#fff',
+        borderTop: '1px solid var(--color-border)',
+        background: 'var(--color-bg-panel)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
       }}
     >
       <div
+        className="yutu-resize-handle-row"
         onMouseDown={handleResizeStart}
-        style={{ position: 'absolute', top: -2, left: 0, right: 0, height: 5, cursor: 'row-resize', zIndex: 20 }}
+        style={{ position: 'absolute', top: -2, left: 0, right: 0, height: 5, cursor: 'row-resize', zIndex: 'var(--z-panel)' }}
       />
       {/* Header */}
       <div
         style={{
-          padding: '4px 8px',
-          borderBottom: '1px solid #e5e7eb',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--color-border)',
           display: 'flex',
           alignItems: 'center',
           gap: 8,
@@ -386,7 +387,7 @@ export default function SqlPanel(): ReactElement {
           style={{
             width: 190,
             flexShrink: 0,
-            borderRight: '1px solid #e5e7eb',
+            borderRight: '1px solid var(--color-border)',
             overflow: 'auto',
             padding: '4px 4px',
           }}
@@ -430,7 +431,7 @@ export default function SqlPanel(): ReactElement {
               resize: 'none',
               borderRadius: 0,
               border: 'none',
-              borderBottom: '1px solid #e5e7eb',
+              borderBottom: '1px solid var(--color-border)',
               flexShrink: 0,
               boxShadow: 'none',
             }}
@@ -441,12 +442,12 @@ export default function SqlPanel(): ReactElement {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              borderBottom: '1px solid #f0f0f0',
+              borderBottom: '1px solid var(--color-border-light)',
               flexShrink: 0,
             }}
           >
             {result && (
-              <span style={{ fontSize: 11, color: '#646a73' }}>
+              <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
                 {t('sql.rowCount', { count: result.row_count })}
                 {result.truncated && ` · ${t('sql.truncated')}`}
                 {elapsed !== null && ` · ${elapsed.toFixed(0)} ms`}

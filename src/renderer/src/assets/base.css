@@ -1,59 +1,174 @@
 /* ============================================================================
    YutuGIS Enterprise Design System
-   基于 Craft Agents 6 色系统理念，适配企业工作软件风格
+   配色取自设计规范：Bright white #ffffff / #262626 / #575E62 / #3569b3 /
+   #144484 / #D76227。单一事实来源：所有 UI 颜色/圆角/阴影均取自此处。
+   Blueprint.js 6 主题变量（--bp-*）在此一并覆写，组件无需逐个改样式。
    ============================================================================ */
 
 :root {
-  /* === 6 色系统 (Enterprise Light) === */
-  --color-primary: #1a6fb5;
-  --color-primary-hover: #155d99;
-  --color-primary-active: #114c7e;
-  --color-primary-bg: #e8f2fb;
+  color-scheme: dark;
 
-  --color-success: #2e8b57;
-  --color-success-bg: #eaf5ef;
-  --color-warning: #d4880f;
-  --color-warning-bg: #fdf4e3;
-  --color-error: #c5382c;
-  --color-error-bg: #fbe9e7;
+  /* === 品牌色 === */
+  --color-primary: #3569b3;
+  --color-primary-hover: #3f7ac9;
+  --color-primary-active: #144484;
+  --color-primary-bg: rgba(53, 105, 179, 0.18);
+  --color-primary-border: rgba(53, 105, 179, 0.5);
+  --color-accent-warm: #d76227;
 
-  /* === 表面与文字 === */
-  --color-bg: #ffffff;
-  --color-bg-panel: #f5f6f8;
-  --color-bg-elevated: #ffffff;
-  --color-bg-hover: #eef0f3;
-  --color-bg-selected: #e4edf6;
+  /* === 状态色 === */
+  --color-success: #3fb950;
+  --color-success-bg: rgba(63, 185, 80, 0.16);
+  --color-warning: #d76227;
+  --color-warning-bg: rgba(215, 98, 39, 0.16);
+  --color-error: #ef5350;
+  --color-error-bg: rgba(239, 83, 80, 0.16);
 
-  --color-text: #1f2329;
-  --color-text-secondary: #646a73;
-  --color-text-tertiary: #8f959e;
-  --color-text-disabled: #bbbfc4;
+  /* === 表面（中性灰阶，由 #262626 派生） === */
+  --color-bg: #262626;
+  --color-bg-panel: #2b2b2b;
+  --color-bg-elevated: #303030;
+  --color-bg-input: #383838;
+  --color-bg-hover: #3a3a3a;
+  --color-bg-selected: #444444;
+
+  --color-text: #ffffff;
+  --color-text-secondary: #c3c8cb;
+  --color-text-tertiary: #8b9297;
+  --color-text-disabled: #575e62;
 
   /* === 边框 === */
-  --color-border: #d9dce0;
-  --color-border-light: #e5e7eb;
-  --color-divider: #ebebeb;
+  --color-border: rgba(87, 94, 98, 0.45);
+  --color-border-light: rgba(87, 94, 98, 0.28);
+  --color-border-strong: #575e62;
+  --color-divider: rgba(87, 94, 98, 0.35);
 
-  /* === 阴影（极简） === */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  /* === 阴影 === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
 
-  /* === 圆角 (企业级 — 最小化) === */
-  --radius: 2px;
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
+  /* === 圆角 === */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
 
   /* === 间距 === */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
   --spacing-lg: 16px;
+  --spacing-xl: 20px;
 
   /* === 字体 === */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+
+  --font-size-micro: 10px;
+  --font-size-small: 11px;
+  --font-size-base: 12px;
+  --font-size-medium: 13px;
+
+  /* === 层级（单一来源，避免 z-index 魔法数字） === */
+  --z-map-overlay: 10;
+  --z-panel: 600;
+  --z-panel--front: 620;
+  --z-drag-overlay: 1000;
+  --z-context-menu: 1000;
+}
+
+/* ----------------------------------------------------------------------------
+   Blueprint.js 主题覆写（形状/色彩与上表一一对应）
+   ---------------------------------------------------------------------------- */
+:root,
+.bp6-dark,
+[data-bp-color-scheme='dark'] {
+  /* 强调 / intent */
+  --bp-intent-primary-rest: #3569b3;
+  --bp-intent-primary-hover: #3f7ac9;
+  --bp-intent-primary-active: #144484;
+  --bp-intent-primary-disabled: #2a4a75;
+  --bp-intent-primary-foreground: #ffffff;
+
+  --bp-intent-success-rest: #3fb950;
+  --bp-intent-success-hover: #4ecb60;
+  --bp-intent-success-active: #35a444;
+  --bp-intent-success-disabled: #2b6e35;
+  --bp-intent-success-foreground: #0d1013;
+
+  --bp-intent-warning-rest: #d76227;
+  --bp-intent-warning-hover: #e5723a;
+  --bp-intent-warning-active: #b24e1c;
+  --bp-intent-warning-disabled: #7a3c1a;
+  --bp-intent-warning-foreground: #ffffff;
+
+  --bp-intent-danger-rest: #ef5350;
+  --bp-intent-danger-hover: #f36a67;
+  --bp-intent-danger-active: #cf3f3c;
+  --bp-intent-danger-disabled: #8a3236;
+  --bp-intent-danger-foreground: #ffffff;
+
+  /* 表面 */
+  --bp-surface-background-color-default-rest: #303030;
+  --bp-surface-background-color-default-hover: #3a3a3a;
+  --bp-surface-background-color-default-active: #444444;
+  --bp-surface-background-color-default-disabled: #2a2a2a;
+
+  --bp-surface-background-color-primary-rest: #3569b3;
+  --bp-surface-background-color-primary-hover: #3f7ac9;
+  --bp-surface-background-color-primary-active: #144484;
+  --bp-surface-background-color-primary-disabled: #2a4a75;
+
+  --bp-surface-background-color-success-rest: #3fb950;
+  --bp-surface-background-color-success-hover: #4ecb60;
+  --bp-surface-background-color-success-active: #35a444;
+  --bp-surface-background-color-success-disabled: #2b6e35;
+
+  --bp-surface-background-color-warning-rest: #d76227;
+  --bp-surface-background-color-warning-hover: #e5723a;
+  --bp-surface-background-color-warning-active: #b24e1c;
+  --bp-surface-background-color-warning-disabled: #7a3c1a;
+
+  --bp-surface-background-color-danger-rest: #ef5350;
+  --bp-surface-background-color-danger-hover: #f36a67;
+  --bp-surface-background-color-danger-active: #cf3f3c;
+  --bp-surface-background-color-danger-disabled: #8a3236;
+
+  /* 文字 */
+  --bp-typography-family-default: var(--font-sans);
+  --bp-typography-family-mono: var(--font-mono);
+  --bp-typography-color-default-rest: #ffffff;
+  --bp-typography-color-default-hover: #ffffff;
+  --bp-typography-color-default-active: #e4e6e7;
+  --bp-typography-color-default-disabled: #6e7478;
+  --bp-typography-color-muted: #a0a6aa;
+
+  --bp-typography-color-primary-rest: #7aa9e6;
+  --bp-typography-color-primary-hover: #93bcf0;
+  --bp-typography-color-primary-active: #3569b3;
+  --bp-typography-color-primary-disabled: #2a4a75;
+
+  --bp-typography-color-success-rest: #4ecb60;
+  --bp-typography-color-warning-rest: #e5723a;
+  --bp-typography-color-danger-rest: #f36a67;
+
+  /* 边框 / 圆角 / 阴影 / 焦点 */
+  --bp-surface-border-color-default: rgba(87, 94, 98, 0.45);
+  --bp-surface-border-color-strong: #575e62;
+  --bp-surface-border-radius: 8px;
+  --bp-surface-shadow-1: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --bp-surface-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --bp-surface-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.55);
+  --bp-emphasis-focus-color: #3569b3;
+
+  --bp-palette-dark-gray-1: #262626;
+  --bp-palette-dark-gray-2: #303030;
+  --bp-palette-dark-gray-3: #3a3a3a;
+  --bp-palette-dark-gray-4: #444444;
+  --bp-palette-dark-gray-5: #575e62;
 }
 
 *,

@@ -8,7 +8,6 @@ import {
   Classes,
   Divider,
   HTMLTable,
-  Icon,
   Intent,
   SegmentedControl,
   Tag,
@@ -20,6 +19,7 @@ import { useMapStore } from '../../stores/mapStore'
 import { useLayerStore } from '../../stores/layerStore'
 import { useMapBboxSelect, viewportBbox } from '../../hooks/useMapBboxSelect'
 import BboxSelector from '../common/BboxSelector'
+import FloatingPanel from '../common/FloatingPanel'
 import { getGeoJSONBounds } from '../../utils/geo'
 import i18n from '../../i18n'
 import { message } from '../../utils/toaster'
@@ -242,12 +242,6 @@ export default function OsmExtractPanel({ map }: Props) {
 
   if (!open) return null
 
-  const labelStyle: React.CSSProperties = {
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#646a73',
-    margin: '6px 0 3px',
-  }
 
   const allVisibleSelected =
     visibleRows.length > 0 && visibleRows.every((r) => selectedKeys.includes(r.key))
@@ -269,32 +263,13 @@ export default function OsmExtractPanel({ map }: Props) {
   }
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 360,
-        maxHeight: 'calc(100% - 24px)',
-        overflowY: 'auto',
-        background: '#fff',
-        borderRadius: 4,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-        zIndex: 600,
-        padding: '10px 14px 14px',
-        border: '1px solid var(--color-border, #d9dce0)',
-        fontSize: 12,
-      }}
+    <FloatingPanel
+      title={t('osm.menuItem')}
+      icon="flash"
+      width={360}
+      onClose={handleClose}
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <div style={{ flex: 1, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Icon icon="flash" size={14} />
-          <span>{t('osm.menuItem')}</span>
-        </div>
-        <Button size="small" variant="minimal" icon="cross" onClick={handleClose} />
-      </div>
-
-      <div style={labelStyle}>范围（WGS-84）</div>
+      <div className="yutu-field-label">范围（WGS-84）</div>
       <div style={{ marginBottom: 8 }}>
         <BboxSelector
           bbox={bbox}
@@ -394,7 +369,7 @@ export default function OsmExtractPanel({ map }: Props) {
           )}
 
           {/* Feature List Table */}
-          <div style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 8, border: '1px solid #d9dce0', borderRadius: 3 }}>
+          <div style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 8, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
             <HTMLTable compact interactive style={{ width: '100%', fontSize: 11 }}>
               <thead>
                 <tr>
@@ -484,6 +459,6 @@ export default function OsmExtractPanel({ map }: Props) {
           </div>
         </>
       )}
-    </div>
+    </FloatingPanel>
   )
 }

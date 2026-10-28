@@ -6,12 +6,12 @@ import {
   Classes,
   Divider,
   HTMLSelect,
-  Icon,
   Intent,
   NumericInput,
 } from '@blueprintjs/core'
 import { nanoid } from 'nanoid'
 import { useTranslation } from 'react-i18next'
+import FloatingPanel from '../common/FloatingPanel'
 import { useAnalysisPanelStore } from '../../stores/analysisPanelStore'
 import { useLayerStore } from '../../stores/layerStore'
 import { useMapStore } from '../../stores/mapStore'
@@ -100,8 +100,8 @@ export default function AnalysisPanel(): ReactElement | null {
   const labelStyle: React.CSSProperties = {
     fontSize: 11,
     fontWeight: 600,
-    color: '#646a73',
-    margin: '6px 0 3px',
+    color: 'var(--color-text-secondary)',
+    margin: '8px 0 4px',
   }
 
   const doRun = async () => {
@@ -178,31 +178,12 @@ export default function AnalysisPanel(): ReactElement | null {
   }
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 320,
-        maxHeight: 'calc(100% - 24px)',
-        overflowY: 'auto',
-        background: '#fff',
-        borderRadius: 4,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-        zIndex: 600,
-        padding: '10px 14px 14px',
-        border: '1px solid var(--color-border, #d9dce0)',
-        fontSize: 12,
-      }}
+    <FloatingPanel
+      title={t('analysis.title')}
+      icon="lab-test"
+      width={320}
+      onClose={() => setOpen(false)}
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <div style={{ flex: 1, fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Icon icon="lab-test" size={14} />
-          <span>{t('analysis.title')}</span>
-        </div>
-        <Button size="small" variant="minimal" icon="cross" onClick={() => setOpen(false)} />
-      </div>
-
       <div style={labelStyle}>{t('analysis.operation')}</div>
       <HTMLSelect
         fill
@@ -328,6 +309,6 @@ export default function AnalysisPanel(): ReactElement | null {
         <p style={{ fontWeight: 600, marginBottom: 4 }}>{t('analysis.largeWarnTitle')}</p>
         <p className={Classes.TEXT_MUTED}>{t('analysis.largeWarn', { count: warnFeatureCount })}</p>
       </Alert>
-    </div>
+    </FloatingPanel>
   )
 }

@@ -27,17 +27,14 @@ export default function BasemapSwitcher() {
         position: 'absolute',
         bottom: 130,
         right: 10,
-        zIndex: 10,
+        zIndex: 'var(--z-map-overlay)',
       }}
     >
       <HTMLSelect
         value={provider}
         onChange={(e) => setProvider(e.target.value as MapProvider)}
         options={options}
-        style={{
-          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-          borderRadius: 3,
-        }}
+        style={{ borderRadius: 'var(--radius-sm)' }}
       />
     </div>
   )

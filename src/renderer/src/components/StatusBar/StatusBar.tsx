@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Classes, Tag } from '@blueprintjs/core'
+import { Tag } from '@blueprintjs/core'
 import { useMapStore } from '../../stores/mapStore'
 
 export default function StatusBar() {
@@ -11,23 +11,42 @@ export default function StatusBar() {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
         fontSize: 11,
         fontFamily: 'var(--font-mono, monospace)',
+        fontVariantNumeric: 'tabular-nums',
       }}
     >
-      <span className={Classes.TEXT_MUTED}>
-        {t('status.lng')}: <strong style={{ color: 'inherit' }}>{center[0].toFixed(4)}°</strong>
+      <span style={{ color: 'var(--color-text-tertiary)' }}>
+        {t('status.lng')}{' '}
+        <strong style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+          {center[0].toFixed(4)}°
+        </strong>
       </span>
-      <span className={Classes.TEXT_MUTED}>·</span>
-      <span className={Classes.TEXT_MUTED}>
-        {t('status.lat')}: <strong style={{ color: 'inherit' }}>{center[1].toFixed(4)}°</strong>
+      <span style={{ color: 'var(--color-text-tertiary)' }}>
+        {t('status.lat')}{' '}
+        <strong style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+          {center[1].toFixed(4)}°
+        </strong>
       </span>
-      <span className={Classes.TEXT_MUTED}>·</span>
-      <span className={Classes.TEXT_MUTED}>
-        {t('status.zoom')}: <strong style={{ color: 'inherit' }}>{zoom.toFixed(1)}</strong>
+      <span style={{ color: 'var(--color-text-tertiary)' }}>
+        {t('status.zoom')}{' '}
+        <strong style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+          {zoom.toFixed(1)}
+        </strong>
       </span>
-      <Tag minimal round style={{ fontSize: 10, minHeight: 16, height: 16, padding: '0 6px' }}>
+      <Tag
+        minimal
+        round
+        style={{
+          fontSize: 10,
+          minHeight: 16,
+          height: 16,
+          padding: '0 6px',
+          background: 'var(--color-bg-selected)',
+          color: 'var(--color-text-secondary)',
+        }}
+      >
         {t('status.crs')}: WGS84
       </Tag>
     </div>

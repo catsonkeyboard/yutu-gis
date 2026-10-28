@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import StatusDot from '../common/StatusDot'
+import { toggleFloatingPanel } from '../../stores/floatingPanels'
 import {
   Button,
   ButtonGroup,
-  Intent,
   Menu,
   MenuDivider,
   MenuItem,
@@ -59,21 +60,17 @@ export default function Toolbar({
   const vehicleConnected = useVehicleStore((s) => s.connected)
   const flightActive = useFlightStore((s) => s.active)
   const tilesPanelOpen = useTilesPanelStore((s) => s.open)
-  const setTilesPanelOpen = useTilesPanelStore((s) => s.setOpen)
   const osmPanelOpen = useOsmPanelStore((s) => s.open)
-  const setOsmPanelOpen = useOsmPanelStore((s) => s.setOpen)
+  const analysisOpen = useAnalysisPanelStore((s) => s.open)
   const attrTableOpen = useAttributeTableStore((s) => s.open)
   const setAttrTableOpen = useAttributeTableStore((s) => s.setOpen)
-  const analysisOpen = useAnalysisPanelStore((s) => s.open)
-  const setAnalysisOpen = useAnalysisPanelStore((s) => s.setOpen)
   const sqlOpen = useSqlPanelStore((s) => s.open)
   const setSqlOpen = useSqlPanelStore((s) => s.setOpen)
 
   const monitorPanelOpen = useMonitorStore((s) => s.panelOpen)
-  const setMonitorPanelOpen = useMonitorStore((s) => s.setPanelOpen)
   const monitorActive = useMonitorStore(isMonitorActive)
-
   const measureMode = useMeasureStore((s) => s.mode)
+
   const setMeasureMode = useMeasureStore((s) => s.setMode)
 
   const handleDraw = (mode: DrawMode) => {
@@ -105,14 +102,14 @@ export default function Toolbar({
   return (
     <Navbar
       style={{
-        height: 38,
-        minHeight: 38,
+        height: 40,
+        minHeight: 40,
         display: 'flex',
         alignItems: 'center',
         padding: '0 8px',
         boxShadow: 'none',
-        borderBottom: '1px solid var(--color-border, #d9dce0)',
-        backgroundColor: '#ffffff'
+        borderBottom: '1px solid var(--color-border)',
+        background: 'var(--color-bg-panel)'
       }}
     >
       <Navbar.Group style={{ height: '100%', gap: 2 }}>
@@ -145,56 +142,31 @@ export default function Toolbar({
             <Button
               icon="cloud-download"
               size="small"
-              active={tilesPanelOpen}
-              intent={tilesPanelOpen ? Intent.PRIMARY : undefined}
-              onClick={() => {
-                if (!tilesPanelOpen) {
-                  setOsmPanelOpen(false)
-                  setAnalysisOpen(false)
-                  setMonitorPanelOpen(false)
-                }
-                setTilesPanelOpen(!tilesPanelOpen)
-              }}
+              className={tilesPanelOpen ? 'yutu-tool-active' : undefined}
+              onClick={() => toggleFloatingPanel('tiles', !tilesPanelOpen)}
             />
           </Tooltip>
           <Tooltip content={t('osm.menuItem')} placement="bottom">
             <Button
               icon="flash"
               size="small"
-              active={osmPanelOpen}
-              intent={osmPanelOpen ? Intent.PRIMARY : undefined}
-              onClick={() => {
-                if (!osmPanelOpen) {
-                  setTilesPanelOpen(false)
-                  setAnalysisOpen(false)
-                  setMonitorPanelOpen(false)
-                }
-                setOsmPanelOpen(!osmPanelOpen)
-              }}
+              className={osmPanelOpen ? 'yutu-tool-active' : undefined}
+              onClick={() => toggleFloatingPanel('osm', !osmPanelOpen)}
             />
           </Tooltip>
           <Tooltip content={t('analysis.title')} placement="bottom">
             <Button
               icon="lab-test"
               size="small"
-              active={analysisOpen}
-              intent={analysisOpen ? Intent.PRIMARY : undefined}
-              onClick={() => {
-                if (!analysisOpen) {
-                  setTilesPanelOpen(false)
-                  setOsmPanelOpen(false)
-                  setMonitorPanelOpen(false)
-                }
-                setAnalysisOpen(!analysisOpen)
-              }}
+              className={analysisOpen ? 'yutu-tool-active' : undefined}
+              onClick={() => toggleFloatingPanel('analysis', !analysisOpen)}
             />
           </Tooltip>
           <Tooltip content={t('attrTable.title')} placement="bottom">
             <Button
               icon="th"
               size="small"
-              active={attrTableOpen}
-              intent={attrTableOpen ? Intent.PRIMARY : undefined}
+              className={attrTableOpen ? 'yutu-tool-active' : undefined}
               onClick={() => {
                 if (!attrTableOpen) setSqlOpen(false)
                 setAttrTableOpen(!attrTableOpen)
@@ -205,8 +177,7 @@ export default function Toolbar({
             <Button
               icon="database"
               size="small"
-              active={sqlOpen}
-              intent={sqlOpen ? Intent.PRIMARY : undefined}
+              className={sqlOpen ? 'yutu-tool-active' : undefined}
               onClick={() => {
                 if (!sqlOpen) setAttrTableOpen(false)
                 setSqlOpen(!sqlOpen)
@@ -223,8 +194,7 @@ export default function Toolbar({
             <Button
               icon="map-marker"
               size="small"
-              active={drawMode === 'point'}
-              intent={drawMode === 'point' ? Intent.PRIMARY : undefined}
+              className={drawMode === 'point' ? 'yutu-tool-active' : undefined}
               onClick={() => handleDraw('point')}
             />
           </Tooltip>
@@ -232,8 +202,7 @@ export default function Toolbar({
             <Button
               icon="path"
               size="small"
-              active={drawMode === 'line'}
-              intent={drawMode === 'line' ? Intent.PRIMARY : undefined}
+              className={drawMode === 'line' ? 'yutu-tool-active' : undefined}
               onClick={() => handleDraw('line')}
             />
           </Tooltip>
@@ -241,8 +210,7 @@ export default function Toolbar({
             <Button
               icon="polygon-filter"
               size="small"
-              active={drawMode === 'polygon'}
-              intent={drawMode === 'polygon' ? Intent.PRIMARY : undefined}
+              className={drawMode === 'polygon' ? 'yutu-tool-active' : undefined}
               onClick={() => handleDraw('polygon')}
             />
           </Tooltip>
@@ -250,8 +218,7 @@ export default function Toolbar({
             <Button
               icon="arrows-horizontal"
               size="small"
-              active={measureMode === 'distance'}
-              intent={measureMode === 'distance' ? Intent.PRIMARY : undefined}
+              className={measureMode === 'distance' ? 'yutu-tool-active' : undefined}
               onClick={() => handleMeasure('distance')}
             />
           </Tooltip>
@@ -259,8 +226,7 @@ export default function Toolbar({
             <Button
               icon="maximize"
               size="small"
-              active={measureMode === 'area'}
-              intent={measureMode === 'area' ? Intent.PRIMARY : undefined}
+              className={measureMode === 'area' ? 'yutu-tool-active' : undefined}
               onClick={() => handleMeasure('area')}
             />
           </Tooltip>
@@ -298,24 +264,10 @@ export default function Toolbar({
                 icon="drive-time"
                 variant="minimal"
                 size="small"
-                active={vehicleConnected}
-                intent={vehicleConnected ? Intent.PRIMARY : undefined}
+                className={vehicleConnected ? 'yutu-tool-live' : undefined}
                 onClick={() => setVehicleTrackingOpen(true)}
               />
-              {vehicleConnected && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    backgroundColor: '#15b374',
-                    pointerEvents: 'none'
-                  }}
-                />
-              )}
+              {vehicleConnected && <StatusDot />}
             </span>
           </Tooltip>
           <VehicleTrackingModal
@@ -329,24 +281,10 @@ export default function Toolbar({
                 icon="airplane"
                 variant="minimal"
                 size="small"
-                active={flightActive}
-                intent={flightActive ? Intent.PRIMARY : undefined}
+                className={flightActive ? 'yutu-tool-live' : undefined}
                 onClick={() => setFlightTrackingOpen(true)}
               />
-              {flightActive && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    backgroundColor: '#15b374',
-                    pointerEvents: 'none'
-                  }}
-                />
-              )}
+              {flightActive && <StatusDot />}
             </span>
           </Tooltip>
           <FlightTrackingModal
@@ -360,31 +298,16 @@ export default function Toolbar({
                 icon="pulse"
                 variant="minimal"
                 size="small"
-                active={monitorPanelOpen}
-                intent={monitorActive || monitorPanelOpen ? Intent.PRIMARY : undefined}
-                onClick={() => {
-                  if (!monitorPanelOpen) {
-                    setTilesPanelOpen(false)
-                    setOsmPanelOpen(false)
-                    setAnalysisOpen(false)
-                  }
-                  setMonitorPanelOpen(!monitorPanelOpen)
-                }}
+                className={
+                  monitorPanelOpen
+                    ? 'yutu-tool-active'
+                    : monitorActive
+                      ? 'yutu-tool-live'
+                      : undefined
+                }
+                onClick={() => toggleFloatingPanel('monitor', !monitorPanelOpen)}
               />
-              {monitorActive && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    backgroundColor: '#15b374',
-                    pointerEvents: 'none'
-                  }}
-                />
-              )}
+              {monitorActive && <StatusDot />}
             </span>
           </Tooltip>
         </div>

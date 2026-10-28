@@ -147,17 +147,17 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
     <div style={{ paddingTop: 8 }}>
       <div
         style={{
-          background: '#f0f7ff',
-          border: '1px solid #d0e4f5',
-          borderRadius: 3,
+          background: 'var(--color-primary-bg)',
+          border: '1px solid var(--color-primary-border)',
+          borderRadius: 'var(--radius)',
           padding: '10px 12px',
           marginBottom: 14,
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#1f2329', marginBottom: 4 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)', marginBottom: 4 }}>
           adsb.fi 开放数据
         </div>
-        <div style={{ fontSize: 11, color: '#646a73', lineHeight: '16px' }}>
+        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', lineHeight: '16px' }}>
           adsb.fi 提供免费、无需认证的航空器实时定位数据。基于当前地图视野中心点 + 视野半径自动获取数据。
         </div>
         <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
@@ -184,16 +184,16 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
     <div style={{ paddingTop: 8 }}>
       <div
         style={{
-          background: '#f5f6f8',
-          border: '1px solid #e5e7eb',
-          borderRadius: 3,
+          background: 'var(--color-bg-panel)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius)',
           padding: '10px 12px',
           marginBottom: 14,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2329' }}>OAuth2 认证配置</span>
-          <span style={{ fontSize: 11, color: '#8f959e' }}>可选 — 匿名模式有请求限制</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)' }}>OAuth2 认证配置</span>
+          <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>可选 — 匿名模式有请求限制</span>
         </div>
 
         <FormGroup label="Client ID" style={{ marginBottom: 8 }}>
@@ -325,16 +325,16 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
                 alignItems: 'center',
                 marginBottom: 8,
                 padding: '6px 0',
-                borderBottom: '1px solid #ebebeb',
+                borderBottom: '1px solid var(--color-border)',
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2329' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
                 实时监控面板
-                <span style={{ fontSize: 11, color: '#8f959e', fontWeight: 400, marginLeft: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', fontWeight: 400, marginLeft: 8 }}>
                   数据源：{sourceLabel}
                 </span>
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#646a73' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-text-secondary)' }}>
                 {fetching && <Spinner size={14} />}
                 <span>更新：{formatTime(lastUpdate)}</span>
               </div>
@@ -345,38 +345,38 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
               <div
                 style={{
                   flex: 1,
-                  background: '#f0f7ff',
+                  background: 'var(--color-primary-bg)',
                   padding: '8px 10px',
-                  borderRadius: 3,
-                  border: '1px solid #d0e4f5',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--color-primary-border)',
                 }}
               >
-                <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 2 }}>航空器总数</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#1a6fb5' }}>{flightCount}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>航空器总数</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-primary)' }}>{flightCount}</div>
               </div>
               <div
                 style={{
                   flex: 1,
-                  background: '#eaf5ef',
+                  background: 'var(--color-success-bg)',
                   padding: '8px 10px',
-                  borderRadius: 3,
-                  border: '1px solid #c8e6d5',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--color-primary-border)',
                 }}
               >
-                <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 2 }}>空中飞行</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#2e8b57' }}>{airborne}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>空中飞行</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-success)' }}>{airborne}</div>
               </div>
               <div
                 style={{
                   flex: 1,
-                  background: '#fff7ed',
+                  background: 'var(--color-warning-bg)',
                   padding: '8px 10px',
-                  borderRadius: 3,
-                  border: '1px solid #f0d9b5',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--color-primary-border)',
                 }}
               >
-                <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 2 }}>地面停靠</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#c57600' }}>{grounded}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>地面停靠</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-warning)' }}>{grounded}</div>
               </div>
             </div>
 
@@ -408,19 +408,19 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
                         display: 'flex',
                         alignItems: 'center',
                         padding: '6px 8px',
-                        borderRadius: 3,
-                        border: '1px solid #e5e7eb',
-                        background: '#ffffff',
+                        borderRadius: 'var(--radius)',
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-bg-elevated)',
                         gap: 8,
                       }}
                     >
-                      <span style={{ fontSize: 14, color: '#1a6fb5' }}>✈</span>
+                      <span style={{ fontSize: 14, color: 'var(--color-primary)' }}>✈</span>
                       <div style={{ flex: '1 1 0', minWidth: 0 }}>
                         <div
                           style={{
                             fontSize: 12,
                             fontWeight: 600,
-                            color: '#1f2329',
+                            color: 'var(--color-text)',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -428,7 +428,7 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
                         >
                           {f.callsign || f.icao24}
                         </div>
-                        <div style={{ fontSize: 10, color: '#8f959e' }}>
+                        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
                           {f.originCountry ? `${f.originCountry} · ` : ''}
                           {f.icao24}
                         </div>
@@ -436,24 +436,24 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         <span
                           style={{
-                            background: '#f5f6f8',
+                            background: 'var(--color-bg-panel)',
                             padding: '1px 5px',
                             borderRadius: 2,
                             fontSize: 10,
-                            color: '#1f2329',
-                            border: '1px solid #e5e7eb',
+                            color: 'var(--color-text)',
+                            border: '1px solid var(--color-border)',
                           }}
                         >
                           {f.baroAltitude != null ? `${Math.round(f.baroAltitude)}m` : '--'}
                         </span>
                         <span
                           style={{
-                            background: '#f5f6f8',
+                            background: 'var(--color-bg-panel)',
                             padding: '1px 5px',
                             borderRadius: 2,
                             fontSize: 10,
-                            color: '#1f2329',
-                            border: '1px solid #e5e7eb',
+                            color: 'var(--color-text)',
+                            border: '1px solid var(--color-border)',
                           }}
                         >
                           {f.velocity != null ? `${Math.round(f.velocity)}m/s` : '--'}
@@ -469,7 +469,7 @@ export default function FlightTrackingModal({ open, onClose }: Props): ReactElem
                     </div>
                   ))}
                 {flightCount > 50 && (
-                  <div style={{ fontSize: 11, color: '#8f959e', textAlign: 'center', padding: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', textAlign: 'center', padding: 4 }}>
                     仅显示前 50 条，共 {flightCount} 架航空器
                   </div>
                 )}

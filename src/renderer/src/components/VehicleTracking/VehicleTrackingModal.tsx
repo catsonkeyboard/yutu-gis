@@ -191,13 +191,13 @@ export default function VehicleTrackingModal({ open, onClose }: Props): ReactEle
                 alignItems: 'center',
                 marginBottom: 8,
                 padding: '6px 0',
-                borderBottom: '1px solid #ebebeb',
+                borderBottom: '1px solid var(--color-border)',
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2329' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
                 实时数据面板
               </span>
-              <span style={{ fontSize: 12, color: '#646a73' }}>
+              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
                 跟踪车辆：{deviceCount}
               </span>
             </div>
@@ -227,9 +227,9 @@ export default function VehicleTrackingModal({ open, onClose }: Props): ReactEle
                       display: 'flex',
                       flexDirection: 'column',
                       padding: '8px 10px',
-                      borderRadius: 3,
-                      border: '1px solid #d9dce0',
-                      background: '#ffffff',
+                      borderRadius: 'var(--radius)',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-bg-elevated)',
                     }}
                   >
                     <div
@@ -240,7 +240,7 @@ export default function VehicleTrackingModal({ open, onClose }: Props): ReactEle
                         marginBottom: 6,
                       }}
                     >
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2329' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
                         {d.devNo}
                       </span>
                       <Tag intent={Intent.SUCCESS} minimal style={{ fontSize: 10 }}>
@@ -252,44 +252,44 @@ export default function VehicleTrackingModal({ open, onClose }: Props): ReactEle
                       <div
                         style={{
                           flex: 1,
-                          background: '#f5f6f8',
+                          background: 'var(--color-bg-panel)',
                           padding: '4px 8px',
                           borderRadius: 2,
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--color-border)',
                         }}
                       >
-                        <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 1 }}>速度</div>
-                        <div style={{ color: '#1f2329', fontWeight: 600, fontSize: 12 }}>
-                          {d.speed} <span style={{ fontSize: 10, fontWeight: 'normal', color: '#8f959e' }}>km/h</span>
+                        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 1 }}>速度</div>
+                        <div style={{ color: 'var(--color-text)', fontWeight: 600, fontSize: 12 }}>
+                          {d.speed} <span style={{ fontSize: 10, fontWeight: 'normal', color: 'var(--color-text-tertiary)' }}>km/h</span>
                         </div>
                       </div>
                       <div
                         style={{
                           flex: 1,
-                          background: '#f5f6f8',
+                          background: 'var(--color-bg-panel)',
                           padding: '4px 8px',
                           borderRadius: 2,
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--color-border)',
                         }}
                       >
-                        <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 1 }}>方向</div>
-                        <div style={{ color: '#1f2329', fontWeight: 600, fontSize: 12 }}>
+                        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 1 }}>方向</div>
+                        <div style={{ color: 'var(--color-text)', fontWeight: 600, fontSize: 12 }}>
                           {d.direct}°
                         </div>
                       </div>
                       <div
                         style={{
                           flex: 1.5,
-                          background: '#f5f6f8',
+                          background: 'var(--color-bg-panel)',
                           padding: '4px 8px',
                           borderRadius: 2,
-                          border: '1px solid #e5e7eb',
+                          border: '1px solid var(--color-border)',
                         }}
                       >
-                        <div style={{ fontSize: 10, color: '#8f959e', marginBottom: 1 }}>坐标</div>
+                        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginBottom: 1 }}>坐标</div>
                         <div
                           style={{
-                            color: '#1f2329',
+                            color: 'var(--color-text)',
                             fontWeight: 500,
                             fontSize: 11,
                             fontFamily: 'Menlo, Consolas, monospace',
