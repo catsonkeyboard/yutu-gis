@@ -11,6 +11,7 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import { useDrawStore } from '../../stores/drawStore'
 import DrawHintBanner from './DrawHintBanner'
+import { drawStyles } from './drawStyles'
 import MapContextMenu, { type ContextMenuPos } from './MapContextMenu'
 import VehicleLayer, { bringVehicleLayersToTop } from './VehicleLayer'
 import FlightLayer, { bringFlightLayersToTop } from './FlightLayer'
@@ -312,7 +313,7 @@ export default function MapCanvas({ onSave }: Props) {
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
 
-    const draw = new MapboxDraw({ displayControlsDefault: false })
+    const draw = new MapboxDraw({ displayControlsDefault: false, styles: drawStyles })
     map.addControl(draw as unknown as maplibregl.IControl)
     drawRef.current = draw
 
